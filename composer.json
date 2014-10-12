@@ -1,0 +1,24 @@
+{
+    "name": "icomefromthenet/book-me",
+    "description": "MYSQL Timeslot Booking Library for Field Services",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "icomefromthenet",
+            "email": "getintouch@icomefromthenet.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require-dev": {
+	 "phpunit/phpunit": "3.7.*",
+	 "pimple/pimple" : "1.0.*"
+    },
+    "require" : {
+	"ext-dom": "*",
+	"ext-spl": "*",
+	"ext-pcre": "*",
+	"doctrine/common" : "2.3.*",
+	"doctrine/dbal" : "2.3.*",
+	"monolog/monolog" : "~1.5"
+     }
+}
