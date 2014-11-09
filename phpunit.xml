@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+         backupGlobals="false"
+         backupStaticAttributes="false"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         syntaxCheck="false"
+         bootstrap="vendor/autoload.php"
+>
+    <php>
+        <var name="DB_USER" value="devbox" />
+        <var name="DB_PASSWD" value="devboxpwis" />
+        <var name="DB_DBNAME" value="bookme" />
+    </php>
+    <testsuites>
+        <testsuite name="default">
+            <directory suffix="Test.php">src/Tests/</directory>
+            <exclude>src/Tests/BasicTest.php</exclude>
+        </testsuite>
+  </testsuites>  
+    
+</phpunit>
