@@ -23,5 +23,5 @@
 	"pimple/pimple" : "3.0.*",
 	"symfony/event-dispatcher" : "2.*"
     },
-      "autoload": { "psr-4" : { "IComeFromTheNet\\BookMe" : "src/" } }
+      "autoload": { "psr-4" : { "IComeFromTheNet\\BookMe\\" : "src/" } }
 }

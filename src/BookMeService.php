@@ -16,7 +16,7 @@ class BookMeService extends Container
 {
     
     
-    public function __construct(Connection $dbal,LoggerInterface $log,EventDispatcherInterface $dispatcher)
+    public function __construct(Connection $dbal,LoggerInterface $logger,EventDispatcherInterface $dispatcher)
     {
         $this['database'] = $dbal;
         $this['logger']   = $logger;

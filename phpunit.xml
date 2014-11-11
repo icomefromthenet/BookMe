@@ -12,7 +12,7 @@
 >
     <php>
         <var name="DB_USER" value="devbox" />
-        <var name="DB_PASSWD" value="devboxpwis" />
+        <var name="DB_PASSWD" value="devboxpwis?" />
         <var name="DB_DBNAME" value="bookme" />
     </php>
     <testsuites>

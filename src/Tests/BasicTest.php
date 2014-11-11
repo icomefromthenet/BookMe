@@ -28,7 +28,7 @@ class BasicTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-      
+
     }
 
 
@@ -44,11 +44,31 @@ class BasicTest extends PHPUnit_Framework_TestCase
       *
       *  @return Faker\Project
       */
-    public function getProject()
+    public function getContainer()
     {
         if(self::$project === null) {
-            $boot    = new BookMeService($this->getDoctrineConnection(),$this->getLogger());
-            self::$project->boot();
+            
+            # truncate and setup the schema
+            $doctrine = $this->getDoctrineConnection();
+            $eventDispatcher = $this->getEventDispatcher();
+            $log = $this->getLogger();
+            
+            # build schema
+            $sqlFile = realpath(__DIR__.'/../../database/create.sql');
+            
+            if(false === file_exists($sqlFile)) {
+                $this->assertFalse(false,"The Database Create SQL file not found at $sqlFile");
+            }
+            
+            $command = 'mysql -u '.$GLOBALS['DB_USER'].' -p'.$GLOBALS['DB_PASSWD'] .' '.$GLOBALS['DB_DBNAME'] .' < '. $sqlFile; 
+            exec($command);
+ 
+            # execute install functions
+            $doctrine->exec('set @bm_debug = true;');
+            $doctrine->exec('call bm_install_run()');
+            
+            # bootstrap the container            
+            self::$project  = new BookMeService($doctrine,$log,$eventDispatcher);
         }
         
         return self::$project;
@@ -65,11 +85,9 @@ class BasicTest extends PHPUnit_Framework_TestCase
     */
     protected function getDoctrineConnection()
     {
-        if(self::$doctrine_connection === null) {
-        
-            $config = new \Doctrine\DBAL\Configuration();
+        $config = new \Doctrine\DBAL\Configuration();
             
-            $connectionParams = array(
+        $connectionParams = array(
                 'dbname' => $GLOBALS['DB_DBNAME'],
                 'user' => $GLOBALS['DB_USER'],
                 'password' => $GLOBALS['DB_PASSWD'],
@@ -77,11 +95,7 @@ class BasicTest extends PHPUnit_Framework_TestCase
                 'driver' => 'pdo_mysql',
             );
         
-           self::$doctrine_connection = \Doctrine\DBAL\DriverManager::getConnection($connectionParams, $config);
-        }
-        
-        return self::$doctrine_connection;
-        
+        return \Doctrine\DBAL\DriverManager::getConnection($connectionParams, $config);
     }
     
     
