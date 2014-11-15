@@ -28,7 +28,7 @@ class BasicTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-
+        $container = $this->getContainer();
     }
 
 
@@ -54,16 +54,21 @@ class BasicTest extends PHPUnit_Framework_TestCase
             $log = $this->getLogger();
             
             # build schema
-            $sqlFile = realpath(__DIR__.'/../../database/create.sql');
+            $sqlFile = realpath(__DIR__.'/../../database/create.sh');
             
             if(false === file_exists($sqlFile)) {
                 $this->assertFalse(false,"The Database Create SQL file not found at $sqlFile");
             }
             
-            $command = 'mysql -u '.$GLOBALS['DB_USER'].' -p'.$GLOBALS['DB_PASSWD'] .' '.$GLOBALS['DB_DBNAME'] .' < '. $sqlFile; 
-            exec($command);
- 
+            $command = $sqlFile.' '.$GLOBALS['DB_DBNAME'] .' '.$GLOBALS['DB_USER'].' '.$GLOBALS['DB_PASSWD'];
+            
+            fwrite(STDOUT, 'Execute datbase build '.PHP_EOL);
+            ob_start();
+            system($command);
+            fwrite(STDOUT, ob_get_contents().PHP_EOL);
+            
             # execute install functions
+            fwrite(STDOUT, 'Execute bm_install_run()'.PHP_EOL);
             $doctrine->exec('set @bm_debug = true;');
             $doctrine->exec('call bm_install_run()');
             

@@ -8,6 +8,14 @@ class InstallTest extends BasicTest
 {
     
     
+     public function setUp()
+    {
+        # bootstrap the container
+        $container = $this->getContainer();
+    }
+
+    
+    
     public function testInstallMethod()
     {
         $container = $this->getContainer();
