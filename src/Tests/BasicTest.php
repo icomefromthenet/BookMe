@@ -10,7 +10,7 @@ class BasicTest extends PHPUnit_Framework_TestCase
     /**
       *  @var IComeFromTheNet\BookMe\BookMeService
       */
-    public static $project;
+    public $project;
 
     
     //  ----------------------------------------------------------------------------
@@ -20,7 +20,7 @@ class BasicTest extends PHPUnit_Framework_TestCase
       */
     public function __construct()
     {
-        $this->preserveGlobalState = false;
+        $this->preserveGlobalState = true;
         $this->runTestInSeperateProcess = false;
         
     }
@@ -28,7 +28,7 @@ class BasicTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $container = $this->getContainer();
+        
     }
 
 
@@ -46,37 +46,18 @@ class BasicTest extends PHPUnit_Framework_TestCase
       */
     public function getContainer()
     {
-        if(self::$project === null) {
+        if($this->project === null) {
             
             # truncate and setup the schema
             $doctrine = $this->getDoctrineConnection();
             $eventDispatcher = $this->getEventDispatcher();
             $log = $this->getLogger();
             
-            # build schema
-            $sqlFile = realpath(__DIR__.'/../../database/create.sh');
-            
-            if(false === file_exists($sqlFile)) {
-                $this->assertFalse(false,"The Database Create SQL file not found at $sqlFile");
-            }
-            
-            $command = $sqlFile.' '.$GLOBALS['DB_DBNAME'] .' '.$GLOBALS['DB_USER'].' '.$GLOBALS['DB_PASSWD'];
-            
-            fwrite(STDOUT, 'Execute datbase build '.PHP_EOL);
-            ob_start();
-            system($command);
-            fwrite(STDOUT, ob_get_contents().PHP_EOL);
-            
-            # execute install functions
-            fwrite(STDOUT, 'Execute bm_install_run()'.PHP_EOL);
-            $doctrine->exec('set @bm_debug = true;');
-            $doctrine->exec('call bm_install_run()');
-            
             # bootstrap the container            
-            self::$project  = new BookMeService($doctrine,$log,$eventDispatcher);
+            $this->project  = new BookMeService($doctrine,$log,$eventDispatcher);
         }
         
-        return self::$project;
+        return $this->project;
     }
 
     //  -------------------------------------------------------------------------

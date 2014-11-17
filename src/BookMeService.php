@@ -6,6 +6,7 @@ use Pimple\Container;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use IComeFromTheNet\BookMe\Events\AppActivityLogHandler;
 
 /**
  * Book Me Service and DI Container
@@ -17,13 +18,66 @@ class BookMeService extends Container
 {
     
     
+    /**
+     * Get defintion of services should be called only once
+     * 
+     * @return void
+     * @access protected
+     */ 
+    protected function build()
+    {
+        $this['appActivityLog'] = function($c) {
+            return new AppActivityLogHandler($this->getDatabase());
+        };
+        
+        
+    }
+    
+    
+    
+    
     public function __construct(Connection $dbal,LoggerInterface $logger,EventDispatcherInterface $dispatcher)
     {
         $this['database'] = $dbal;
         $this['logger']   = $logger;
         $this['eventDispatcher'] = $dispatcher;
+        $this['booted'] = false;
         
     }
+    
+    /**
+     * Gets the Service ready for operation.
+     * 
+     * 1. Build Dependency Graph
+     * 2. Wire up event handlers
+     * 
+     * Will only boot once.
+     * 
+     * @return $this;
+     * @access public
+     */ 
+    public function boot()
+    {
+        if(false === $this['booted']) {
+        
+            $this->build();
+        
+            $eventDispatcher  = $this->getEventDispatcher();
+            $database   = $this->getDatabase();
+            $logHandler = $this['appActivityLog'];
+    
+            # subscribe events to database activity log.
+            $eventDispatcher->addSubscriber($logHandler);
+            
+        
+        }
+        
+        
+        return $this;
+        
+    }
+    
+    
     
     //----------------------------------------
     // Membership, Schedules and Schedule Groups.

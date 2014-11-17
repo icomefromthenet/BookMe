@@ -301,6 +301,21 @@ CREATE TABLE IF NOT EXISTS `bookings` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `bookings`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `app_activity_log` ;
+
+CREATE TABLE IF NOT EXISTS `app_activity_log` (
+  `activity_id` INT NOT NULL,
+  `activity_date` DATETIME NOT NULL,
+  `activity_name` VARCHAR(32) NOT NULL,
+  `activity_description` VARCHAR(255) NOT NULL,
+  `username`  varchar(255) NOT NULL,
+  `entity_id` INT NULL, 
+  PRIMARY KEY (`activity_id`))
+ENGINE = InnoDB;
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
