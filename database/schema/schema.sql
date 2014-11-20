@@ -307,7 +307,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `app_activity_log` ;
 
 CREATE TABLE IF NOT EXISTS `app_activity_log` (
-  `activity_id` INT NOT NULL,
+  `activity_id` INT NOT NULL AUTO_INCREMENT,
   `activity_date` DATETIME NOT NULL,
   `activity_name` VARCHAR(32) NOT NULL,
   `activity_description` VARCHAR(255) NOT NULL,

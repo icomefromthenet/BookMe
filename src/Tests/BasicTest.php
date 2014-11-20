@@ -2,6 +2,7 @@
 namespace IComeFromTheNet\BookMe\Tests;
 
 use IComeFromTheNet\BookMe\BookMeService;
+use IComeFromTheNet\BookMe\Events\AppUserInterface;
 use \PHPUnit_Framework_TestCase;
 
 class BasicTest extends PHPUnit_Framework_TestCase
@@ -52,9 +53,11 @@ class BasicTest extends PHPUnit_Framework_TestCase
             $doctrine = $this->getDoctrineConnection();
             $eventDispatcher = $this->getEventDispatcher();
             $log = $this->getLogger();
+            $user = $this->getBootstrapUser();
             
             # bootstrap the container            
-            $this->project  = new BookMeService($doctrine,$log,$eventDispatcher);
+            $this->project  = new BookMeService($doctrine,$log,$eventDispatcher,$user);
+            $this->project->boot();
         }
         
         return $this->project;
@@ -101,6 +104,11 @@ class BasicTest extends PHPUnit_Framework_TestCase
         return new \Symfony\Component\EventDispatcher\EventDispatcher();    
     }
     
+    
+    protected function getBootstrapUser()
+    {
+        return $this->getMock('IComeFromTheNet\BookMe\Events\AppUserInterface');
+    }
    
     
 }

@@ -7,6 +7,10 @@ use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use IComeFromTheNet\BookMe\Events\AppActivityLogHandler;
+use IComeFromTheNet\BookMe\Events\AppDatabaseLogger;
+use IComeFromTheNet\BookMe\Events\AppUserInterface;
+
+
 
 /**
  * Book Me Service and DI Container
@@ -26,21 +30,23 @@ class BookMeService extends Container
      */ 
     protected function build()
     {
-        $this['appActivityLog'] = function($c) {
-            return new AppActivityLogHandler($this->getDatabase());
+        $this['appDatabaseLogger'] = function($c) {
+             return new AppDatabaseLogger($this->getDatabase());
         };
         
-        
+        $this['appActivityLog'] = function($c) {
+            return new AppActivityLogHandler($this['appDatabaseLogger'] ,$this->getAppUser());
+        };
     }
     
     
     
-    
-    public function __construct(Connection $dbal,LoggerInterface $logger,EventDispatcherInterface $dispatcher)
+    public function __construct(Connection $dbal,LoggerInterface $logger,EventDispatcherInterface $dispatcher,AppUserInterface $user)
     {
         $this['database'] = $dbal;
         $this['logger']   = $logger;
         $this['eventDispatcher'] = $dispatcher;
+        $this['user'] = $user;
         $this['booted'] = false;
         
     }
@@ -150,6 +156,25 @@ class BookMeService extends Container
         
         
     }
+    
+    /**
+     * This will delete an unsed schedule from the database.
+     * 
+     * If this schedule is used in booking than the FK relation will
+     * stop the delete operation.
+     * 
+     * This can be used to remove mistakenly added future schedules.
+     * eg. if you added a schedule to start next week but deided to change
+     * the schedule group as no books you can delete it instead
+     * 
+     */ 
+    public function removeUnusedSchedule($scheduleID)
+    {
+        
+        
+    }
+    
+    
     
     /**
      * Create a schedule group that are used to group schedules.
@@ -351,6 +376,16 @@ class BookMeService extends Container
     public function getEventDispatcher()
     {
         return $this['eventDispatcher'];
+    }
+    
+    /**
+     * Return the current user that bootstraped this service
+     * 
+     * @return AppUserInterface
+     */ 
+    public function getAppUser()
+    {
+        return $this['user'];
     }
     
     

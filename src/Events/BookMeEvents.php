@@ -14,6 +14,7 @@ final class BookMeEvents
     
     const ScheduleRegistered        = 'bookme.schedule.registration';
     const ScheduleRetired           = 'bookme.schedule.retired';
+    const ScheduleRemoved           = 'bookme.schedule.removed';
     
     const SchduleGroupCreated       = 'bookme.group.created';
     const SchduleGroupRetired       = 'bookme.group.retired';
