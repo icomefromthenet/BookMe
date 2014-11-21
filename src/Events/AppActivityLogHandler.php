@@ -49,9 +49,15 @@ class AppActivityLogHandler implements EventSubscriberInterface
         );
     }
     
-    public function onMembershipRego(Event $event)
+    public function onMembershipRego(MembershipEvent $event,$eventName)
     {
+        $entityID            = $event->getEntityID();
+        $activityName        = $eventName;
+        $activityDescription = sprintf('Added new membership with id %s',$entityID);
+        $username            = $this->getAppUser()->getUserIdentifier();
         
+        return $this->getLogger()->writeLog($activityName ,$activityDescription,$username,$entityID);
+
     }
     
     

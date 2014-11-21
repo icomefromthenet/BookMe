@@ -9,6 +9,9 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use IComeFromTheNet\BookMe\Events\AppActivityLogHandler;
 use IComeFromTheNet\BookMe\Events\AppDatabaseLogger;
 use IComeFromTheNet\BookMe\Events\AppUserInterface;
+use IComeFromTheNet\BookMe\Events\BookMeEvents;
+use IComeFromTheNet\BookMe\Events\MembershipEvent;
+
 
 
 
@@ -111,6 +114,37 @@ class BookMeService extends Container
      */
     public function registerMembership()
     {
+        $membershipID = null;
+        $db           = $this->getDatabaseAdapter();
+        
+        
+        try {
+            # start a transaction 
+            $db->beginTransaction();
+             
+            $db->executeQuery('call bm_add_membership(:memberID)'
+                            ,array(':memberID' => $membershipID)
+                            ,array(':memberID' => \PDO::PARAM_INT|PDO::PARAM_INPUT_OUTPUT)
+            );
+            
+            # dispatch the event is sucessful
+            $this->getEventDispatcher()->dispatch(BookMeEvents::MemberRegistered,new MembershipEvent($membershipID));    
+            
+            # no errors commit the transation
+            $db->commit();
+            
+        } catch(DBHException $e) {
+            # from the stored procedure execution
+            $db->rollBack();
+            throw new BookMeException($e->getMessage(),0,$e);
+            
+        } catch(BookMeException $e) {
+            # come back from our logger
+            $db->rollBack();
+            throw $e;
+        }
+        
+        return $membershipID;
         
     }
     

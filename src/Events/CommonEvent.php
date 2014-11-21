@@ -3,18 +3,25 @@ namespace IComeFromTheNet\BookMe\Events;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
- * Generic event for a membership change
- *
+ * Common Event
+ * 
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
- */
-class MembershipEvent extends CommonEvent
+ */ 
+class CommonEvent extends Event 
 {
+    protected $entityID;
+    
+    
+    public function getEntityID()
+    {
+        return $this->entityID;
+    }
     
     public function __construct($entityID)
     {
-        parent::__construct($entityID);
+        $this->entityID = $entityID;
     }
-
+    
 }
-/* End of Class */
+/* End of File */
