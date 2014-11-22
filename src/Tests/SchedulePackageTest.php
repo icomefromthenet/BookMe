@@ -55,22 +55,86 @@ class SchedulePackageTest extends BasicTest
     
     public function testAddSchedule()
     {
+        $db         = $this->getDoctrineConnection();
+        $now         = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
+        $later       = $db->fetchColumn('SELECT CAST(date_add(now(),INTERVAL 1 YEAR) AS DATE)',array(),0);
+        $timeslotID  = 1;
+        $groupID     = $db->fetchColumn('SELECT group_id from schedule_groups where group_name = ?',array('mygroup5'),0);
+        $memberID    = 1;
         
         
+        if(empty($groupID)) {
+            $this->assertFalse(true,'The schedule group could not be found at mygroup5 to execute test');
+        } else {
+            
+            $db->executeQuery('call bm_schedule_add(?,?,?,?,?,@outScheduleID)',array(
+                $groupID
+                ,$memberID
+                ,$timeslotID
+                ,$now
+                ,$later
+                ),array(
+                \PDO::PARAM_INT
+                ,\PDO::PARAM_INT
+                ,\PDO::PARAM_INT
+                ,\PDO::PARAM_STR
+                ,\PDO::PARAM_STR
+            ));
+            
+            # assert the out param
+            $scheduleID = (int) $db->fetchColumn('SELECT @outScheduleID',array(),0);
+            $this->assertNotEmpty($scheduleID);
+            
+            # assert the values match
+            $result = $db->fetchAssoc('SELECT * FROM schedules WHERE schedule_id = ?',array($scheduleID));
+            
+            $this->assertEquals($scheduleID ,(int)$result['schedule_id']);
+            $this->assertEquals($now,$result['open_from']);
+            $this->assertEquals($later,$result['closed_on']);
+            $this->assertEquals($groupID,$result['schedule_group_id']);
+            $this->assertEquals($memberID,$result['membership_id']);
+            
+        }
         
     }
     
-    
+    /**
+     * Test if a group that not valid during entire schedule validiy period should fail to insert.
+     * 
+     * @expectedException Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Integrity constraint violation: 1048 Column 'schedule_group_id' cannot be null
+     */ 
     public function testAddScheduleFailsOutOfRangeSchedule()
     {
-    
-    
+        $db         = $this->getDoctrineConnection();
+        $now         = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
+        $later       = $db->fetchColumn('SELECT CAST(date_add(now(),INTERVAL 1 YEAR) AS DATE)',array(),0);
+        $timeslotID  = 1;
+        $groupID     = $db->fetchColumn('SELECT group_id from schedule_groups where group_name = ?',array('mygroup2'),0);
+        $memberID    = 1;
+        
+        
+        if(empty($groupID)) {
+            $this->assertFalse(true,'The schedule group could not be found at mygroup2 to execute test');
+        } else {
+            
+            $db->executeQuery('call bm_schedule_add(?,?,?,?,?,@outScheduleID)',array(
+                $groupID
+                ,$memberID
+                ,$timeslotID
+                ,$now
+                ,$later
+                ),array(
+                \PDO::PARAM_INT
+                ,\PDO::PARAM_INT
+                ,\PDO::PARAM_INT
+                ,\PDO::PARAM_STR
+                ,\PDO::PARAM_STR
+            ));
+        }
     
     }
     
-}
-   
-   
 }
 /* End of class */
 

@@ -67,3 +67,27 @@ VALUES (NULL,'mygroup5',CAST(NOW() AS DATE), DATE('3000-01-01'));
 
 
 COMMIT;
+
+-- -----------------------------------------------------
+-- Data for table `schedules `
+-- -----------------------------------------------------
+START TRANSACTION;
+
+-- relates to mygroup2 -- Active from today
+INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
+VALUES (NULL,1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),1,1);
+
+-- relate to mygroup5  Active in the future
+INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
+VALUES (NULL,1,CAST((NOW()+ INTERVAL 2 YEAR) AS DATE),CAST((NOW() + INTERVAL 3 YEAR) AS DATE),4,1);
+
+-- relate to mygroup 3  Active in past
+INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
+VALUES (NULL,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() - INTERVAL 1 DAY) AS DATE),2,1);
+
+-- relate to mygroup 3 Active but started in past
+INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
+VALUES (NULL,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() + INTERVAL 3 DAY) AS DATE),2,1);
+
+
+COMMIT;

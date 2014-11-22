@@ -85,7 +85,7 @@ CREATE PROCEDURE `bm_schedule_add` (IN groupID INT
                                   , IN timeslotID INT
                                   , IN validFrom DATE
                                   , IN validTo DATE
-                                  , OUT schedueID INT)
+                                  , OUT scheduleID INT)
 BEGIN
 
 	IF validTo IS NULL THEN 
@@ -108,6 +108,8 @@ BEGIN
 	                                           AND gs.valid_to >= validTo
 	                                           AND gs.group_id = groupID),memberID);
 	
-	SET schedueID =  LAST_INSERT_ID();
+	SET scheduleID =  LAST_INSERT_ID();
+
+	CALL util_debug_msg(@bm_debug,concat('Inserted new schedule at::',scheduleID,' for member::',memberID));
 
 END$$
