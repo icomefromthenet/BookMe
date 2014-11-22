@@ -17,6 +17,12 @@ use IComeFromTheNet\BookMe\Events\MembershipEvent;
 
 /**
  * Book Me Service and DI Container
+ * 
+ * With Many of the Stored Procedures where using User Varaibles to
+ * work around a very old bug in mysql C API which only fixed in very
+ * recent versions of PHP and MYSQL Lib.
+ * 
+ * Your Database Admin must allow user variables for this code to function.
  *
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
@@ -117,15 +123,13 @@ class BookMeService extends Container
         $membershipID = null;
         $db           = $this->getDatabaseAdapter();
         
-        
         try {
             # start a transaction 
             $db->beginTransaction();
              
-            $db->executeQuery('call bm_add_membership(:memberID)'
-                            ,array(':memberID' => $membershipID)
-                            ,array(':memberID' => \PDO::PARAM_INT|PDO::PARAM_INPUT_OUTPUT)
-            );
+            $db->executeQuery('call bm_add_membership(@membershipID)',array(),array());
+            
+            $membershipID = (int) $db->fetchColumn('SELECT @membershipID as member',array(),0);
             
             # dispatch the event is sucessful
             $this->getEventDispatcher()->dispatch(BookMeEvents::MemberRegistered,new MembershipEvent($membershipID));    
@@ -387,6 +391,16 @@ class BookMeService extends Container
      * @return Doctrine\DBAL\Connection
      */
     public function getDatabase()
+    {
+        return $this['database'];
+    }
+    
+    /**
+     * Loads the doctrine database
+     *
+     * @return Doctrine\DBAL\Connection
+     */
+    public function getDatabaseAdapter()
     {
         return $this['database'];
     }
