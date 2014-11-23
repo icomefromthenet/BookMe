@@ -135,6 +135,115 @@ class SchedulePackageTest extends BasicTest
     
     }
     
+    
+    /**
+     * @expectedException Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage  Group not found or validTo date is not within original validity range
+     */ 
+    public function testRetireGroupFailsWhenValidToOutRange()
+    {
+        $db         = $this->getDoctrineConnection();
+        
+        $groupID    = $db->fetchColumn('SELECT group_id FROM schedule_groups where group_name = ?'
+                                        ,array('mygroup3'),0);
+        
+        # this invalid retire date its week ahead of the original date
+        $retireOn   = $db->fetchColumn('SELECT CAST((NOW()+ INTERVAL 14 DAY) AS DATE) AS dte',array(),0);
+        
+        if(empty($groupID)) {
+            $this->assertTrue(false,'the group could not be found to execute test on');   
+        } else {
+        
+            # test that retire operation fails if the new
+            # validity end date exceeds the original end date
+            
+            $db->executeQuery('CALL bm_schedule_retire_group(?,?)'
+                                ,array($groupID,$retireOn)
+                                ,array(\PDO::PARAM_INT,\PDO::PARAM_STR));
+            
+            
+        }
+    }
+    
+    
+    /**
+     * @expectedException Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage  Group not found or validTo date is not within original validity range
+     */
+    public function testRetireGroupFailsWhenScheduleExists()
+    {
+        $db         = $this->getDoctrineConnection();
+        
+        $groupID    = $db->fetchColumn('SELECT group_id FROM schedule_groups WHERE group_name = ?'
+                                        ,array('mygroup3'),0);
+        
+        if(empty($groupID)) {
+            $this->assertTrue(false,'the group could not be found to execute test on');   
+        } else {
+    
+    
+            $retireOn   = $db->fetchColumn('SELECT (closed_on - INTERVAL 1 DAY) AS dte 
+                                        FROM schedules 
+                                        WHERE schedule_group_id = ? 
+                                        LIMIT 1',array($groupID),0);
+    
+    
+        
+            # test that retire operation fails if the new
+            # validity end date ends before the last related schedule close date
+            $db->executeQuery('CALL bm_schedule_retire_group(?,?)'
+                                ,array($groupID,$retireOn)
+                                ,array(\PDO::PARAM_INT,\PDO::PARAM_STR));
+            
+        }    
+        
+    }
+    
+    
+    public function testRetireSuccessOnUnsedGroup() 
+    {
+        $db         = $this->getDoctrineConnection();
+        
+        $groupID    = $db->fetchColumn('SELECT group_id FROM schedule_groups WHERE group_name = ?'
+                                        ,array('mygrouptest6'),0);
+        
+        $retireOn   = $db->fetchColumn('SELECT CAST((NOW() + INTERVAL 3 WEEK) AS DATE) AS dte'
+                                        ,array(),0); 
+        
+        
+        if(empty($groupID)) {
+            $this->assertTrue(false,'the group could not be found to execute test on');   
+        } else {
+            
+            $db->executeQuery('CALL bm_schedule_retire_group(?,?)'
+                                ,array($groupID,$retireOn)
+                                ,array(\PDO::PARAM_INT,\PDO::PARAM_STR));
+        
+        }
+        
+    }
+    
+    
+    public function testRetireGroupSucceeds()
+    {
+        $db         = $this->getDoctrineConnection();
+        
+        $result     = $db->fetchAssoc('SELECT closed_on, schedule_group_id 
+                                        FROM schedules 
+                                        WHERE schedule_id = ?
+                                        LIMIT 1',array(6));
+    
+        $retireOn = $result['closed_on'];
+        $groupID = $result['schedule_group_id'];
+    
+        # testing that can retire a group on that last day that
+        # an actual schedule is valid
+        $db->executeQuery('CALL bm_schedule_retire_group(?,?)'
+                                ,array($groupID,$retireOn)
+                                ,array(\PDO::PARAM_INT,\PDO::PARAM_STR));
+        
+    }
+    
 }
 /* End of class */
 

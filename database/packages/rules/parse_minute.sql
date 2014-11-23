@@ -76,14 +76,16 @@ BEGIN
 					SET closeValue = 59;
 					SET incrementValue = CAST(SUBSTRING_INDEX(splitValue, '/', -1) AS UNSIGNED);
 
-				ELSE SELECT utl_raise_error(concat(splitValue,' is not support cron minute format'));
-
+				ELSE 
+					SIGNAL SQLSTATE '45000'
+					SET MESSAGE_TEXT = 'not support cron minute format';	
 			END CASE;
 			
 			-- validate opening occurse before closing. 
 			
 			IF(closeValue > openValue) THEN
-				SELECT utl_raise_error(concat(splitValue,' format has invalid range once parsed'));
+				SIGNAL SQLSTATE '45000'
+				SET MESSAGE_TEXT = 'format has invalid range once parsed';	
 			END IF;
 
 

@@ -26,12 +26,13 @@ CREATE PROCEDURE `bm_schedule_add_group` (IN groupName VARCHAR(100)
 											, IN validTo DATE
 											, OUT groupID INT)
 BEGIN
-	IF validTo IS NULL THEN 
+	IF (validTo IS NULL) THEN 
       SET validTo = DATE('3000-01-01');
 	END IF;
-	
+
 	IF utl_is_valid_date_range(validFrom,validTo) = 0 THEN
-		SELECT utl_raise_error('Dates are not a valid range');
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Date range is not valid';
 	END IF;
 	
 	-- add new group and fetch the assigned ID	
@@ -51,27 +52,28 @@ END$$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_schedule_retire_group`$$
 
-CREATE PROCEDURE `bm_schedule_retire_group` (IN groupID INT, IN validTo Date )
+CREATE PROCEDURE `bm_schedule_retire_group` (IN groupID INT, IN validTo DATE)
 BEGIN
-		
-DECLARE isNotFound INT DEFAULT 1;
-DECLARE CONTINUE HANDLER FOR NOT FOUND SET isNotFound = 0;
-
-	-- verify that valid to is valid date range and group given exists
-
-	SELECT 1 
-	FROM schedule_groups
-	WHERE group_id = groupID
-	AND valid_from < valid_to;
-
-	IF isNotFound THEN
-		SELECT utl_raise_error(concat('Group at ',groupID ,' not found or validTo date is invalid'));
-	END IF;
 
 	-- assign new valid to date to retire this group
-
+	-- verify that new validTo date is wihin the existsing
+    -- validity range.
 	UPDATE schedule_groups SET valid_to = validTo
-	WHERE group_id = groupID;
+	WHERE group_id = groupID 
+	AND NOT EXISTS(
+		SELECT 1 FROM schedules
+	    WHERE schedule_group_id = groupID
+	    AND closed_on > validTo
+	    LIMIT 1) 
+	AND valid_from <= validTo
+	AND valid_to >= validTo; 
+		
+	IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Group not found or validTo date is not within original validity range';
+	END IF;
+	
+	CALL util_debug_msg(@bm_debug,concat('Retired a  schedule group at::',groupID));	
 
 END$$
 
@@ -88,12 +90,13 @@ CREATE PROCEDURE `bm_schedule_add` (IN groupID INT
                                   , OUT scheduleID INT)
 BEGIN
 
-	IF validTo IS NULL THEN 
+	IF (validTo IS NULL) THEN 
       SET validTo = DATE('3000-01-01');
 	END IF;
-	
-	IF utl_is_valid_date_range(validFrom,validTo) = 0 THEN
-		SELECT utl_raise_error('Dates are not a valid range');
+
+	IF (utl_is_valid_date_range(validFrom,validTo) = 0) THEN
+		SIGNAL SQLSTATE '45000' 
+		SET MESSAGE_TEXT = 'Date range is not valid';
 	END IF;
 	
 	-- We require that the schedule validity period  be contained within the assigned groups validity period

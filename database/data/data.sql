@@ -51,19 +51,27 @@ START TRANSACTION;
 
 -- Current
 INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (NULL,'mygroup2',CAST(NOW() AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE));
+VALUES (1,'mygroup2',CAST(NOW() AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE));
 
 -- Past
 INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (NULL,'mygroup3',CAST((NOW() - INTERVAL 7 DAY) AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE));
+VALUES (2,'mygroup3',CAST((NOW() - INTERVAL 7 DAY) AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE));
 
 -- future
 INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (NULL,'mygroup4',CAST((NOW() + INTERVAL 7 DAY) AS DATE),CAST((NOW() + INTERVAL 14 DAY) AS DATE));
+VALUES (3,'mygroup4',CAST((NOW() + INTERVAL 7 DAY) AS DATE),CAST((NOW() + INTERVAL 14 DAY) AS DATE));
 
 -- open date
 INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (NULL,'mygroup5',CAST(NOW() AS DATE), DATE('3000-01-01'));
+VALUES (4,'mygroup5',CAST(NOW() AS DATE), DATE('3000-01-01'));
+
+-- Used in schedule group retire test
+INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
+VALUES (5,'mygrouptest6',CAST(NOW() AS DATE), DATE('3000-01-01'));
+
+-- Used in schedule group retire test
+INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
+VALUES (6,'mygrouptest8',CAST(NOW() AS DATE), DATE('3000-01-01'));
 
 
 COMMIT;
@@ -75,19 +83,27 @@ START TRANSACTION;
 
 -- relates to mygroup2 -- Active from today
 INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (NULL,1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),1,1);
+VALUES (1,1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),1,1);
 
 -- relate to mygroup5  Active in the future
 INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (NULL,1,CAST((NOW()+ INTERVAL 2 YEAR) AS DATE),CAST((NOW() + INTERVAL 3 YEAR) AS DATE),4,1);
+VALUES (2,1,CAST((NOW()+ INTERVAL 2 YEAR) AS DATE),CAST((NOW() + INTERVAL 3 YEAR) AS DATE),4,1);
 
 -- relate to mygroup 3  Active in past
 INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (NULL,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() - INTERVAL 1 DAY) AS DATE),2,1);
+VALUES (3,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() - INTERVAL 1 DAY) AS DATE),2,1);
 
 -- relate to mygroup 3 Active but started in past
 INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (NULL,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() + INTERVAL 3 DAY) AS DATE),2,1);
+VALUES (4,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() + INTERVAL 3 DAY) AS DATE),2,1);
+
+-- Test for the retirement method so don't use in other tests
+INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
+VALUES (5,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST(NOW() AS DATE),1,1);
+
+-- Test for the retirement method so don't use in other tests
+INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
+VALUES (6,1,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST(NOW() AS DATE),6,1);
 
 
 COMMIT;

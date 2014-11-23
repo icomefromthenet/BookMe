@@ -60,6 +60,24 @@ CREATE TABLE IF NOT EXISTS `schedule_groups` (
 ENGINE = InnoDB
 COMMENT = 'Ways to group schedules.';
 
+-- -----------------------------------------------------
+-- Table `audit_schedule_groups`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `audit_schedule_groups`;
+
+CREATE TABLE IF NOT EXISTS `audit_schedule_groups` (
+  `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
+  `action` CHAR(1) DEFAULT '',
+  `change_time` TIMESTAMP NOT NULL,
+  `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+  `group_id` INT NOT NULL,
+  `group_name` VARCHAR(45) NULL,
+  `valid_from` DATE NOT NULL COMMENT 'frist date this group valid from',
+  `valid_to` DATE NOT NULL COMMENT 'Last day group valid too',
+  PRIMARY KEY (`change_seq`))
+ENGINE = InnoDB
+COMMENT = 'Tracking log of the schedule groups table';
+
 
 -- -----------------------------------------------------
 -- Table `timeslots`
