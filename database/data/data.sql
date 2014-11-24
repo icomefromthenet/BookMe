@@ -73,6 +73,9 @@ VALUES (5,'mygrouptest6',CAST(NOW() AS DATE), DATE('3000-01-01'));
 INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
 VALUES (6,'mygrouptest8',CAST(NOW() AS DATE), DATE('3000-01-01'));
 
+-- Used in schedule group removal test
+INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
+VALUES (7,'mygrouptest9',CAST((NOW() + INTERVAL + 1 DAY) AS DATE), DATE('3000-01-01'));
 
 COMMIT;
 

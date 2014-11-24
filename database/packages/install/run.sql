@@ -4,18 +4,24 @@
 DELIMITER $$
 DROP procedure IF EXISTS `bm_install_run`$$
 
-CREATE PROCEDURE `bm_install_run` ()
+CREATE PROCEDURE `bm_install_run` (IN years INT)
 BEGIN
 	DECLARE timeslot_id INT;
 	DECLARE timeslot_length INT;
 	DECLARE l_last_row_fetched INT DEFAULT 0;
-
 	-- timeslot loop vars
 	DECLARE timeslots_cursor CURSOR FOR SELECT timeslot_id,timeslot_length FROM timeslots;
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET l_last_row_fetched=1;
 	
+	
+	-- set default number of calender years to generate
+	IF (years = NULL) THEN
+		SET years = 10;
+	END IF;
+
+	
 	-- setup calender for 10 years
-	CALL bm_calendar_setup_cal(10);
+	CALL bm_calendar_setup_cal(years);
 
 	-- setup slots for 10 years
 	CALL bm_calender_setup_slots();

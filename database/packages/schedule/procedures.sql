@@ -78,6 +78,33 @@ BEGIN
 END$$
 
 -- -----------------------------------------------------
+-- procedure bm_schedule_remove_group
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_schedule_remove_group`$$
+
+CREATE PROCEDURE `bm_schedule_remove_group` (IN groupID INT)
+BEGIN
+
+	-- fk relation will stop groups from being removed
+	-- that are in use by rules and schedules
+	
+	-- Used if you add a group to be active in the future
+	-- but decide you don't need it any more and remove it before is becomes active.
+	DELETE FROM schedule_groups 
+	WHERE group_id = groupID
+	AND valid_from > CAST(NOW() AS DATE);
+
+	-- If you want to remove any group if its unsuded you
+	-- can use a normal delete
+	
+	IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to remove group the ID given may not have been found or may be active group already';
+	END IF;
+
+END$$
+
+-- -----------------------------------------------------
 -- procedure bm_schedule_add
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_schedule_add`$$
@@ -114,5 +141,33 @@ BEGIN
 	SET scheduleID =  LAST_INSERT_ID();
 
 	CALL util_debug_msg(@bm_debug,concat('Inserted new schedule at::',scheduleID,' for member::',memberID));
+
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_schedule_retire
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_schedule_retire`$$
+
+CREATE PROCEDURE `bm_schedule_retire` (IN scheduleID INT
+                                   	 , IN validTo DATE)
+BEGIN
+
+	
+	UPDATE `schedules` s SET `s`.`closed_on` = validTo 
+	WHERE NOT EXISTS (
+		SELECT 1
+		FROM `bookings` b
+		WHERE schedule_id
+	)
+	AND `s`.`schedule_id` = scheduleID;
+	
+
+	IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Schedule not found or validTo date is not within original validity range';
+	END IF;
+	
+	CALL util_debug_msg(@bm_debug,concat('Retired a schedule at::',groupID));	
 
 END$$

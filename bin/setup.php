@@ -33,4 +33,4 @@ $connectionParams = array(
         
 $doctrine = \Doctrine\DBAL\DriverManager::getConnection($connectionParams, $config);
 $doctrine->exec('set @bm_debug = true;');
-$doctrine->exec('call bm_install_run()');
+$doctrine->exec('call bm_install_run(1)');

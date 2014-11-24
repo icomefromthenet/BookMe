@@ -3,18 +3,18 @@ namespace IComeFromTheNet\BookMe\Builder;
 
 use \DateTime;
 use DBALGateway\Builder\BuilderInterface;
-use IComeFromTheNet\BookMe\Entity\MemberEntity;
+use IComeFromTheNet\BookMe\Entity\ScheduleGroupEntity;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Connection;
 
 
 /**
- * Maps a Member from our Membership database. 
+ * Maps a Schedule Group from our Schedule database. 
  * 
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
  */ 
-class MemberBuilder extends AbstractBuilder implements BuilderInterface
+class ScheduleGroupBuilder extends AbstractBuilder implements BuilderInterface
 {
     
     protected $schema;
@@ -28,12 +28,16 @@ class MemberBuilder extends AbstractBuilder implements BuilderInterface
     */
     protected function getSchema() 
     {
-        if(true === empty($this->schema)) {
+        if($this->schema === NULL) {
             $this->schema = array(
-                'registered_date' => Type::getType(Type::DATETIME),
-                'membership_id'  =>  Type::getType(Type::INTEGER)
+                'valid_to' => Type::getType(Type::DATE),
+                'valid_from' => Type::getType(Type::DATE),
+                'group_id'  =>  Type::getType(Type::INTEGER),
+                'group_name' => Type::getType(Type::STRING)
+                
             );
         }
+        
         return $this->schema;
     }
     
@@ -59,18 +63,24 @@ class MemberBuilder extends AbstractBuilder implements BuilderInterface
       */
     public function build($data)
     {
-        $entity = new MemberEntity();
+        $entity = new ScheduleGroupEntity();
         
         $this->convertToPHP($data);
         
         foreach($data as $key => $value) {
             
             switch($key) {
-                case 'registered_date':
-                      $entity->setCreatedDate($value);
+                case 'valid_to':
+                      $entity->setValidTo($value);
                 break;
-                case 'membership_id':
-                     $entity->setMemberID($value);    
+                case 'valid_from':
+                      $entity->setValidFrom($value);
+                break;
+                case 'group_name':
+                     $entity->setName($value);    
+                break;    
+                case 'group_id':
+                     $entity->setGroupID($value);    
                 break;    
             }
         }

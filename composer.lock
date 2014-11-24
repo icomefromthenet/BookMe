@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "706248cf0e24da1234ab1f085545a824",
+    "hash": "7378fe62cdb466dd37c642e0d15cfcf9",
     "packages": [
         {
             "name": "doctrine/common",
@@ -348,6 +348,54 @@
                 "psr-3"
             ],
             "time": "2014-01-18 15:33:09"
+        },
+        {
+            "name": "respect/validation",
+            "version": "0.6.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Respect/Validation.git",
+                "reference": "4b9856c11f893954b7c822cbb5dfb75c468e7827"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Respect/Validation/zipball/4b9856c11f893954b7c822cbb5dfb75c468e7827",
+                "reference": "4b9856c11f893954b7c822cbb5dfb75c468e7827",
+                "shasum": ""
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~4.0",
+                "symfony/validator": "~2.1",
+                "zendframework/zend-validator": "~2.0"
+            },
+            "suggest": {
+                "ext-bcmath": "Arbitrary Precision Mathematics",
+                "ext-mbstring": "Multibyte String Functions"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Respect\\Validation": "library/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD Style"
+            ],
+            "authors": [
+                {
+                    "name": "Respect/Validation Contributors",
+                    "homepage": "https://github.com/Respect/Validation/graphs/contributors"
+                }
+            ],
+            "description": "The most awesome validation engine ever created for PHP",
+            "homepage": "http://respect.li",
+            "keywords": [
+                "respect",
+                "validation",
+                "validator"
+            ],
+            "time": "2014-07-11 06:35:17"
         },
         {
             "name": "symfony/event-dispatcher",

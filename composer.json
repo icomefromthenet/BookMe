@@ -22,7 +22,8 @@
 	"monolog/monolog" : "~1.5",
 	"pimple/pimple" : "3.0.*",
 	"symfony/event-dispatcher" : "2.*",
-	"icomefromthenet/dbal-gateway" : "dev-master"
+	"icomefromthenet/dbal-gateway" : "dev-master",
+	"respect/validation": "0.6.*"
 	
     },
       "autoload": { "psr-4" : { "IComeFromTheNet\\BookMe\\" : "src/" } }

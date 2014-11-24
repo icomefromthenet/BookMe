@@ -244,6 +244,35 @@ class SchedulePackageTest extends BasicTest
         
     }
     
+    /**
+     * @expectedException Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage  Unable to remove group the ID given may not have been found or may be active group already
+     */
+    public function testRemovalFailesOnActiveGroup()
+    {
+        $db         = $this->getDoctrineConnection();
+        
+        
+        # test that cant remove a group where valid_from is < NOW()
+        # so we can't remove an active group
+        $db->executeQuery('CALL bm_schedule_remove_group(?)'
+                                ,array(1)
+                                ,array(\PDO::PARAM_INT));
+      
+        
+    
+    }
+    
+    public function testRemovalGroupSucceeds()
+    {
+        $db         = $this->getDoctrineConnection();
+        
+        $db->executeQuery('CALL bm_schedule_remove_group(?)'
+                                ,array(7)
+                                ,array(\PDO::PARAM_INT));
+      
+    }
+    
 }
 /* End of class */
 

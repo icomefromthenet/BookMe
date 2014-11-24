@@ -306,8 +306,6 @@ CREATE TABLE IF NOT EXISTS `bookings` (
   `booking_id` INT NOT NULL,
   `start_slot_id` INT NOT NULL,
   `end_slot_id` INT NOT NULL,
-  `valid_from` DATE NOT NULL,
-  `valid_to` DATE NULL DEFAULT '3000-01-01',
   `schedule_id` INT NOT NULL,
   PRIMARY KEY (`booking_id`),
   INDEX `fk_bookings_1_idx` (`schedule_id` ASC),
