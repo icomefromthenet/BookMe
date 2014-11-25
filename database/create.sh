@@ -36,6 +36,9 @@ done
  
 # execute common data file
 echo 'Insert data';
-$MYSQL -u ${2} -p${3} ${1} < ${DIR}'/data/data.sql';
+$MYSQL -u ${2} -p${3} ${1} < ${DIR}'/data/common.sql';
  
+# execute test data file
+echo 'Insert test data';
+$MYSQL -u ${2} -p${3} ${1} < ${DIR}'/data/data.sql';
  

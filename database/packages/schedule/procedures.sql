@@ -111,7 +111,6 @@ DROP procedure IF EXISTS `bm_schedule_add`$$
 
 CREATE PROCEDURE `bm_schedule_add` (IN groupID INT
                                   , IN memberID INT
-                                  , IN timeslotID INT
                                   , IN validFrom DATE
                                   , IN validTo DATE
                                   , OUT scheduleID INT)
@@ -131,8 +130,8 @@ BEGIN
 	
 	-- Members, Timeslot do not have a validity period, the normal FK will maintain consistency
 	
-	INSERT INTO `schedules` (`schedule_id`,`timeslot_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-	VALUES (NULL,timeslotID,validFrom,validTo,(SELECT gs.group_id 
+	INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
+	VALUES (NULL,validFrom,validTo,(SELECT gs.group_id 
 	                                           FROM schedule_groups gs
 	                                           WHERE gs.valid_from <= validFrom
 	                                           AND gs.valid_to >= validTo

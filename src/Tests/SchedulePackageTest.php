@@ -58,7 +58,6 @@ class SchedulePackageTest extends BasicTest
         $db         = $this->getDoctrineConnection();
         $now         = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
         $later       = $db->fetchColumn('SELECT CAST(date_add(now(),INTERVAL 1 YEAR) AS DATE)',array(),0);
-        $timeslotID  = 1;
         $groupID     = $db->fetchColumn('SELECT group_id from schedule_groups where group_name = ?',array('mygroup5'),0);
         $memberID    = 1;
         
@@ -67,10 +66,9 @@ class SchedulePackageTest extends BasicTest
             $this->assertFalse(true,'The schedule group could not be found at mygroup5 to execute test');
         } else {
             
-            $db->executeQuery('call bm_schedule_add(?,?,?,?,?,@outScheduleID)',array(
+            $db->executeQuery('call bm_schedule_add(?,?,?,?,@outScheduleID)',array(
                 $groupID
                 ,$memberID
-                ,$timeslotID
                 ,$now
                 ,$later
                 ),array(
@@ -109,7 +107,6 @@ class SchedulePackageTest extends BasicTest
         $db         = $this->getDoctrineConnection();
         $now         = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
         $later       = $db->fetchColumn('SELECT CAST(date_add(now(),INTERVAL 1 YEAR) AS DATE)',array(),0);
-        $timeslotID  = 1;
         $groupID     = $db->fetchColumn('SELECT group_id from schedule_groups where group_name = ?',array('mygroup2'),0);
         $memberID    = 1;
         
@@ -118,10 +115,9 @@ class SchedulePackageTest extends BasicTest
             $this->assertFalse(true,'The schedule group could not be found at mygroup2 to execute test');
         } else {
             
-            $db->executeQuery('call bm_schedule_add(?,?,?,?,?,@outScheduleID)',array(
+            $db->executeQuery('call bm_schedule_add(?,?,?,?,@outScheduleID)',array(
                 $groupID
                 ,$memberID
-                ,$timeslotID
                 ,$now
                 ,$later
                 ),array(

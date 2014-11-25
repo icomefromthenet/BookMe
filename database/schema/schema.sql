@@ -113,26 +113,19 @@ DROP TABLE IF EXISTS `schedules` ;
 
 CREATE TABLE IF NOT EXISTS `schedules` (
   `schedule_id` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
-  `timeslot_id` INT NULL,
   `open_from` DATE NOT NULL COMMENT 'Date to start schedule on',
   `closed_on` DATE NOT NULL DEFAULT '3000-01-01' COMMENT 'Date schedule is not available',
   `schedule_group_id` INT NOT NULL,
   `membership_id` INT NOT NULL,
   PRIMARY KEY (`schedule_id`),
-  INDEX `fk_schedules_1_idx` (`timeslot_id` ASC),
-  INDEX `fk_schedules_2_idx` (`schedule_group_id` ASC),
-  INDEX `fk_schedules_3_idx` (`membership_id` ASC),
+  INDEX `fk_schedules_1_idx` (`schedule_group_id` ASC),
+  INDEX `fk_schedules_2_idx` (`membership_id` ASC),
   CONSTRAINT `fk_schedules_1`
-    FOREIGN KEY (`timeslot_id`)
-    REFERENCES `timeslots` (`timeslot_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_schedules_2`
     FOREIGN KEY (`schedule_group_id`)
     REFERENCES `schedule_groups` (`group_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_schedules_3`
+  CONSTRAINT `fk_schedules_2`
     FOREIGN KEY (`membership_id`)
     REFERENCES `schedule_membership` (`membership_id`)
     ON DELETE NO ACTION
