@@ -57,8 +57,8 @@ END$$
 
 DROP procedure IF EXISTS `bm_calendar_build_timeslot_slots`$$
 
-CREATE PROCEDURE `bm_calendar_build_timeslot_slots` (IN timeslotID INT
-													,IN timeslotLength INT )
+CREATE PROCEDURE `bm_calendar_build_timeslot_slots` ( IN timeslotID INT
+													 ,IN timeslotLength INT )
 BEGIN
 		
 	-- Need to group our slots and insert results into group cache table
@@ -88,3 +88,54 @@ BEGIN
 	END IF;
 	
 END$$
+
+-- -----------------------------------------------------
+-- procedure bm_calender_setup_slots
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_calender_setup_slots`$$
+
+CREATE PROCEDURE `bm_calender_setup_slots`()
+BEGIN
+		
+	INSERT INTO slots (slot_id,cal_date,slot_open,slot_close)
+		SELECT NULL
+              ,calendar_date 
+			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i MINUTE as slot_open
+			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i + 1 MINUTE as slot_closed FROM calendar
+		JOIN ints a JOIN ints b JOIN ints c JOIN ints d
+		WHERE d.i*1000 + c.i *100 + b.i*10 + a.i < 1440;
+
+	
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_calendar_setup_cal
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_calendar_setup_cal`$$
+
+CREATE PROCEDURE `bm_calendar_setup_cal` (IN x INT)
+BEGIN
+	
+
+	-- validate the length is in valid range
+	CALL bm_calendar_is_valid_length(x);
+
+	INSERT INTO calendar (calendar_date)
+		SELECT DATE_FORMAT(NOW() ,'%Y-01-01') + INTERVAL a.i*10000 + b.i*1000 + c.i*100 + d.i*10 + e.i DAY
+		FROM ints a JOIN ints b JOIN ints c JOIN ints d JOIN ints e
+		WHERE (a.i*10000 + b.i*1000 + c.i*100 + d.i*10 + e.i) <= DATEDIFF(DATE_FORMAT(NOW()+ INTERVAL (x -1) YEAR,'%Y-12-31'),DATE_FORMAT(NOW() ,'%Y-01-01'))
+		ORDER BY 1;
+	
+	
+	UPDATE calendar
+	SET is_week_day = CASE WHEN dayofweek(calendar_date) IN (1,7) THEN 0 ELSE 1 END,
+		y = YEAR(calendar_date),
+		q = quarter(calendar_date),
+		m = MONTH(calendar_date),
+		d = dayofmonth(calendar_date),
+		dw = dayofweek(calendar_date),
+		month_name = monthname(calendar_date),
+		day_name = dayname(calendar_date),
+		w = week(calendar_date);
+
+END

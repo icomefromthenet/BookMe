@@ -1,7 +1,11 @@
 -- -----------------------------------------------------
--- function utl_is_valid_date_range
+-- functions for package
 -- -----------------------------------------------------
 DELIMITER $$
+
+-- -----------------------------------------------------
+-- function utl_is_valid_date_range
+-- -----------------------------------------------------
 DROP function IF EXISTS `utl_is_valid_date_range`$$
 
 CREATE FUNCTION `utl_is_valid_date_range`(validFrom DATE,validTo DATE) 

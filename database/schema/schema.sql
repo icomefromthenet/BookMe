@@ -2,6 +2,11 @@ SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 
+-- -----------------------------------------------------
+-- Table `proclog` (is created in procedure)
+-- -----------------------------------------------------
+
+DROP TABLE IF EXISTS `proclog`;
 
 -- -----------------------------------------------------
 -- Table `calendar`
@@ -148,7 +153,7 @@ CREATE TABLE IF NOT EXISTS `timeslot_slots` (
   INDEX `fk_timeslot_slots_1_idx` (`timeslot_id` ASC),
   INDEX `fk_timeslot_slots_2_idx` (`opening_slot_id` ASC),
   INDEX `fk_timeslot_slots_3_idx` (`closing_slot_id` ASC),
-  UNIQUE INDEX `iimeslot_slots_uk1` (`opening_slot_id` ASC, `closing_slot_id` ASC, `timeslot_id` ASC),
+  UNIQUE INDEX `timeslot_slots_uk1` (`opening_slot_id` ASC, `closing_slot_id` ASC, `timeslot_id` ASC),
   CONSTRAINT `fk_timeslot_slots_1`
     FOREIGN KEY (`timeslot_id`)
     REFERENCES `timeslots` (`timeslot_id`)
