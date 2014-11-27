@@ -8,12 +8,16 @@ DELIMITER $$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_add_membership`$$
 
-CREATE PROCEDURE `bm_add_membership` (out membership_id INT)
+CREATE PROCEDURE `bm_add_membership` (OUT membershipID INT)
 BEGIN
     
     INSERT INTO schedule_membership (membership_id,registered_date) values (NULL,NOW());
-    SET membership_id = LAST_INSERT_ID();
+    SET membershipID = LAST_INSERT_ID();
     
+    IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Inserted new membership at::',membershipID));
+	END IF;	
+
 END$$
 
 -- -----------------------------------------------------
@@ -42,8 +46,10 @@ BEGIN
 	
 	SET groupID =  LAST_INSERT_ID();
 	
-	CALL util_debug_msg(@bm_debug,concat('Inserted new schedule group at::',groupID,' name::',groupName));	
-	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Inserted new schedule group at::',groupID,' name::',groupName));
+	END IF;	
+
 END$$
 
 
@@ -73,7 +79,10 @@ BEGIN
 		SET MESSAGE_TEXT = 'Group not found or validTo date is not within original validity range';
 	END IF;
 	
-	CALL util_debug_msg(@bm_debug,concat('Retired a  schedule group at::',groupID));	
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Retired a schedule group at::',groupID));
+	END IF;	
 
 END$$
 
@@ -101,6 +110,11 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Unable to remove group the ID given may not have been found or may be active group already';
 	END IF;
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Removed schedule group at::',groupID));
+	END IF;	
+
 
 END$$
 
@@ -139,7 +153,9 @@ BEGIN
 	
 	SET scheduleID =  LAST_INSERT_ID();
 
-	CALL util_debug_msg(@bm_debug,concat('Inserted new schedule at::',scheduleID,' for member::',memberID));
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Inserted new schedule at::',scheduleID,' for member::',memberID));
+	END IF;	
 
 END$$
 
@@ -167,6 +183,8 @@ BEGIN
 		SET MESSAGE_TEXT = 'Schedule not found or validTo date is not within original validity range';
 	END IF;
 	
-	CALL util_debug_msg(@bm_debug,concat('Retired a schedule at::',groupID));	
-
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Retired a schedule at::',groupID));
+	END IF;	
+	
 END$$

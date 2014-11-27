@@ -23,6 +23,10 @@ BEGIN
     -- calculate this timeslots , slot groups. 
 	SET timeslotID = LAST_INSERT_ID();
 	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Add Timeslot at:: ',timeslotID));
+	END IF;	
+
 	CALL bm_calendar_build_timeslot_slots(timeslotID,slotLength);
 
 END$$
@@ -48,6 +52,9 @@ BEGIN
 		SET MESSAGE_TEXT = 'Unable to remove the timeslot could be unknown slot ID was given';
 	END IF;
 	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Timeslot at:: ',timeslotID,' was removed'));
+	END IF;	
 
 END$$
 
@@ -69,25 +76,14 @@ BEGIN
 			  ,max(a.slot_id) as slot_close_id
               ,timeslotID
         FROM slots a
-		GROUP BY ceil(a.slot_id/timeslotLength);	
-END$$
-
--- -----------------------------------------------------
--- procedure bm_calendar_is_valid_length
--- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_calendar_is_valid_length`$$
-
-CREATE PROCEDURE `bm_calendar_is_valid_length`(IN x INT)
-BEGIN
-	DECLARE maxPeriod INT DEFAULT 10;
+		GROUP BY ceil(a.slot_id/timeslotLength);
 		
-	-- x is with valid range 
-	IF x < 1 OR x > maxPeriod THEN
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Minimum calendar year is 1 and maxium is 10';
-	END IF;
-	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('For timeslot at:: ',timeslotID,' Inserted ',ROW_COUNT(),' into timeslot_slots'));
+	END IF;	
+		
 END$$
+
 
 -- -----------------------------------------------------
 -- procedure bm_calender_setup_slots
@@ -105,6 +101,10 @@ BEGIN
 		JOIN ints a JOIN ints b JOIN ints c JOIN ints d
 		WHERE d.i*1000 + c.i *100 + b.i*10 + a.i < 1440;
 
+	IF @bm_debug = true THEN
+		CALL util_proc_log('Setup slots for our calender');
+	END IF;	
+
 	
 END$$
 
@@ -115,10 +115,13 @@ DROP procedure IF EXISTS `bm_calendar_setup_cal`$$
 
 CREATE PROCEDURE `bm_calendar_setup_cal` (IN x INT)
 BEGIN
-	
+	DECLARE maxPeriod INT DEFAULT 10;
 
 	-- validate the length is in valid range
-	CALL bm_calendar_is_valid_length(x);
+	IF x < 1 OR x > maxPeriod THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Minimum calendar year is 1 and maxium is 10';
+	END IF;
 
 	INSERT INTO calendar (calendar_date)
 		SELECT DATE_FORMAT(NOW() ,'%Y-01-01') + INTERVAL a.i*10000 + b.i*1000 + c.i*100 + d.i*10 + e.i DAY
@@ -137,5 +140,9 @@ BEGIN
 		month_name = monthname(calendar_date),
 		day_name = dayname(calendar_date),
 		w = week(calendar_date);
-
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Build calendar for ',x,' years'));
+	END IF;
+	
 END
