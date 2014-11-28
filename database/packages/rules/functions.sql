@@ -4,18 +4,18 @@
 DELIMITER $$
 
 -- -----------------------------------------------------
--- functions `getRegexPatternA`
+-- functions `bm_rules_regex_pattern_a`
 -- -----------------------------------------------------
-DROP function IF EXISTS `getRegexPatternA`$$
+DROP function IF EXISTS `bm_rules_regex_pattern_a`$$
 
-CREATE FUNCTION `getRegexPatternA`(cronType VARCHAR(10))
+CREATE FUNCTION `bm_rules_regex_pattern_a`(cronType VARCHAR(10))
 RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	DECLARE matchRegex VARCHAR(255);
 	
 	-- pattern format ##-##/##
 	 
 	CASE cronType
-        WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})/([0-5][0-9]{1}|[0-9]{1})$';
+        WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
         WHEN 'hour'       THEN SET matchRegex  = '';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
@@ -30,18 +30,18 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 END$$
 
 -- -----------------------------------------------------
--- functions `getRegexPatternB`
+-- functions `bm_rules_regex_pattern_b`
 -- -----------------------------------------------------
-DROP function IF EXISTS `getRegexPatternB`$$
+DROP function IF EXISTS `bm_rules_regex_pattern_b`$$
 
-CREATE FUNCTION `getRegexPatternB`(cronType VARCHAR(10))
+CREATE FUNCTION `bm_rules_regex_pattern_b`(cronType VARCHAR(10))
 RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	DECLARE matchRegex VARCHAR(255);
 	
 	-- pattern format ##/##
 	 
 	CASE cronType
-        WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})/([0-5][0-9]{1}|[0-9]{1})$';
+        WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
         WHEN 'hour'       THEN SET matchRegex  = '';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
@@ -56,11 +56,11 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 END$$
 
 -- -----------------------------------------------------
--- functions `getRegexPatternC`
+-- functions `bm_rules_regex_pattern_c`
 -- -----------------------------------------------------
-DROP function IF EXISTS `getRegexPatternC`$$
+DROP function IF EXISTS `bm_rules_regex_pattern_c`$$
 
-CREATE FUNCTION `getRegexPatternC`(cronType VARCHAR(10))
+CREATE FUNCTION `bm_rules_regex_pattern_c`(cronType VARCHAR(10))
 RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	DECLARE matchRegex VARCHAR(255);
 	 
@@ -82,19 +82,19 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 END$$
 
 -- -----------------------------------------------------
--- functions `getRegexPatternD`
+-- functions `bm_rules_regex_pattern_d`
 -- -----------------------------------------------------
 
-DROP function IF EXISTS `getRegexPatternD`$$
+DROP function IF EXISTS `bm_rules_regex_pattern_d`$$
 
-CREATE FUNCTION `getRegexPatternD`(cronType VARCHAR(10))
+CREATE FUNCTION `bm_rules_regex_pattern_d`(cronType VARCHAR(10))
 RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	DECLARE matchRegex VARCHAR(255);
 	
 	-- pattern format ##
 	 
 	CASE cronType
-        WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]?|[0-9]?)$';
+        WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]?|[0-9]{1})$';
         WHEN 'hour'       THEN SET matchRegex  = '';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
@@ -109,18 +109,18 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 END$$
 
 -- -----------------------------------------------------
--- functions `getRegexPatternE` 
+-- functions `bm_rules_regex_pattern_e` 
 -- -----------------------------------------------------
-DROP function IF EXISTS `getRegexPatternE`$$
+DROP function IF EXISTS `bm_rules_regex_pattern_e`$$
 
-CREATE FUNCTION `getRegexPatternE`(cronType VARCHAR(10))
+CREATE FUNCTION `bm_rules_regex_pattern_e`(cronType VARCHAR(10))
 RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	DECLARE matchRegex VARCHAR(255);
 	
 	-- pattern format */##
 	 
 	CASE cronType
-        WHEN 'minute'     THEN SET matchRegex  = '^([*]{1})/([0-5][0-9]{1}|[0-9]{1})$';
+        WHEN 'minute'     THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
         WHEN 'hour'       THEN SET matchRegex  = '';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
@@ -132,4 +132,52 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
     END CASE;
 	 
 	RETURN matchRegex;
+END$$
+
+-- -----------------------------------------------------
+-- functions `bm_rules_min` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_min`$$
+
+CREATE FUNCTION `bm_rules_min` (cronType VARCHAR(10))
+RETURNS INTEGER DETERMINISTIC BEGIN
+    DECLARE myVal VARCHAR(255);
+
+	CASE cronType
+        WHEN 'minute'     THEN SET myVal  = 1;
+        WHEN 'hour'       THEN SET myVal  = 0;
+        WHEN 'dayofmonth' THEN SET myVal  = '';
+        WHEN 'dayofweek'  THEN SET myVal  = '';
+        WHEN 'month'      THEN SET myVal  = '';
+        WHEN 'year'       THEN SET myVal  = '';    
+        ELSE 
+            SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'can not match the cron type for min datetime';
+    END CASE;
+	 
+	RETURN myVal;
+END$$
+
+-- -----------------------------------------------------
+-- functions `bm_rules_max` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_max`$$
+
+CREATE FUNCTION `bm_rules_max` (crontype VARCHAR(10))
+RETURNS INTEGER DETERMINISTIC BEGIN
+    DECLARE myVal VARCHAR(255);
+
+	CASE cronType
+        WHEN 'minute'     THEN SET myVal  = 59;
+        WHEN 'hour'       THEN SET myVal  = 23;
+        WHEN 'dayofmonth' THEN SET myVal  = '';
+        WHEN 'dayofweek'  THEN SET myVal  = '';
+        WHEN 'month'      THEN SET myVal  = '';
+        WHEN 'year'       THEN SET myVal  = '';    
+        ELSE 
+            SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'can not match the cron type for max datetime';
+    END CASE;
+	 
+	RETURN myVal;
 END$$

@@ -16,41 +16,41 @@ class RulesPackageTest extends BasicTest
         # the result tmp table;
         
         # Test for the default '*'
-        $db->executeQuery("CALL bm_rules_parse_minute('*')");
+        $db->executeQuery("CALL bm_rules_parse('*','minute')");
         
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
         
         $this->assertEquals($result['range_open'],"1");
         $this->assertEquals($result['range_closed'],"59");
         $this->assertEquals($result['value_type'],"minute");
-        $this->assertEquals($result['mod_value'],0);
+        $this->assertEquals($result['mod_value'],1);
         
         $db->executeQuery("TRUNCATE bm_parsed_ranges");
         
         # Test format ## e.g scalar value range 1 to 59
-        $db->executeQuery("CALL bm_rules_parse_minute('56')");
+        $db->executeQuery("CALL bm_rules_parse('56','minute')");
 
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
         $this->assertEquals($result['range_open'],"56");
         $this->assertEquals($result['range_closed'],"56");
         $this->assertEquals($result['value_type'],"minute");
-        $this->assertEquals($result['mod_value'],0);
+        $this->assertEquals($result['mod_value'],1);
         
         $db->executeQuery("TRUNCATE bm_parsed_ranges");
         
         # Test format ##-## e.g range scalar values
-        $db->executeQuery("CALL bm_rules_parse_minute('34-59')");
+        $db->executeQuery("CALL bm_rules_parse('34-59','minute')");
 
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
         $this->assertEquals($result['range_open'],"34");
         $this->assertEquals($result['range_closed'],"59");
         $this->assertEquals($result['value_type'],"minute");
-        $this->assertEquals($result['mod_value'],0);
+        $this->assertEquals($result['mod_value'],1);
         
         $db->executeQuery("TRUNCATE bm_parsed_ranges");
         
         # Test format ##-## e.g range scalar values
-        $db->executeQuery("CALL bm_rules_parse_minute('*/20')");
+        $db->executeQuery("CALL bm_rules_parse('*/20','minute')");
 
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
         $this->assertEquals($result['range_open'],"1");
@@ -61,7 +61,7 @@ class RulesPackageTest extends BasicTest
         $db->executeQuery("TRUNCATE bm_parsed_ranges");
         
         # Test format ##/## e.g 6/3 short for 6-59/3
-        $db->executeQuery("CALL bm_rules_parse_minute('6/3')");
+        $db->executeQuery("CALL bm_rules_parse('6/3','minute')");
 
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
         $this->assertEquals($result['range_open'],"6");
@@ -72,7 +72,7 @@ class RulesPackageTest extends BasicTest
         $db->executeQuery("TRUNCATE bm_parsed_ranges");
         
           # Test format ##- ##/## e.g 6-59/3 
-        $db->executeQuery("CALL bm_rules_parse_minute('6/3')");
+        $db->executeQuery("CALL bm_rules_parse('6/3','minute')");
 
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
         $this->assertEquals($result['range_open'],"6");
@@ -91,7 +91,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeScalar()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('60')");
+        $db->executeQuery("CALL bm_rules_parse('60','minute')");
         
     }
     
@@ -102,7 +102,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOnAlpha()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('a')");
+        $db->executeQuery("CALL bm_rules_parse('a','minute')");
         
     }
     
@@ -113,7 +113,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsNegativeScalar()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('-1')");
+        $db->executeQuery("CALL bm_rules_parse('-1','minute')");
     }
     
     /**
@@ -123,7 +123,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeOne()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('60-59')");
+        $db->executeQuery("CALL bm_rules_parse('60-59','minute')");
     }
     
     /**
@@ -133,7 +133,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeTwo()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('6-60')");
+        $db->executeQuery("CALL bm_rules_parse('6-60','minute')");
     }
     
     /**
@@ -143,7 +143,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeThree()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('**/20')");
+        $db->executeQuery("CALL bm_rules_parse('**/20','minute')");
     }
     
     /**
@@ -153,7 +153,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeFour()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('60/3')");
+        $db->executeQuery("CALL bm_rules_parse('60/3','minute')");
     }
     
     /**
@@ -163,7 +163,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeFive()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('6/*')");
+        $db->executeQuery("CALL bm_rules_parse('6/*','minute')");
     }
     
      /**
@@ -173,7 +173,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeSix()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('6-60/3')");
+        $db->executeQuery("CALL bm_rules_parse('6-60/3','minute')");
     }
     
     /**
@@ -183,7 +183,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeSeven()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('6-*/3')");
+        $db->executeQuery("CALL bm_rules_parse('6-*/3','minute')");
     }
     
     /**
@@ -193,7 +193,7 @@ class RulesPackageTest extends BasicTest
     public function testMinuteParseFailsOutRangeRangeEight()
     {
         $db = $this->getDoctrineConnection();
-        $db->executeQuery("CALL bm_rules_parse_minute('-1-59/3')");
+        $db->executeQuery("CALL bm_rules_parse('-1-59/3','minute')");
     }
     
     
