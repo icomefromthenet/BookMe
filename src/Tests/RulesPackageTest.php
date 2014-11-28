@@ -60,6 +60,28 @@ class RulesPackageTest extends BasicTest
         
         $db->executeQuery("TRUNCATE bm_parsed_ranges");
         
+        # Test format ##/## e.g 6/3 short for 6-59/3
+        $db->executeQuery("CALL bm_rules_parse_minute('6/3')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"6");
+        $this->assertEquals($result['range_closed'],"59");
+        $this->assertEquals($result['value_type'],"minute");
+        $this->assertEquals($result['mod_value'],3);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+          # Test format ##- ##/## e.g 6-59/3 
+        $db->executeQuery("CALL bm_rules_parse_minute('6/3')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"6");
+        $this->assertEquals($result['range_closed'],"59");
+        $this->assertEquals($result['value_type'],"minute");
+        $this->assertEquals($result['mod_value'],3);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
     }
     
     /**
@@ -123,5 +145,67 @@ class RulesPackageTest extends BasicTest
         $db = $this->getDoctrineConnection();
         $db->executeQuery("CALL bm_rules_parse_minute('**/20')");
     }
+    
+    /**
+    * @expectedException Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage 1644 not support cron minute format
+    */
+    public function testMinuteParseFailsOutRangeRangeFour()
+    {
+        $db = $this->getDoctrineConnection();
+        $db->executeQuery("CALL bm_rules_parse_minute('60/3')");
+    }
+    
+    /**
+    * @expectedException Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage 1644 not support cron minute format
+    */
+    public function testMinuteParseFailsOutRangeRangeFive()
+    {
+        $db = $this->getDoctrineConnection();
+        $db->executeQuery("CALL bm_rules_parse_minute('6/*')");
+    }
+    
+     /**
+    * @expectedException Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage 1644 not support cron minute format
+    */
+    public function testMinuteParseFailsOutRangeRangeSix()
+    {
+        $db = $this->getDoctrineConnection();
+        $db->executeQuery("CALL bm_rules_parse_minute('6-60/3')");
+    }
+    
+    /**
+    * @expectedException Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage 1644 not support cron minute format
+    */
+    public function testMinuteParseFailsOutRangeRangeSeven()
+    {
+        $db = $this->getDoctrineConnection();
+        $db->executeQuery("CALL bm_rules_parse_minute('6-*/3')");
+    }
+    
+    /**
+    * @expectedException Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage 1644 not support cron minute format
+    */
+    public function testMinuteParseFailsOutRangeRangeEight()
+    {
+        $db = $this->getDoctrineConnection();
+        $db->executeQuery("CALL bm_rules_parse_minute('-1-59/3')");
+    }
+    
+    
+    
+    public function testHourValidCombinations() {
+        
+        
+        
+        
+        
+    }
+    
+    
 }
 /* End of Class */
