@@ -117,11 +117,11 @@ BEGIN
 
 				ELSE 
 					IF @bm_debug = true THEN
-						CALL util_proc_log('not support cron minute format');
+						CALL util_proc_log('not support cron format');
 					END IF;	
 
 					SIGNAL SQLSTATE '45000'
-					SET MESSAGE_TEXT = 'not support cron minute format';	
+					SET MESSAGE_TEXT = 'not support cron format';	
 			END CASE;
 			
 			

@@ -17,10 +17,10 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
         WHEN 'hour'       THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$';
-        WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$';
-        WHEN 'dayofweek'  THEN SET matchRegex  = '';
-        WHEN 'month'      THEN SET matchRegex  = '';
-        WHEN 'year'       THEN SET matchRegex  = '';    
+        WHEN 'dayofmonth' THEN SET matchRegex  = '^([0-6]{1})-([0-6]{1})/([0-9]+)$';
+        WHEN 'dayofweek'  THEN SET matchRegex  = '^([0-6]{1})-([0-6]{1})/([0-9]+)$';
+        WHEN 'month'      THEN SET matchRegex  = '^([1-9]{1}|[1-2][1-2]{1})-([1-9]{1}|[1-2][1-2]{1})/([0-9]+)$';
+        WHEN 'year'       THEN SET matchRegex  = '^([2]{1}[0-1]{1}[0-9]{2})-([2]{1}[0-1]{1}[0-9]{2})/([0-9]+)$';    
         ELSE 
             SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'can not match the cron type for patternA to a regex';
@@ -44,9 +44,9 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
         WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})/([0-9]+)$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$';
-        WHEN 'dayofweek'  THEN SET matchRegex  = '';
-        WHEN 'month'      THEN SET matchRegex  = '';
-        WHEN 'year'       THEN SET matchRegex  = '';    
+        WHEN 'dayofweek'  THEN SET matchRegex  = '^([0-6]{1})/([0-9]+)$';
+        WHEN 'month'      THEN SET matchRegex  = '^([1-9]{1}|[1-2][1-2]{1})/([0-9]+)$';
+        WHEN 'year'       THEN SET matchRegex  = '^([2]{1}[0-1]{1}[0-9]{2})/([0-9]+)$';    
         ELSE 
             SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'can not match the cron type for patternB to a regex';
@@ -70,9 +70,9 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})$';
         WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})-([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})$';
-        WHEN 'dayofweek'  THEN SET matchRegex  = '';
-        WHEN 'month'      THEN SET matchRegex  = '';
-        WHEN 'year'       THEN SET matchRegex  = '';    
+        WHEN 'dayofweek'  THEN SET matchRegex  = '^([0-6]{1})-([0-6]{1})$';
+        WHEN 'month'      THEN SET matchRegex  = '^([1-9]{1}|[1-2][1-2]{1})-([1-9]{1}|[1-2][1-2]{1})';
+        WHEN 'year'       THEN SET matchRegex  = '^([2]{1}[0-1]{1}[0-9]{2})-([2]{1}[0-1]{1}[0-9]{2})$';    
         ELSE 
             SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'can not match the cron type for patternC to a regex';
@@ -97,9 +97,9 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]?|[0-9]{1})$';
         WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})$';
-        WHEN 'dayofweek'  THEN SET matchRegex  = '';
-        WHEN 'month'      THEN SET matchRegex  = '';
-        WHEN 'year'       THEN SET matchRegex  = '';    
+        WHEN 'dayofweek'  THEN SET matchRegex  = '^([0-6]{1})$';
+        WHEN 'month'      THEN SET matchRegex  = '^([1-9]{1}|[1-2][1-2]{1})$';
+        WHEN 'year'       THEN SET matchRegex  = '^([2]{1}[0-1]{1}[0-9]{2})$';    
         ELSE 
             SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'can not match the cron type for patternD to a regex';
@@ -123,9 +123,9 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
         WHEN 'minute'     THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
         WHEN 'hour'       THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
-        WHEN 'dayofweek'  THEN SET matchRegex  = '';
-        WHEN 'month'      THEN SET matchRegex  = '';
-        WHEN 'year'       THEN SET matchRegex  = '';    
+        WHEN 'dayofweek'  THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
+        WHEN 'month'      THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
+        WHEN 'year'       THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';    
         ELSE 
             SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'can not match the cron type for patternE to a regex';
@@ -147,9 +147,9 @@ RETURNS INTEGER DETERMINISTIC BEGIN
         WHEN 'minute'     THEN SET myVal  = 1;
         WHEN 'hour'       THEN SET myVal  = 0;
         WHEN 'dayofmonth' THEN SET myVal  = 1;
-        WHEN 'dayofweek'  THEN SET myVal  = '';
-        WHEN 'month'      THEN SET myVal  = '';
-        WHEN 'year'       THEN SET myVal  = '';    
+        WHEN 'dayofweek'  THEN SET myVal  = 0;
+        WHEN 'month'      THEN SET myVal  = 1;
+        WHEN 'year'       THEN SET myVal  = 2000;    
         ELSE 
             SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'can not match the cron type for min datetime';
@@ -171,9 +171,9 @@ RETURNS INTEGER DETERMINISTIC BEGIN
         WHEN 'minute'     THEN SET myVal  = 59;
         WHEN 'hour'       THEN SET myVal  = 23;
         WHEN 'dayofmonth' THEN SET myVal  = 31;
-        WHEN 'dayofweek'  THEN SET myVal  = '';
-        WHEN 'month'      THEN SET myVal  = '';
-        WHEN 'year'       THEN SET myVal  = '';    
+        WHEN 'dayofweek'  THEN SET myVal  = 6;
+        WHEN 'month'      THEN SET myVal  = 12;
+        WHEN 'year'       THEN SET myVal  = 2199;    
         ELSE 
             SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'can not match the cron type for max datetime';

@@ -103,7 +103,7 @@ class RulesPackageTest extends BasicTest
                 $this->assertTrue(false,'Test for minute parse fails has failed to cause an exception');
             }
             catch(DBALException $e) {
-                $this->assertContains('1644 not support cron minute format',$e->getMessage());
+                $this->assertContains('1644 not support cron format',$e->getMessage());
             }
             
         }
@@ -204,12 +204,12 @@ class RulesPackageTest extends BasicTest
         foreach($patterns as $key => $pattern) {
         
             try {
-                $db->executeQuery("CALL bm_rules_parse('?','minute')",array($pattern));
+                $db->executeQuery("CALL bm_rules_parse('?','hour')",array($pattern));
                 
                 $this->assertTrue(false,'Test for minute parse fails has failed to cause an exception');
             }
             catch(DBALException $e) {
-                $this->assertContains('1644 not support cron minute format',$e->getMessage());
+                $this->assertContains('1644 not support cron format',$e->getMessage());
             }
             
         }
@@ -286,7 +286,358 @@ class RulesPackageTest extends BasicTest
         
     }
     
+    public function testDayMonthParseFailures()
+    {
+        $db = $this->getDoctrineConnection();
+        $patterns = array(
+            'one'    => '32'
+            ,'two'   => 'a'
+            ,'three' => '-4'
+            ,'four'  =>'31-1'
+            ,'five' => '4-32'
+            ,'six' => '**/20'
+            ,'seven' => '100/3'
+            ,'eight'   => '6/*'
+            ,'nine'  => '6-56/3'
+            ,'ten' => '6-*/3'
+            ,'eleven' => '-1-23/3'
+            
+            
+        );
+        
+        
+        foreach($patterns as $key => $pattern) {
+        
+            try {
+                $db->executeQuery("CALL bm_rules_parse('?','dayofmonth')",array($pattern));
+                
+                $this->assertTrue(false,'Test for minute parse fails has failed to cause an exception');
+            }
+            catch(DBALException $e) {
+                $this->assertContains('1644 not support cron format',$e->getMessage());
+            }
+            
+        }
     
+        
+    }
+    
+    public function testDayWeekValidCombinations() 
+    {
+        $db = $this->getDoctrineConnection();
+        
+        # Test if valid formats create expected result set in 
+        # the result tmp table;
+        
+        # Test for the default '*'
+        $db->executeQuery("CALL bm_rules_parse('*','dayofweek')");
+        
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        
+        $this->assertEquals($result['range_open'],"0");
+        $this->assertEquals($result['range_closed'],"6");
+        $this->assertEquals($result['value_type'],"dayofweek");
+        $this->assertEquals($result['mod_value'],1);    
+        
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ## e.g scalar value range 0 to 6
+        $db->executeQuery("CALL bm_rules_parse('0','dayofweek')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"0");
+        $this->assertEquals($result['range_closed'],"0");
+        $this->assertEquals($result['value_type'],"dayofweek");
+        $this->assertEquals($result['mod_value'],1);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##-## e.g range scalar values
+        $db->executeQuery("CALL bm_rules_parse('3-6','dayofweek')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"3");
+        $this->assertEquals($result['range_closed'],6);
+        $this->assertEquals($result['value_type'],"dayofweek");
+        $this->assertEquals($result['mod_value'],1);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##-## e.g range scalar values
+        $db->executeQuery("CALL bm_rules_parse('*/20','dayofweek')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        
+        $this->assertEquals($result['range_open'],"0");
+        $this->assertEquals($result['range_closed'],"6");
+        $this->assertEquals($result['value_type'],"dayofweek");
+        $this->assertEquals($result['mod_value'],20);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##/## e.g 4/3 short for 4-6/3
+        $db->executeQuery("CALL bm_rules_parse('4/3','dayofweek')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"4");
+        $this->assertEquals($result['range_closed'],"6");
+        $this->assertEquals($result['value_type'],"dayofweek");
+        $this->assertEquals($result['mod_value'],3);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        
+        
+    }
+    
+    
+    
+    public function testDayWeekParseFailures()
+    {
+        $db = $this->getDoctrineConnection();
+        $patterns = array(
+            'one'    => '7'
+            ,'two'   => 'a'
+            ,'three' => '-4'
+            ,'four'  =>'31-1'
+            ,'five' => '4-32'
+            ,'six' => '**/20'
+            ,'seven' => '100/3'
+            ,'eight'   => '6/*'
+            ,'nine'  => '6-56/3'
+            ,'ten' => '6-*/3'
+            ,'eleven' => '-1-23/3'
+            
+            
+        );
+        
+        
+        foreach($patterns as $key => $pattern) {
+        
+            try {
+                $db->executeQuery("CALL bm_rules_parse('?','dayofweek')",array($pattern));
+                
+                $this->assertTrue(false,'Test for minute parse fails has failed to cause an exception');
+            }
+            catch(DBALException $e) {
+                $this->assertContains('1644 not support cron format',$e->getMessage());
+            }
+            
+        }
+    
+        
+    }
+    
+    public function testMonthValidCombinations() 
+    {
+        $db = $this->getDoctrineConnection();
+        
+        # Test if valid formats create expected result set in 
+        # the result tmp table;
+        
+        # Test for the default '*'
+        $db->executeQuery("CALL bm_rules_parse('*','month')");
+        
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        
+        $this->assertEquals($result['range_open'],"1");
+        $this->assertEquals($result['range_closed'],"12");
+        $this->assertEquals($result['value_type'],"month");
+        $this->assertEquals($result['mod_value'],1);    
+        
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ## e.g scalar value range 1 to 12
+        $db->executeQuery("CALL bm_rules_parse('1','month')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"1");
+        $this->assertEquals($result['range_closed'],"1");
+        $this->assertEquals($result['value_type'],"month");
+        $this->assertEquals($result['mod_value'],1);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##-## e.g range scalar values
+        $db->executeQuery("CALL bm_rules_parse('3-6','month')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"3");
+        $this->assertEquals($result['range_closed'],6);
+        $this->assertEquals($result['value_type'],"month");
+        $this->assertEquals($result['mod_value'],1);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##-## e.g range scalar values
+        $db->executeQuery("CALL bm_rules_parse('*/20','month')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        
+        $this->assertEquals($result['range_open'],"1");
+        $this->assertEquals($result['range_closed'],"12");
+        $this->assertEquals($result['value_type'],"month");
+        $this->assertEquals($result['mod_value'],20);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##/## e.g 4/3 short for 4-12/3
+        $db->executeQuery("CALL bm_rules_parse('4/3','month')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"4");
+        $this->assertEquals($result['range_closed'],"12");
+        $this->assertEquals($result['value_type'],"month");
+        $this->assertEquals($result['mod_value'],3);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        
+        
+    }
+    
+    public function testMonthParseFailures()
+    {
+        $db = $this->getDoctrineConnection();
+        $patterns = array(
+            'one'    => '7'
+            ,'two'   => 'a'
+            ,'three' => '-4'
+            ,'four'  =>'31-1'
+            ,'five' => '4-32'
+            ,'six' => '**/20'
+            ,'seven' => '100/3'
+            ,'eight'   => '6/*'
+            ,'nine'  => '6-56/3'
+            ,'ten' => '6-*/3'
+            ,'eleven' => '-1-23/3'
+            
+            
+        );
+        
+        
+        foreach($patterns as $key => $pattern) {
+        
+            try {
+                $db->executeQuery("CALL bm_rules_parse('?','month')",array($pattern));
+                
+                $this->assertTrue(false,'Test for minute parse fails has failed to cause an exception');
+            }
+            catch(DBALException $e) {
+                $this->assertContains('1644 not support cron format',$e->getMessage());
+            }
+            
+        }
+    
+        
+    }
+    
+    public function testYearValidCombinations() 
+    {
+        $db = $this->getDoctrineConnection();
+        
+        # Test if valid formats create expected result set in 
+        # the result tmp table;
+        
+        # Test for the default '*'
+        $db->executeQuery("CALL bm_rules_parse('*','year')");
+        
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        
+        $this->assertEquals($result['range_open'],"2000");
+        $this->assertEquals($result['range_closed'],"2199");
+        $this->assertEquals($result['value_type'],"year");
+        $this->assertEquals($result['mod_value'],1);    
+        
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ## e.g scalar value range 2000 to 2199
+        $db->executeQuery("CALL bm_rules_parse('2000','year')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"2000");
+        $this->assertEquals($result['range_closed'],"2000");
+        $this->assertEquals($result['value_type'],"year");
+        $this->assertEquals($result['mod_value'],1);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##-## e.g range scalar values
+        $db->executeQuery("CALL bm_rules_parse('2001-2005','year')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"2001");
+        $this->assertEquals($result['range_closed'],2005);
+        $this->assertEquals($result['value_type'],"year");
+        $this->assertEquals($result['mod_value'],1);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##-## e.g range scalar values
+        $db->executeQuery("CALL bm_rules_parse('*/20','year')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        
+        $this->assertEquals($result['range_open'],"2000");
+        $this->assertEquals($result['range_closed'],"2199");
+        $this->assertEquals($result['value_type'],"year");
+        $this->assertEquals($result['mod_value'],20);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        # Test format ##/## e.g 2014/3 short for 2014-2199/3
+        $db->executeQuery("CALL bm_rules_parse('2014/3','year')");
+
+        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
+        $this->assertEquals($result['range_open'],"2014");
+        $this->assertEquals($result['range_closed'],"2199");
+        $this->assertEquals($result['value_type'],"year");
+        $this->assertEquals($result['mod_value'],3);
+        
+        $db->executeQuery("TRUNCATE bm_parsed_ranges");
+        
+        
+        
+    }
+    
+    public function testYearParseFailures()
+    {
+        $db = $this->getDoctrineConnection();
+        $patterns = array(
+            'one'    => '2599'
+            ,'two'   => 'a'
+            ,'three' => '-2000'
+            ,'four'  =>'5-2000'
+            ,'five' => '4-32'
+            ,'six' => '**/20'
+            ,'seven' => '2500/3'
+            ,'eight'   => '6/*'
+            ,'nine'  => '2014-3000/3'
+            ,'ten' => '2014-*/3'
+            ,'eleven' => '-2000-2199/3'
+            
+            
+        );
+        
+        
+        foreach($patterns as $key => $pattern) {
+        
+            try {
+                $db->executeQuery("CALL bm_rules_parse('?','year')",array($pattern));
+                
+                $this->assertTrue(false,'Test for parse fails has failed to cause an exception');
+            }
+            catch(DBALException $e) {
+                $this->assertContains('1644 not support cron format',$e->getMessage());
+            }
+            
+        }
+    
+        
+    }
     
 }
 /* End of Class */

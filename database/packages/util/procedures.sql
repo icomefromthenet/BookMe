@@ -114,7 +114,7 @@ BEGIN
 		range_open INT NOT NULL,
 		range_closed INT NOT NULL,
 		mod_value INT NULL,
-		value_type ENUM('minute','hour','dayofmonth','dayofweek','year')
+		value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL
 	) ENGINE=MEMORY;
 	
 END$$
