@@ -16,7 +16,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	 
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
-        WHEN 'hour'       THEN SET matchRegex  = '';
+        WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})-([0-1][0-9]|[2][0-3]{1}|[0-9]{1})/([0-9]+)$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
@@ -42,7 +42,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	 
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
-        WHEN 'hour'       THEN SET matchRegex  = '';
+        WHEN 'hour'       THEN SET matchRegex  = '([0-1][0-9]|[2][0-3]{1}|[0-9]{1})/([0-9]+)$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
@@ -68,7 +68,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	 
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})$';
-        WHEN 'hour'       THEN SET matchRegex  = '';
+        WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})-([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
@@ -95,7 +95,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	 
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]?|[0-9]{1})$';
-        WHEN 'hour'       THEN SET matchRegex  = '';
+        WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
@@ -121,7 +121,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	 
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
-        WHEN 'hour'       THEN SET matchRegex  = '';
+        WHEN 'hour'       THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
         WHEN 'dayofmonth' THEN SET matchRegex  = '';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';

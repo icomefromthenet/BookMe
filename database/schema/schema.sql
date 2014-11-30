@@ -71,10 +71,13 @@ COMMENT = 'Ways to group schedules.';
 DROP TABLE IF EXISTS `audit_schedule_groups`;
 
 CREATE TABLE IF NOT EXISTS `audit_schedule_groups` (
+  -- audit fields
   `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
   `action` CHAR(1) DEFAULT '',
   `change_time` TIMESTAMP NOT NULL,
   `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+
+  -- group fields
   `group_id` INT NOT NULL,
   `group_name` VARCHAR(45) NULL,
   `valid_from` DATE NOT NULL COMMENT 'frist date this group valid from',
@@ -174,114 +177,113 @@ COMMENT = 'Groups our timeslots into slot groups.';
 
 
 -- -----------------------------------------------------
--- Table `exclusion_rules`
+-- Table `rules`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `exclusion_rules` ;
+DROP TABLE IF EXISTS `rules`;
 
-CREATE TABLE IF NOT EXISTS `exclusion_rules` (
-  `exclusion_rule_id` INT NOT NULL AUTO_INCREMENT,
-  `rule_name` VARCHAR(50) NULL COMMENT 'name for this rule',
-  `valid_from` DATE NOT NULL COMMENT 'opening application date',
-  `valid_to` DATE NOT NULL DEFAULT '3000-01-01' COMMENT 'closing application date\n',
-  `apply_on` TINYINT NOT NULL DEFAULT 0 COMMENT '0 = weekday/weekend\n1 = weekend\n2 = weekday',
-  `exclude_length` INT NOT NULL COMMENT 'number of minutes to exclude\nuse minutes as our common slot is 1 minute durations',
-  `repeat_minute` VARCHAR(50) NOT NULL DEFAULT 0 COMMENT 'min (0 - 59)',
-  `repeat_hour` VARCHAR(50) NOT NULL DEFAULT 0 COMMENT 'hour (0 - 23)',
-  `repeat_dayofweek` VARCHAR(50) NOT NULL DEFAULT 0 COMMENT 'day of week (0 - 6) (0 to 6 are Sunday to Saturday, or use names; 7 is Sunday, the same as 0)',
-  `repeat_month` VARCHAR(50) NOT NULL DEFAULT 0 COMMENT 'day of week (0 - 6) (0 to 6 are Sunday to Saturday, or use names; 7 is Sunday, the same as 0)',
-  `repeat_dayofmonth` VARCHAR(50) NOT NULL DEFAULT 0 COMMENT 'day of month (1 - 31)',
-  `repeat_year` VARCHAR(50) NOT NULL DEFAULT 0,
-  `schedule_group_id` INT(11) NOT NULL,
-  PRIMARY KEY (`exclusion_rule_id`),
-  UNIQUE INDEX `rule_name_UNIQUE` (`rule_name` ASC),
-  INDEX `fk_exclusion_rules_1_idx` (`schedule_group_id` ASC),
-  CONSTRAINT `fk_exclusion_rules_1`
-    FOREIGN KEY (`schedule_group_id`)
-    REFERENCES `schedule_groups` (`group_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB
-COMMENT = 'Describes the rules that exclude timeslots';
-
-
--- -----------------------------------------------------
--- Table `inclusion_rules`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `inclusion_rules` ;
-
-CREATE TABLE IF NOT EXISTS `inclusion_rules` (
-  `inclusion_rule_id` INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `rules` (
+  -- common rule fields
+  `rule_id` INT NOT NULL AUTO_INCREMENT,
   `rule_name` VARCHAR(45) NOT NULL,
-  `valid_from` DATE NOT NULL,
-  `valid_to` DATE NOT NULL DEFAULT '3000-01-01',
-  `interval_start` TIME NULL COMMENT 'starting slot that is open',
-  `interval_length` TIME NULL COMMENT 'last slot time to include in rule\n',
+  `rule_type` ENUM('inclusion', 'exclusion'),
+  `rule_repeat` ENUM('adhoc', 'repeat'),
+
+  -- audit fields
+  `created_date` DATETIME NOT NULL,
+  `updated_date` DATETIME NOT NULL,
+
+  -- repeat rules fields  
   `repeat_minute` VARCHAR(45) NOT NULL,
   `repeat_hour` VARCHAR(45) NOT NULL,
   `repeat_dayofweek` VARCHAR(45) NOT NULL,
   `repeat_dayofmonth` VARCHAR(45) NOT NULL,
   `repeat_month` VARCHAR(45) NOT NULL,
   `repeat_year` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`inclusion_rule_id`),
-  UNIQUE INDEX `rule_name_UNIQUE` (`rule_name` ASC))
+  
+  -- relation fields
+  `schedule_id` INT COMMENT 'Known as a schedule rule',
+  `membership_id` INT COMMENT 'Known as a member rule',
+  
+  PRIMARY KEY (`rule_id`),
+  UNIQUE INDEX `rule_name_UNIQUE` (`rule_name` ASC),
+  CONSTRAINT `fk_rule_schedule`
+    FOREIGN KEY (`schedule_id`)
+    REFERENCES `schedules` (`schedule_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  
+  CONSTRAINT `fk_rule_member`
+    FOREIGN KEY (`membership_id`)
+    REFERENCES `schedule_membership` (`membership_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB
-COMMENT = 'Rules that mark intervals to are available to schedule\n';
+COMMENT = 'Rules that mark intervals to are available\\unavailable to schedule\n';
+
+-- -----------------------------------------------------
+-- Table `audit_rules`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `audit_rules`;
+
+CREATE TABLE IF NOT EXISTS `audit_rules` (
+  -- audit fields
+  `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
+  `action` CHAR(1) DEFAULT '',
+  `change_time` TIMESTAMP NOT NULL,
+  `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+
+  
+  -- common rule fields
+  `rule_id` INT NOT NULL,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('inclusion', 'exclusion'),
+  `rule_repeat` ENUM('adhoc', 'repeat'),
+  
+  -- repeat fields  
+  `repeat_minute` VARCHAR(45) NOT NULL,
+  `repeat_hour` VARCHAR(45) NOT NULL,
+  `repeat_dayofweek` VARCHAR(45) NOT NULL,
+  `repeat_dayofmonth` VARCHAR(45) NOT NULL,
+  `repeat_month` VARCHAR(45) NOT NULL,
+  `repeat_year` VARCHAR(45) NOT NULL,
+  
+  -- relation fields
+  `schedule_id` INT COMMENT 'Known as a schedule rule',
+  `member_id` INT COMMENT 'Known as a member rule',
+  
+  PRIMARY KEY (`change_seq`)
+) ENGINE = InnoDB
+COMMENT = 'Audit table for rule changes';
 
 
 -- -----------------------------------------------------
--- Table `inclusion_overrides`
+-- Table `rule_slots`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `inclusion_overrides` ;
+DROP TABLE IF EXISTS `rule_slots` ;
 
-CREATE TABLE IF NOT EXISTS `inclusion_overrides` (
-  `inclusion_overrides_id` INT NOT NULL AUTO_INCREMENT,
-  `schedule_id` INT NOT NULL,
+CREATE TABLE IF NOT EXISTS `rule_slots` (
+  `rule_slot_id` INT NOT NULL AUTO_INCREMENT,
+  `rule_id` INT NOT NULL,
   `slot_id` INT NOT NULL,
-  PRIMARY KEY (`inclusion_overrides_id`),
-  INDEX `fk_inclusion_overrides_1_idx` (`slot_id` ASC),
-  INDEX `fk_inclusion_overrides_2_idx` (`schedule_id` ASC),
-  UNIQUE INDEX `inclusion_overrides_uk1` (`schedule_id` ASC, `slot_id` ASC),
-  CONSTRAINT `fk_inclusion_overrides_1`
+  INDEX `idx_rule_slots_slot` (`slot_id` ASC),
+  INDEX `idx_rule_slots_rule` (`rule_id` ASC),
+  UNIQUE INDEX `uk_rule_slots` (`rule_id` ASC, `slot_id` ASC),
+  
+  PRIMARY KEY (`rule_slot_id`),
+  CONSTRAINT `fk_rule_slots_slot`
     FOREIGN KEY (`slot_id`)
     REFERENCES `slots` (`slot_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_inclusion_overrides_2`
-    FOREIGN KEY (`schedule_id`)
-    REFERENCES `schedules` (`schedule_id`)
+  
+  CONSTRAINT `fk_rule_slots_rule`
+    FOREIGN KEY (`rule_id`)
+    REFERENCES `rules` (`rule_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
+    
 ENGINE = InnoDB
-COMMENT = 'Slots that should be included in schedule will override excl /* comment truncated */ /*usion rules but not exclusion overrides
-*/';
-
-
--- -----------------------------------------------------
--- Table `exclusion_overrides`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `exclusion_overrides` ;
-
-CREATE TABLE IF NOT EXISTS `exclusion_overrides` (
-  `exclusion_override_id` INT NOT NULL AUTO_INCREMENT,
-  `slot_id` INT NOT NULL,
-  `schedule_id` INT NOT NULL,
-  PRIMARY KEY (`exclusion_override_id`),
-  INDEX `fk_exclusion_override_1_idx` (`slot_id` ASC),
-  INDEX `fk_exclusion_override_2_idx` (`schedule_id` ASC),
-  UNIQUE INDEX `index4` (`slot_id` ASC, `schedule_id` ASC),
-  CONSTRAINT `fk_exclusion_override_1`
-    FOREIGN KEY (`slot_id`)
-    REFERENCES `slots` (`slot_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_exclusion_override_2`
-    FOREIGN KEY (`schedule_id`)
-    REFERENCES `schedules` (`schedule_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB
-COMMENT = 'List of slots that should not be included in schedule, will  /* comment truncated */ /*override all inclusion rules and inclusion overrides*/';
-
+COMMENT = 'Relates the rule to the slots they affect';
 
 -- -----------------------------------------------------
 -- Table `ints`
@@ -316,7 +318,7 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `bookings`
+-- Table `app_activity_log`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `app_activity_log` ;
 
