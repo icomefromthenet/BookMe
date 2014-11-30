@@ -200,6 +200,11 @@ CREATE TABLE IF NOT EXISTS `rules` (
   `repeat_month` VARCHAR(45) NOT NULL,
   `repeat_year` VARCHAR(45) NOT NULL,
   
+  -- adhoc opening rules
+  `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
+  `closing_slot_id` INT COMMENT 'only for adhoc-rules',
+  
+  
   -- relation fields
   `schedule_group_id` INT COMMENT 'Known as a schedule rule',
   `membership_id` INT COMMENT 'Known as a member rule',
@@ -217,7 +222,21 @@ CREATE TABLE IF NOT EXISTS `rules` (
     FOREIGN KEY (`membership_id`)
     REFERENCES `schedule_membership` (`membership_id`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON UPDATE NO ACTION,
+    
+  CONSTRAINT `fk_rule_op_slots`
+    FOREIGN KEY (`opening_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+    
+  CONSTRAINT `fk_rule_cl_slots`
+    FOREIGN KEY (`closing_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+
+)
 ENGINE = InnoDB
 COMMENT = 'Rules that mark intervals to are available\\unavailable to schedule\n';
 
@@ -247,6 +266,11 @@ CREATE TABLE IF NOT EXISTS `audit_rules` (
   `repeat_dayofmonth` VARCHAR(45)  NULL,
   `repeat_month` VARCHAR(45) NULL,
   `repeat_year` VARCHAR(45) NULL,
+
+  -- adhoc opening rules
+  `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
+  `closing_slot_id` INT COMMENT 'only for adhoc-rules',
+
   
   -- relation fields
   `schedule_group_id` INT COMMENT 'Known as a schedule rule',

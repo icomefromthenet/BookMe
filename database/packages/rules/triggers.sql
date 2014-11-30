@@ -20,9 +20,11 @@ INSERT INTO audit_rules (`change_seq`
                          ,`repeat_dayofweek`
                          ,`repeat_dayofmonth`
                          ,`repeat_month`
-                         , `repeat_year`
+                         ,`repeat_year`
                          ,`schedule_group_id`
                          ,`membership_id`
+                         ,`opening_slot_id`
+                         ,`closing_slot_id`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -39,6 +41,8 @@ VALUES (NULL
         , NEW.`repeat_year`
         , NEW.`schedule_group_id`
         , NEW.`membership_id`
+        , NEW.`opening_slot_id`
+        , NEW.`closing_slot_id`
         , USER()
         , 'I'
         , NOW());
@@ -61,8 +65,10 @@ INSERT INTO audit_rules (`change_seq`
                          ,`repeat_dayofweek`
                          ,`repeat_dayofmonth`
                          ,`repeat_month`
-                         , `repeat_year`
+                         ,`repeat_year`
                          ,`schedule_group_id`
+                         ,`opening_slot_id`
+                         ,`closing_slot_id`
                          ,`membership_id`
                          ,`changed_by`
                          ,`action`
@@ -80,6 +86,8 @@ VALUES (NULL
         , NEW.`repeat_year`
         , NEW.`schedule_group_id`
         , NEW.`membership_id` 
+        , NEW.`opening_slot_id`
+        , NEW.`closing_slot_id`
         ,USER()
         ,'U'
         ,NOW());
@@ -105,6 +113,8 @@ INSERT INTO audit_rules (`change_seq`
                          , `repeat_year`
                          ,`schedule_group_id`
                          ,`membership_id`
+                         ,`opening_slot_id`
+                         ,`closing_slot_id`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -120,7 +130,9 @@ VALUES (NULL
         , OLD.`repeat_month`
         , OLD.`repeat_year`
         , OLD.`schedule_group_id`
-        , OLD.`membership_id` 
+        , OLD.`membership_id`
+        , OLD.`opening_slot_id`
+        , OLD.`closing_slot_id`
         , USER()
         ,'D'
         ,NOW());

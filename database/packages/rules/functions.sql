@@ -16,8 +16,8 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	 
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
-        WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})-([0-1][0-9]|[2][0-3]{1}|[0-9]{1})/([0-9]+)$';
-        WHEN 'dayofmonth' THEN SET matchRegex  = '';
+        WHEN 'hour'       THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$';
+        WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
         WHEN 'year'       THEN SET matchRegex  = '';    
@@ -42,8 +42,8 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	 
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$';
-        WHEN 'hour'       THEN SET matchRegex  = '([0-1][0-9]|[2][0-3]{1}|[0-9]{1})/([0-9]+)$';
-        WHEN 'dayofmonth' THEN SET matchRegex  = '';
+        WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})/([0-9]+)$';
+        WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
         WHEN 'year'       THEN SET matchRegex  = '';    
@@ -69,7 +69,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})$';
         WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})-([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$';
-        WHEN 'dayofmonth' THEN SET matchRegex  = '';
+        WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})$';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
         WHEN 'year'       THEN SET matchRegex  = '';    
@@ -96,7 +96,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([0-5][0-9]?|[0-9]{1})$';
         WHEN 'hour'       THEN SET matchRegex  = '^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$';
-        WHEN 'dayofmonth' THEN SET matchRegex  = '';
+        WHEN 'dayofmonth' THEN SET matchRegex  = '^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})$';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
         WHEN 'year'       THEN SET matchRegex  = '';    
@@ -122,7 +122,7 @@ RETURNS VARCHAR(255) DETERMINISTIC BEGIN
 	CASE cronType
         WHEN 'minute'     THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
         WHEN 'hour'       THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
-        WHEN 'dayofmonth' THEN SET matchRegex  = '';
+        WHEN 'dayofmonth' THEN SET matchRegex  = '^([*]{1})/([0-9]+)$';
         WHEN 'dayofweek'  THEN SET matchRegex  = '';
         WHEN 'month'      THEN SET matchRegex  = '';
         WHEN 'year'       THEN SET matchRegex  = '';    
@@ -146,7 +146,7 @@ RETURNS INTEGER DETERMINISTIC BEGIN
 	CASE cronType
         WHEN 'minute'     THEN SET myVal  = 1;
         WHEN 'hour'       THEN SET myVal  = 0;
-        WHEN 'dayofmonth' THEN SET myVal  = '';
+        WHEN 'dayofmonth' THEN SET myVal  = 1;
         WHEN 'dayofweek'  THEN SET myVal  = '';
         WHEN 'month'      THEN SET myVal  = '';
         WHEN 'year'       THEN SET myVal  = '';    
@@ -170,7 +170,7 @@ RETURNS INTEGER DETERMINISTIC BEGIN
 	CASE cronType
         WHEN 'minute'     THEN SET myVal  = 59;
         WHEN 'hour'       THEN SET myVal  = 23;
-        WHEN 'dayofmonth' THEN SET myVal  = '';
+        WHEN 'dayofmonth' THEN SET myVal  = 31;
         WHEN 'dayofweek'  THEN SET myVal  = '';
         WHEN 'month'      THEN SET myVal  = '';
         WHEN 'year'       THEN SET myVal  = '';    
@@ -180,4 +180,21 @@ RETURNS INTEGER DETERMINISTIC BEGIN
     END CASE;
 	 
 	RETURN myVal;
+END$$
+
+
+-- -----------------------------------------------------
+-- functions `bm_rules_valid_rule_type` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_valid_rule_type`$$
+
+CREATE FUNCTION `bm_rules_valid_rule_type` (ruleType VARCHAR(10))
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isValid BOOLEAN DEFAULT false;
+    
+    IF ruleType = 'inclusion' OR ruleType = 'exclusion' THEN
+        SET isValid = true;
+    END IF;
+    
+    RETURN isValid;
 END$$

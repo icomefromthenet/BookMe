@@ -172,58 +172,155 @@ BEGIN
 END$$
 
 -- -----------------------------------------------------
--- procedure bm_rules_add_schedule
+-- procedure bm_rules_add_schedule_rule
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_rules_add_schedule`$$
+DROP procedure IF EXISTS `bm_rules_add_schedule_rule`$$
 
-CREATE PROCEDURE `bm_rules_add_schedule`( IN ruleName VARCHAR(45)
+CREATE PROCEDURE `bm_rules_add_schedule_rule`( 
+										  IN ruleName VARCHAR(45)
 										, IN ruleType VARCHAR(45)
 										, IN repeatMinute VARCHAR(45)
+										, IN repeatHour VARCHAR(45)
 										, IN repeatDayofweek VARCHAR(45)
 										, IN repeatDayofmonth VARCHAR(45)
 										, IN repeatMonth VARCHAR(45)
 										, IN repeatYear VARCHAR(45)
-										, IN scheduleGroupID INT)
+										, IN scheduleGroupID INT
+										, OUT newRuleID INT )
 BEGIN
 	
-	DECLARE repeatType VARCHAR(10) DEFAULT 'repeat'; -- schedule group rules are always repeat
+	DECLARE repeatValue VARCHAR(10) DEFAULT 'repeat'; -- schedule group rules are always repeat
 	
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log('Starting bm_rules_add_schedule_rule');
+	END IF;
+
+	IF bm_rules_valid_rule_type(ruleType) = false THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Given ruleType is invalid';	
+	END IF;
+
+
+	-- execute the parse fill tmp table
+	CALL bm_rules_parse(repeatMinute,'minute');
+	CALL bm_rules_parse(repeatHour,'hour');
+	CALL bm_rules_parse(repeatDayofmonth,'dayofmonth');
+	CALL bm_rules_parse(repeatDayofweek,'dayofweek');
+	CALL bm_rules_parse(repeatMonth,'month');
+	CALL bm_rules_parse(repeatYear,'year');
+
+
 	-- insert schedule group rule into rules table
 	-- the audit trigger will log it after insert
 
-	-- execute the parse fill tmp table
+	INSERT INTO rules (
+		 `rule_id`
+		,`rule_name`
+		,`rule_type`
+		,`rule_repeat`
+		,`created_date`
+		,`updated_date`
+		,`repeat_minute`
+		,`repeat_hour`
+		,`repeat_dayofweek`
+		,`repeat_dayofmonth`
+		,`repeat_month`
+		,`repeat_year`
+		,`schedule_group_id`
+	)
+	VALUES (
+		 NULL
+		,ruleName
+		,ruleType
+		,repeatValue
+		,NOW()
+		,NOW()
+		,repeatMinute
+		,repeatHour
+		,repeatDayofweek
+		,repeatDayofmonth
+		,repeatMonth
+		,repeatYear
+		,scheduleGroupID
+	);
+
+	SET newRuleID = LAST_INSERT_ID();
 
 
 	-- record operation in slot log
-	
+	INSERT INTO rule_slots_operations (
+		`change_seq`
+		,`operation`
+		,`change_time`
+		,`changed_by`
+		,`rule_id`
+	) 
+	VALUES (
+		NULL
+		,'addition'
+		,NOW()
+		,USER()
+		,newRuleID
+	);
 	
 	
 	-- insert slots calculated for this rule
+
+	
+
+
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_add_schedule_rule');
+	END IF;
 
 
 END$$
 
 -- -----------------------------------------------------
--- procedure bm_rules_add_member
+-- procedure bm_rules_add_member_rule
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_rules_add_member`$$
-CREATE PROCEDURE `bm_rules_add_member`(IN ruleName VARCHAR(45)
+DROP procedure IF EXISTS `bm_rules_add_member_rule`$$
+
+CREATE PROCEDURE `bm_rules_add_member_rule`(IN ruleName VARCHAR(45)
 										, IN ruleType VARCHAR(45)
 										, IN memberID INT
 										, IN openingSlotID INT
-										, IN closingSlotID INT)
+										, IN closingSlotID INT
+										, OUT newRuleID INT)
 BEGIN
 	
-	DECLARE repeatType VARCHAR(10) DEFAULT 'adhoc'; -- member rules are always adhoc
+	DECLARE repeatRepeat VARCHAR(10) DEFAULT 'adhoc'; -- member rules are always adhoc
 
+
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('Starting bm_rules_add_member_rule'));
+	END IF;
+
+	
+	IF bm_rules_valid_rule_type(ruleType) = false THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Given ruleType is invalid';	
+	END IF;
 
 	-- insert member rule into the rules table  the
 	-- audit insert trigger will record the operation
+
+		
 
 	-- record operation in slot log if opening and closing slot been provided
 	
 	
 	-- insert slots if opening and closing slot been provided
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_add_member_rule');
+	END IF;
+
 
 END$$
 
@@ -234,10 +331,21 @@ DROP procedure IF EXISTS `bm_rules_cleanup_slots`$$
 CREATE PROCEDURE `bm_rules_cleanup_slots`(IN ruleID INT)
 BEGIN
 
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('Starting bm_rules_cleanup_slots'));
+	END IF;
+
+
 	-- record operation in log
 
 
 	-- do operation
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_cleanup_slots');
+	END IF;
 
 END$$
 
@@ -250,9 +358,21 @@ CREATE PROCEDURE `bm_rules_remove_slots`( IN ruleID INT
                                          ,IN closingSlotID INT )
 BEGIN
 	
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('Starting bm_rules_remove_slots'));
+	END IF;
+
+		
 	-- record operation in log
 	
 	-- do operation
+
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_remove_slots');
+	END IF;
 
 END$$
 
@@ -264,17 +384,24 @@ CREATE PROCEDURE `bm_rules_add_slots`(IN ruleID INT
                                      ,IN openingSlotID INT
                                      ,IN closingSlotID INT)
 BEGIN
+	
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('Starting bm_rules_add_slots'));
+	END IF;
 
+	
 	-- record operation in log
 
 
 	-- do operation
 
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_add_slots');
+	END IF;
+
+
 END$$
-
-
-
-
-
-
 
