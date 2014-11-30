@@ -170,3 +170,111 @@ BEGIN
 	END IF;
 
 END$$
+
+-- -----------------------------------------------------
+-- procedure bm_rules_add_schedule
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_add_schedule`$$
+
+CREATE PROCEDURE `bm_rules_add_schedule`( IN ruleName VARCHAR(45)
+										, IN ruleType VARCHAR(45)
+										, IN repeatMinute VARCHAR(45)
+										, IN repeatDayofweek VARCHAR(45)
+										, IN repeatDayofmonth VARCHAR(45)
+										, IN repeatMonth VARCHAR(45)
+										, IN repeatYear VARCHAR(45)
+										, IN scheduleGroupID INT)
+BEGIN
+	
+	DECLARE repeatType VARCHAR(10) DEFAULT 'repeat'; -- schedule group rules are always repeat
+	
+	-- insert schedule group rule into rules table
+	-- the audit trigger will log it after insert
+
+	-- execute the parse fill tmp table
+
+
+	-- record operation in slot log
+	
+	
+	
+	-- insert slots calculated for this rule
+
+
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_rules_add_member
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_add_member`$$
+CREATE PROCEDURE `bm_rules_add_member`(IN ruleName VARCHAR(45)
+										, IN ruleType VARCHAR(45)
+										, IN memberID INT
+										, IN openingSlotID INT
+										, IN closingSlotID INT)
+BEGIN
+	
+	DECLARE repeatType VARCHAR(10) DEFAULT 'adhoc'; -- member rules are always adhoc
+
+
+	-- insert member rule into the rules table  the
+	-- audit insert trigger will record the operation
+
+	-- record operation in slot log if opening and closing slot been provided
+	
+	
+	-- insert slots if opening and closing slot been provided
+
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_rules_cleanup_slots
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_cleanup_slots`$$
+CREATE PROCEDURE `bm_rules_cleanup_slots`(IN ruleID INT)
+BEGIN
+
+	-- record operation in log
+
+
+	-- do operation
+
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_rules_remove_slots
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_remove_slots`$$
+CREATE PROCEDURE `bm_rules_remove_slots`( IN ruleID INT
+                                         ,IN openingSlotID INT
+                                         ,IN closingSlotID INT )
+BEGIN
+	
+	-- record operation in log
+	
+	-- do operation
+
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_rules_add_slots
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_add_slots`$$
+CREATE PROCEDURE `bm_rules_add_slots`(IN ruleID INT
+                                     ,IN openingSlotID INT
+                                     ,IN closingSlotID INT)
+BEGIN
+
+	-- record operation in log
+
+
+	-- do operation
+
+END$$
+
+
+
+
+
+
+

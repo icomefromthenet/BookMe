@@ -201,14 +201,15 @@ CREATE TABLE IF NOT EXISTS `rules` (
   `repeat_year` VARCHAR(45) NOT NULL,
   
   -- relation fields
-  `schedule_id` INT COMMENT 'Known as a schedule rule',
+  `schedule_group_id` INT COMMENT 'Known as a schedule rule',
   `membership_id` INT COMMENT 'Known as a member rule',
   
   PRIMARY KEY (`rule_id`),
   UNIQUE INDEX `rule_name_UNIQUE` (`rule_name` ASC),
-  CONSTRAINT `fk_rule_schedule`
-    FOREIGN KEY (`schedule_id`)
-    REFERENCES `schedules` (`schedule_id`)
+  
+  CONSTRAINT `fk_rule_schedule_group`
+    FOREIGN KEY (`schedule_group_id`)
+    REFERENCES `schedule_groups` (`group_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   
@@ -240,16 +241,16 @@ CREATE TABLE IF NOT EXISTS `audit_rules` (
   `rule_repeat` ENUM('adhoc', 'repeat'),
   
   -- repeat fields  
-  `repeat_minute` VARCHAR(45) NOT NULL,
-  `repeat_hour` VARCHAR(45) NOT NULL,
-  `repeat_dayofweek` VARCHAR(45) NOT NULL,
-  `repeat_dayofmonth` VARCHAR(45) NOT NULL,
-  `repeat_month` VARCHAR(45) NOT NULL,
-  `repeat_year` VARCHAR(45) NOT NULL,
+  `repeat_minute` VARCHAR(45) NULL,
+  `repeat_hour` VARCHAR(45) NULL,
+  `repeat_dayofweek` VARCHAR(45) NULL,
+  `repeat_dayofmonth` VARCHAR(45)  NULL,
+  `repeat_month` VARCHAR(45) NULL,
+  `repeat_year` VARCHAR(45) NULL,
   
   -- relation fields
-  `schedule_id` INT COMMENT 'Known as a schedule rule',
-  `member_id` INT COMMENT 'Known as a member rule',
+  `schedule_group_id` INT COMMENT 'Known as a schedule rule',
+  `membership_id` INT COMMENT 'Known as a member rule',
   
   PRIMARY KEY (`change_seq`)
 ) ENGINE = InnoDB
@@ -284,6 +285,37 @@ CREATE TABLE IF NOT EXISTS `rule_slots` (
     
 ENGINE = InnoDB
 COMMENT = 'Relates the rule to the slots they affect';
+
+-- -----------------------------------------------------
+-- Table `rule_slots_operations`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `rule_slots_operations`;
+
+CREATE TABLE IF NOT EXISTS `rule_slots_operations` (
+  `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
+  `operation` ENUM('addition', 'subtraction','clean'),
+  `change_time` TIMESTAMP NOT NULL,
+  `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+  `opening_slot_id` INT COMMENT 'only known for addition and subtraction operations', 
+  `closing_slot_id` INT COMMENT 'only  know for addition and subtraction operations',
+  `rule_id` INT COMMENT ' Rule that change relates too, not fk as rule could be deleted',
+  
+  PRIMARY KEY (`change_seq`),
+  
+  CONSTRAINT `fk_slot_op_slots_1`
+    FOREIGN KEY (`opening_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_slot_op_slots_2`
+    FOREIGN KEY (`closing_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+  
+)
+ENGINE = InnoDB
+COMMENT = 'Log of rule slot operations';
 
 -- -----------------------------------------------------
 -- Table `ints`

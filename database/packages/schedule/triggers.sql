@@ -34,5 +34,5 @@ DROP TRIGGER IF EXISTS `bm_schedule_group_audit_delete`$$
 CREATE TRIGGER `bm_schedule_group_audit_delete` AFTER DELETE ON `schedule_groups`
 FOR EACH ROW
 INSERT INTO audit_schedule_groups (`change_seq`,`group_id`,`group_name`,`valid_from`,`valid_to`,`changed_by`,`action`,`change_time`) 
-VALUES (NULL,OLD.group_id,OLD.group_name,OLD.valid_from,OLD.valid_to,USER(),'U',NOW());
+VALUES (NULL,OLD.group_id,OLD.group_name,OLD.valid_from,OLD.valid_to,USER(),'D',NOW());
 $$
