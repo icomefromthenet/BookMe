@@ -20,7 +20,7 @@ class RulesPackageTest extends BasicTest
         
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
         
-        $this->assertEquals($result['range_open'],"1");
+        $this->assertEquals($result['range_open'],"0");
         $this->assertEquals($result['range_closed'],"59");
         $this->assertEquals($result['value_type'],"minute");
         $this->assertEquals($result['mod_value'],1);
@@ -53,7 +53,7 @@ class RulesPackageTest extends BasicTest
         $db->executeQuery("CALL bm_rules_parse('*/20','minute')");
 
         $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
-        $this->assertEquals($result['range_open'],"1");
+        $this->assertEquals($result['range_open'],"0");
         $this->assertEquals($result['range_closed'],"59");
         $this->assertEquals($result['value_type'],"minute");
         $this->assertEquals($result['mod_value'],20);

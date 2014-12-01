@@ -172,11 +172,11 @@ BEGIN
 END$$
 
 -- -----------------------------------------------------
--- procedure bm_rules_add_schedule_rule
+-- procedure bm_rules_add_repeat_rule
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_rules_add_schedule_rule`$$
+DROP procedure IF EXISTS `bm_rules_add_repeat_rule`$$
 
-CREATE PROCEDURE `bm_rules_add_schedule_rule`( 
+CREATE PROCEDURE `bm_rules_add_repeat_rule`( 
 										  IN ruleName VARCHAR(45)
 										, IN ruleType VARCHAR(45)
 										, IN repeatMinute VARCHAR(45)
@@ -186,15 +186,16 @@ CREATE PROCEDURE `bm_rules_add_schedule_rule`(
 										, IN repeatMonth VARCHAR(45)
 										, IN repeatYear VARCHAR(45)
 										, IN scheduleGroupID INT
+										, IN memberID INT
 										, OUT newRuleID INT )
 BEGIN
 	
-	DECLARE repeatValue VARCHAR(10) DEFAULT 'repeat'; -- schedule group rules are always repeat
+	DECLARE repeatValue VARCHAR(10) DEFAULT 'repeat'; -- 
 	
 	-- Create the debug table
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
-		CALL util_proc_log('Starting bm_rules_add_schedule_rule');
+		CALL util_proc_log('Starting bm_rules_add_repeat_rule');
 	END IF;
 
 	IF bm_rules_valid_rule_type(ruleType) = false THEN
@@ -267,26 +268,38 @@ BEGIN
 	
 	
 	-- insert slots calculated for this rule
-
+	-- INSERT INTO bm_parsed_ranges (ID,range_open,range_closed,mod_value,value_type) 
+	/*
+	INSERT INTO rule_slots (`rule_slot_id`,`rule_id`,`slot_id`)
+	(SELECT * 
+	FROM slots s
+	RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
+	RIGHT JOIN bm_parsed_ranges mr ON  
+		`mr`.`value_type` = 'minute' 
+		AND  EXTRACT(MINUTE FROM `s`.`slot_open`) >= `mr`.`range_open` 
+		AND  EXTRACT(MINUTE FROM `s`.`slot_open`)   <= `mr`.`range_closed`
+		AND  MOD(EXTRACT(MINUTE FROM `s`.`slot_open`),`mr`.`mod_value`) = 0
 	
+	) */
 
 
 
 	IF @bm_debug = true THEN
-		CALL util_proc_cleanup('finished procedure bm_rules_add_schedule_rule');
+		CALL util_proc_cleanup('finished procedure bm_rules_add_repeat_rule');
 	END IF;
 
 
 END$$
 
 -- -----------------------------------------------------
--- procedure bm_rules_add_member_rule
+-- procedure bm_rules_add_adhoc_rule
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_rules_add_member_rule`$$
+DROP procedure IF EXISTS `bm_rules_add_adhoc_rule`$$
 
-CREATE PROCEDURE `bm_rules_add_member_rule`(IN ruleName VARCHAR(45)
+CREATE PROCEDURE `bm_rules_add_adhoc_rule`(IN ruleName VARCHAR(45)
 										, IN ruleType VARCHAR(45)
 										, IN memberID INT
+										, IN scheduleGroupID INT
 										, IN openingSlotID INT
 										, IN closingSlotID INT
 										, OUT newRuleID INT)
@@ -318,7 +331,7 @@ BEGIN
 	-- insert slots if opening and closing slot been provided
 
 	IF @bm_debug = true THEN
-		CALL util_proc_cleanup('finished procedure bm_rules_add_member_rule');
+		CALL util_proc_cleanup('finished procedure bm_rules_add_adhoc_rule');
 	END IF;
 
 
@@ -380,6 +393,7 @@ END$$
 -- procedure bm_rules_add_slots
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_add_slots`$$
+
 CREATE PROCEDURE `bm_rules_add_slots`(IN ruleID INT
                                      ,IN openingSlotID INT
                                      ,IN closingSlotID INT)
@@ -405,3 +419,29 @@ BEGIN
 
 END$$
 
+-- -----------------------------------------------------
+-- procedure bm_rules_test_parse
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_test_parse`$$
+
+CREATE PROCEDURE `bm_rules_test_parse`(IN repeatMinute VARCHAR(45)
+									 , IN repeatHour VARCHAR(45)
+									 , IN repeatDayofweek VARCHAR(45)
+									 , IN repeatDayofmonth VARCHAR(45)
+									 , IN repeatMonth VARCHAR(45)
+									 , IN repeatYear VARCHAR(45))
+BEGIN
+	
+	CALL bm_rules_parse(repeatMinute,'minute');
+	
+	CALL bm_rules_parse(repeatHour,'hour');
+	
+	CALL bm_rules_parse(repeatDayofmonth,'dayofmonth');
+	
+	CALL bm_rules_parse(repeatDayofweek,'dayofweek');
+	
+	CALL bm_rules_parse(repeatMonth,'month');
+	
+	CALL bm_rules_parse(repeatYear,'year');
+	
+END;

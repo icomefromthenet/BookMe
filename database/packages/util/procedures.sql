@@ -108,8 +108,7 @@ DROP procedure IF EXISTS `utl_create_rule_tmp_tables`$$
 CREATE procedure `utl_create_rule_tmp_tables` ()
 BEGIN
 	
-	DROP TEMPORARY TABLE IF EXISTS bm_parsed_ranges;
-	CREATE TEMPORARY TABLE bm_parsed_ranges (
+	CREATE TEMPORARY TABLE IF NOT EXISTS bm_parsed_ranges (
 		id INT PRIMARY KEY AUTO_INCREMENT,
 		range_open INT NOT NULL,
 		range_closed INT NOT NULL,

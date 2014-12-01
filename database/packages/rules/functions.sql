@@ -144,7 +144,7 @@ RETURNS INTEGER DETERMINISTIC BEGIN
     DECLARE myVal VARCHAR(255);
 
 	CASE cronType
-        WHEN 'minute'     THEN SET myVal  = 1;
+        WHEN 'minute'     THEN SET myVal  = 0;
         WHEN 'hour'       THEN SET myVal  = 0;
         WHEN 'dayofmonth' THEN SET myVal  = 1;
         WHEN 'dayofweek'  THEN SET myVal  = 0;
