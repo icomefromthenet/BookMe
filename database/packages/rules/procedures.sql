@@ -40,7 +40,7 @@ BEGIN
 	SET filteredCron = trim(cron);
 	
 	-- build tmp result tables if not done already
-	CALL utl_create_rule_tmp_tables();
+	CALL bm_create_rule_tmp_table(false);
 	
 	
 	IF filteredCron = '*' THEN
@@ -190,27 +190,22 @@ CREATE PROCEDURE `bm_rules_add_repeat_rule`(
 										, OUT newRuleID INT )
 BEGIN
 	
-	DECLARE repeatValue VARCHAR(10) DEFAULT 'repeat'; -- 
+	DECLARE repeatValue VARCHAR(10) DEFAULT 'repeat';
+	DECLARE numberSlots INT DEFAULT 0;
 	
 	-- Create the debug table
+	
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
 		CALL util_proc_log('Starting bm_rules_add_repeat_rule');
 	END IF;
 
+	-- check if the rule type is in valid list
+
 	IF bm_rules_valid_rule_type(ruleType) = false THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Given ruleType is invalid';	
 	END IF;
-
-
-	-- execute the parse fill tmp table
-	CALL bm_rules_parse(repeatMinute,'minute');
-	CALL bm_rules_parse(repeatHour,'hour');
-	CALL bm_rules_parse(repeatDayofmonth,'dayofmonth');
-	CALL bm_rules_parse(repeatDayofweek,'dayofweek');
-	CALL bm_rules_parse(repeatMonth,'month');
-	CALL bm_rules_parse(repeatYear,'year');
 
 
 	-- insert schedule group rule into rules table
@@ -251,6 +246,7 @@ BEGIN
 
 
 	-- record operation in slot log
+	
 	INSERT INTO rule_slots_operations (
 		`change_seq`
 		,`operation`
@@ -266,23 +262,23 @@ BEGIN
 		,newRuleID
 	);
 	
+	-- save slots for the new rule
 	
-	-- insert slots calculated for this rule
-	-- INSERT INTO bm_parsed_ranges (ID,range_open,range_closed,mod_value,value_type) 
-	/*
-	INSERT INTO rule_slots (`rule_slot_id`,`rule_id`,`slot_id`)
-	(SELECT * 
-	FROM slots s
-	RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
-	RIGHT JOIN bm_parsed_ranges mr ON  
-		`mr`.`value_type` = 'minute' 
-		AND  EXTRACT(MINUTE FROM `s`.`slot_open`) >= `mr`.`range_open` 
-		AND  EXTRACT(MINUTE FROM `s`.`slot_open`)   <= `mr`.`range_closed`
-		AND  MOD(EXTRACT(MINUTE FROM `s`.`slot_open`),`mr`.`mod_value`) = 0
+	CALL bm_rules_save_slots(newRuleID
+							,numberSlots
+							,repeatMinute
+							,repeatHour
+							, repeatDayofweek
+							,repeatDayofmonth
+							,repeatMonth
+							,repeatYear );
 	
-	) */
-
-
+	
+	IF numberSlots = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'The new Rule did not have any slots to insert';
+	END IF;
+	
 
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('finished procedure bm_rules_add_repeat_rule');
@@ -420,17 +416,69 @@ BEGIN
 END$$
 
 -- -----------------------------------------------------
--- procedure bm_rules_test_parse
+-- procedure bm_create_rule_tmp_table
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_rules_test_parse`$$
+DROP procedure IF EXISTS `bm_create_rule_tmp_table`$$
 
-CREATE PROCEDURE `bm_rules_test_parse`(IN repeatMinute VARCHAR(45)
+CREATE procedure `bm_create_rule_tmp_table` (IN expand TINYINT)
+BEGIN
+	
+	IF expand IS NULL OR EXPAND = FALSE THEN
+		CREATE TEMPORARY TABLE IF NOT EXISTS bm_parsed_ranges (
+			id INT PRIMARY KEY AUTO_INCREMENT,
+			range_open INT NOT NULL,
+			range_closed INT NOT NULL,
+			mod_value INT NULL,
+			value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL
+		) ENGINE=MEMORY;
+		
+	ELSE 
+		
+		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_minute AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'minute');
+		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_hour AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'hour');
+		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_dayofmonth AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'dayofmonth');
+		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_dayofweek AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'dayofweek');
+		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_month AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'month');
+		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_year AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'year');
+
+	END IF;
+
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_cleanup_rule_tmp_table
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_cleanup_rule_tmp_table`$$
+
+CREATE procedure `bm_cleanup_rule_tmp_table` ()
+BEGIN
+
+	DROP TEMPORARY TABLE IF EXISTS  bm_parsed_ranges ;
+	DROP TEMPORARY TABLE IF EXISTS bm_parsed_minute;
+	DROP TEMPORARY TABLE IF EXISTS bm_parsed_hour;
+	DROP TEMPORARY TABLE IF EXISTS bm_parsed_dayofmonth;
+	DROP TEMPORARY TABLE IF EXISTS bm_parsed_dayofweek;
+	DROP TEMPORARY TABLE IF EXISTS bm_parsed_month;
+	DROP TEMPORARY TABLE IF EXISTS bm_parsed_year;
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_rules_save_slots
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_save_slots`$$
+
+CREATE PROCEDURE `bm_rules_save_slots`(IN ruleID INT
+									 , OUT numberSlots INT
+									 , IN repeatMinute VARCHAR(45)
 									 , IN repeatHour VARCHAR(45)
 									 , IN repeatDayofweek VARCHAR(45)
 									 , IN repeatDayofmonth VARCHAR(45)
 									 , IN repeatMonth VARCHAR(45)
 									 , IN repeatYear VARCHAR(45))
 BEGIN
+	
+	-- Create Primary tmp table
+	CALL bm_create_rule_tmp_table(false);
 	
 	CALL bm_rules_parse(repeatMinute,'minute');
 	
@@ -443,5 +491,59 @@ BEGIN
 	CALL bm_rules_parse(repeatMonth,'month');
 	
 	CALL bm_rules_parse(repeatYear,'year');
+	
+	-- As Waround for MYSQL being unable to access a tmp table more
+	-- than once in same query, call create again and ask
+	-- that frist tmp table be split
+	CALL bm_create_rule_tmp_table(true);
+	
+	-- insert the requird slots, internally MSQL will create a tmp table to hold
+	-- values from select list
+	
+	-- Each join on this query will filter the slots into smaller sets, for example
+	-- the first join find all slots that are in the minute range 
+	-- this set is reduced by 2nd join which filter frist set down to those 
+	-- slots that meet the hour requirements And so on for each cron rule
+	
+	INSERT INTO rule_slots (rule_slot_id,rule_id,slot_id) 	
+	SELECT NULL,ruleID,s.slot_id
+		FROM slots s
+		RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
+		RIGHT JOIN bm_parsed_minute mr 
+		    ON  EXTRACT(MINUTE FROM `s`.`slot_open`) >= `mr`.`range_open` 
+			AND  EXTRACT(MINUTE FROM `s`.`slot_open`)   <= `mr`.`range_closed`
+			AND  MOD(EXTRACT(MINUTE FROM `s`.`slot_open`),`mr`.`mod_value`) = 0
+		RIGHT JOIN bm_parsed_hour hr 
+			ON  EXTRACT(HOUR FROM `s`.`slot_open`) >= `hr`.`range_open` 
+			AND  EXTRACT(HOUR FROM `s`.`slot_open`)   <= `hr`.`range_closed`
+			AND  MOD(EXTRACT(HOUR FROM `s`.`slot_open`),`hr`.`mod_value`) = 0
+	RIGHT JOIN bm_parsed_dayofmonth domr 
+			ON  `c`.`d` >= `domr`.`range_open` 
+			AND  `c`.`d`   <= `domr`.`range_closed`
+			AND  MOD(`c`.`d`,`domr`.`mod_value`) = 0
+	RIGHT JOIN bm_parsed_dayofweek dowr 
+			ON  (`c`.`dw`-1) >= `dowr`.`range_open` 
+			AND  (`c`.`dw`-1)   <= `dowr`.`range_closed`
+			AND  MOD((`c`.`dw`-1),`dowr`.`mod_value`) = 0
+	RIGHT JOIN bm_parsed_month monr 
+			ON  `c`.`m` >= `monr`.`range_open` 
+			AND  `c`.`m`   <= `monr`.`range_closed`
+			AND  MOD(`c`.`m`,`monr`.`mod_value`) = 0
+	RIGHT JOIN bm_parsed_year yr 
+			ON `c`.`y` >= `yr`.`range_open` 
+			AND  `c`.`y`   <= `yr`.`range_closed`
+			AND  MOD(`c`.`y`,`yr`.`mod_value`) = 0;
+	
+	-- assign insert rows to out param
+	SET numberSlots  = ROW_COUNT();
+	
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup(concat('Inserted ',numberSlots,' slots for new rule at ID::',ruleID));
+	END IF;
+
+	
+	-- drop tmp tables
+	 CALL bm_cleanup_rule_tmp_table();
 	
 END;

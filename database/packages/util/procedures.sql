@@ -100,21 +100,4 @@ BEGIN
 END$$
 
 
--- -----------------------------------------------------
--- procedure utl_create_rule_tmp_tables
--- -----------------------------------------------------
-DROP procedure IF EXISTS `utl_create_rule_tmp_tables`$$
-
-CREATE procedure `utl_create_rule_tmp_tables` ()
-BEGIN
-	
-	CREATE TEMPORARY TABLE IF NOT EXISTS bm_parsed_ranges (
-		id INT PRIMARY KEY AUTO_INCREMENT,
-		range_open INT NOT NULL,
-		range_closed INT NOT NULL,
-		mod_value INT NULL,
-		value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL
-	) ENGINE=MEMORY;
-	
-END$$
 
