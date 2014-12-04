@@ -639,5 +639,81 @@ class RulesPackageTest extends BasicTest
         
     }
     
+    
+    public function testAddRepeatRuleFailsBadFormat() 
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'testRuleA';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = 0;
+        $ruleDayofmonth     = 0;
+        $ruleMonth          = 1;
+		$ruleYear           = 2014;
+		$scheduleGroupID    = 2;
+		$memberID           = NULL;
+		
+        try {
+            
+            $db->exec('START TRANSACTION');								
+            
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+            );
+            $db->exec('ROLLBACK');
+            
+            $this->assertFalse(true);
+        
+        } catch(\Doctrine\DBAL\DBALException $e) {
+            $db->exec('ROLLBACK');
+            $this->assertContains('not support cron format',$e->getMessage());
+        }
+        
+        
+
+    }
+    
+    
+    
+    public function testAddGoodRepeatRule()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleA';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = 0;
+        $ruleDayofmonth     = 1;
+        $ruleMonth          = 1;
+		$ruleYear           = 2014;
+		$scheduleGroupID    = 2;
+		$memberID           = NULL;
+										
+        
+        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+        );
+        
+        // ensure that we got a good id back for the new rule
+        $newRuleID = $db->fetchColumn('SELECT @newRuleID',array(),0);
+        
+        // rule exists in rule table
+        
+        
+        // is their and opeation
+        
+        
+        
+        //is their slots
+        
+    }
+
+
+
+    
+    
 }
 /* End of Class */

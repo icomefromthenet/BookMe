@@ -172,6 +172,63 @@ BEGIN
 END$$
 
 -- -----------------------------------------------------
+-- procedure bm_rules_remove_slots
+-- -----------------------------------------------------
+DROP PROCEDURE IF EXISTS `bm_rules_remove_slots` $$
+
+CREATE PROCEDURE `bm_rules_remove_slots` (  IN ruleID INT
+                                         , IN openingSlotID INT
+                                         , IN closingSlotID INT
+                                         , IN rowsAffected INT)
+BEGIN
+	
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('Starting bm_rules_remove_slots'));
+	END IF;
+
+	-- record operation in log
+	INSERT INTO rule_slots_operations (
+		`change_seq`
+		,`operation`
+		,`change_time`
+		,`changed_by`
+		,`rule_id`
+		,`opening_slot_id`
+  		,`closing_slot_id`
+	) 
+	VALUES (
+		NULL
+		,'subtraction'
+		,NOW()
+		,USER()
+		,ruleID
+		,openingSlotID
+		,closingSlotID
+	);
+	
+	-- remove all slots for this rule
+	DELETE FROM rule_slots 
+	WHERE rule_id = ruleID 
+	AND slot_id  BETWEEN openingSlotID AND closingSlotID;
+	
+	-- We should have atleast 1 slot affected, un-like the cleanup
+	-- a post check will be done.
+	SET rowsAffected = ROW_COUNT();
+
+	IF rowsAffected = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Rule Slot Subtraction did not remove any rows';	
+	END IF;
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup(concat('finished procedure bm_rules_remove_slots for rule at::',ruleID,' removed ',rowsAffected , ' slots'));
+	END IF;
+
+END$$
+
+-- -----------------------------------------------------
 -- procedure bm_rules_add_repeat_rule
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_add_repeat_rule`$$
@@ -245,6 +302,10 @@ BEGIN
 	SET newRuleID = LAST_INSERT_ID();
 
 
+    IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));
+	END IF;	
+
 	-- record operation in slot log
 	
 	INSERT INTO rule_slots_operations (
@@ -262,6 +323,11 @@ BEGIN
 		,newRuleID
 	);
 	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Inserted new rule slot operation at::',ifnull(LAST_INSERT_ID(),'NULL')));
+	END IF;	
+	
+	
 	-- save slots for the new rule
 	
 	CALL bm_rules_save_slots(newRuleID
@@ -274,10 +340,16 @@ BEGIN
 							,repeatYear );
 	
 	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Inserted ',ifnull(numberSlots,'NULL'),' rule slots for rule *',ifnull(newRuleID,'NULL')));
+	END IF;	
+	
+	
 	IF numberSlots = 0 THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'The new Rule did not have any slots to insert';
 	END IF;
+	
 	
 
 	IF @bm_debug = true THEN
@@ -337,62 +409,60 @@ END$$
 -- procedure bm_rules_cleanup_slots
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_cleanup_slots`$$
-CREATE PROCEDURE `bm_rules_cleanup_slots`(IN ruleID INT)
+
+CREATE PROCEDURE `bm_rules_cleanup_slots`(  IN ruleID INT
+										  , OUT rowsAffected INT)
+
 BEGIN
 
 	-- Create the debug table
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
-		CALL util_proc_log(concat('Starting bm_rules_cleanup_slots'));
+		CALL util_proc_log('Starting bm_rules_cleanup_slots');
 	END IF;
 
 
 	-- record operation in log
+	INSERT INTO rule_slots_operations (
+		`change_seq`
+		,`operation`
+		,`change_time`
+		,`changed_by`
+		,`rule_id`
+	) 
+	VALUES (
+		NULL
+		,'cleanup'
+		,NOW()
+		,USER()
+		,ruleID
+	);
 
-
-	-- do operation
+	-- remove all slots for this rule
+	DELETE FROM rule_slots WHERE rule_id = ruleID;
+	
+	-- Where not going to throw and error as this method could be used
+	-- to remove an invalid rule, leave up to calling code to decide.
+	SET rowsAffected = ROW_COUNT();
+	
 
 	IF @bm_debug = true THEN
-		CALL util_proc_cleanup('finished procedure bm_rules_cleanup_slots');
+		CALL util_proc_cleanup(concat('finished procedure bm_rules_cleanup_slots for rule at::',ruleID,' removed ',rowsAffected));
 	END IF;
 
 END$$
 
--- -----------------------------------------------------
--- procedure bm_rules_remove_slots
--- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_rules_remove_slots`$$
-CREATE PROCEDURE `bm_rules_remove_slots`( IN ruleID INT
-                                         ,IN openingSlotID INT
-                                         ,IN closingSlotID INT )
-BEGIN
-	
-	-- Create the debug table
-	IF @bm_debug = true THEN
-		CALL util_proc_setup();
-		CALL util_proc_log(concat('Starting bm_rules_remove_slots'));
-	END IF;
 
-		
-	-- record operation in log
-	
-	-- do operation
-
-
-	IF @bm_debug = true THEN
-		CALL util_proc_cleanup('finished procedure bm_rules_remove_slots');
-	END IF;
-
-END$$
 
 -- -----------------------------------------------------
 -- procedure bm_rules_add_slots
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_add_slots`$$
 
-CREATE PROCEDURE `bm_rules_add_slots`(IN ruleID INT
-                                     ,IN openingSlotID INT
-                                     ,IN closingSlotID INT)
+CREATE PROCEDURE `bm_rules_add_slots` (IN ruleID INT
+                                      ,IN openingSlotID INT
+                                      ,IN closingSlotID INT
+                                      ,OUT rowsAffected INT)
 BEGIN
 	
 	-- Create the debug table
@@ -453,7 +523,7 @@ DROP procedure IF EXISTS `bm_cleanup_rule_tmp_table`$$
 CREATE procedure `bm_cleanup_rule_tmp_table` ()
 BEGIN
 
-	DROP TEMPORARY TABLE IF EXISTS  bm_parsed_ranges ;
+	DROP TEMPORARY TABLE IF EXISTS bm_parsed_ranges ;
 	DROP TEMPORARY TABLE IF EXISTS bm_parsed_minute;
 	DROP TEMPORARY TABLE IF EXISTS bm_parsed_hour;
 	DROP TEMPORARY TABLE IF EXISTS bm_parsed_dayofmonth;
@@ -544,6 +614,6 @@ BEGIN
 
 	
 	-- drop tmp tables
-	 CALL bm_cleanup_rule_tmp_table();
+	  CALL bm_cleanup_rule_tmp_table();
 	
 END;
