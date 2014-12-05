@@ -675,9 +675,7 @@ class RulesPackageTest extends BasicTest
 
     }
     
-    
-    
-    public function testAddGoodRepeatRule()
+    public function testAddRepatRuleFailesWithNoSlotError()
     {
         $db = $this->getDoctrineConnection();
         
@@ -692,6 +690,95 @@ class RulesPackageTest extends BasicTest
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
 										
+       try { 
+             $db->exec('START TRANSACTION');								
+            
+           
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+            );
+            
+            $db->exec('ROLLBACK');
+            
+            $this->assertFalse(true);
+        
+       } catch(\Doctrine\DBAL\DBALException $e) {
+            $db->exec('ROLLBACK');
+            $this->assertContains('The new Rule did not have any slots to insert',$e->getMessage());
+        }
+        
+    }
+    
+     public function testAddRepatRuleFailesWithBadType()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleA';
+        $ruleType           = 'inclusionnnnnnn';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = 0;
+        $ruleDayofmonth     = 1;
+        $ruleMonth          = 1;
+		$ruleYear           = 2014;
+		$scheduleGroupID    = 2;
+		$memberID           = NULL;
+										
+       try { 
+             $db->exec('START TRANSACTION');								
+            
+           
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+            );
+            
+            $db->exec('ROLLBACK');
+            
+            $this->assertFalse(true);
+        
+       } catch(\Doctrine\DBAL\DBALException $e) {
+            $db->exec('ROLLBACK');
+            $this->assertContains('Given ruleType is invalid must be inclusion or adhoc',$e->getMessage());
+        }
+        
+    }
+    
+    public function testAddGoodRepeatRule()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleA';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = '*';
+        $ruleDayofmonth     = 1;
+        $ruleMonth          = 1;
+		$ruleYear           = 2014;
+		$scheduleGroupID    = 2;
+		$memberID           = NULL;
+		
+		
+		$now = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
+		$changedBy = $db->fetchColumn('SELECT USER()',array(),0);
+        
+        $columnMap = array(
+             'rule_name'        => $ruleName
+            ,'rule_type'        => $ruleType  
+            ,'rule_repeat'      => 'repeat'
+            ,'repeat_minute'    => $ruleMinute
+            ,'repeat_hour'      => $ruleHour  
+            ,'repeat_dayofweek' => $ruleDayofweek
+            ,'repeat_dayofmonth'=> $ruleDayofmonth
+            ,'repeat_month'     => $ruleMonth     
+    		,'repeat_year'      => $ruleYear      
+    		,'schedule_group_id'=> $scheduleGroupID
+    		,'membership_id'    => $memberID
+    		,'opening_slot_id'  => null
+    		,'closing_slot_id'  => null
+    		,'created_date'     => $now
+    		,'updated_date'     => $now
+        );
         
         $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
             ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
@@ -701,17 +788,69 @@ class RulesPackageTest extends BasicTest
         $newRuleID = $db->fetchColumn('SELECT @newRuleID',array(),0);
         
         // rule exists in rule table
+        $ruleSTH = $db->executeQuery('SELECT * FROM rules where rule_id = ?',array($newRuleID));
         
+        $ruleResult = $ruleSTH->fetch();
+        
+        
+        if(empty($ruleResult)) {
+            $this->assertFalse(true,'The new rule not found');
+        }
+        
+        foreach($ruleResult as $key => $result) {
+            if($key !== 'rule_id') {
+                $this->assertEquals($columnMap[$key],$result);
+            }
+        }
+        
+        
+        // is insert recorded in the audit table
+        $auditSTH = $db->executeQuery('SELECT * 
+                                       FROM audit_rules 
+                                       WHERE rule_id = ? 
+                                       AND action = ?',array($newRuleID,'I'));
+        
+        $auditResult = $auditSTH->fetch();
+        
+        if(empty($auditResult)) {
+            $this->assertFalse(true,'No Audit Record Found');
+        }
+        
+         $columnMap['change_time'] = $now;
+         $columnMap['rule_id'] = $newRuleID;
+         $columnMap['changed_by'] = $changedBy;
+         $columnMap['action'] = 'I';
+         
         
         // is their and opeation
-        
+        foreach($ruleResult as $key => $result) {
+            if($key !== 'change_seq') {
+                $this->assertEquals($columnMap[$key],$result);
+            }
+        }
         
         
         //is their slots
         
+        
+        // Update the rule 
+        
+        
+        // Test audit has been amended too.
+        
+        
+        // Delete rule 
+        
+        // Step 1 . Test cleanup method
+        
+        // Step 2. Remove the rule
+        
+        // Step 3. Test trigger
+        
     }
 
 
+    
 
     
     

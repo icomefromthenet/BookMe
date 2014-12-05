@@ -261,7 +261,7 @@ BEGIN
 
 	IF bm_rules_valid_rule_type(ruleType) = false THEN
 		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Given ruleType is invalid';	
+		SET MESSAGE_TEXT = 'Given ruleType is invalid must be inclusion or adhoc';	
 	END IF;
 
 
@@ -546,6 +546,9 @@ CREATE PROCEDURE `bm_rules_save_slots`(IN ruleID INT
 									 , IN repeatMonth VARCHAR(45)
 									 , IN repeatYear VARCHAR(45))
 BEGIN
+	DECLARE isInsertError BOOL DEFAULT false;
+	
+	DECLARE CONTINUE HANDLER FOR SQLSTATE '23000' SET isInsertError = true;
 	
 	-- Create Primary tmp table
 	CALL bm_create_rule_tmp_table(false);
@@ -576,7 +579,7 @@ BEGIN
 	-- slots that meet the hour requirements And so on for each cron rule
 	
 	INSERT INTO rule_slots (rule_slot_id,rule_id,slot_id) 	
-	SELECT NULL,ruleID,s.slot_id
+	SELECT NULL,ruleID,`s`.`slot_id`
 		FROM slots s
 		RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
 		RIGHT JOIN bm_parsed_minute mr 
@@ -605,7 +608,11 @@ BEGIN
 			AND  MOD(`c`.`y`,`yr`.`mod_value`) = 0;
 	
 	-- assign insert rows to out param
-	SET numberSlots  = ROW_COUNT();
+	IF isInsertError = true THEN
+		SET numberSlots  = 0;
+	ELSE 
+		SET numberSlots  = ROW_COUNT();
+	END IF;
 	
 	
 	IF @bm_debug = true THEN

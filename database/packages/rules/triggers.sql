@@ -8,7 +8,7 @@ DELIMITER $$
 -- -----------------------------------------------------
 DROP TRIGGER IF EXISTS `bm_rules_audit_insert`$$
 
-CREATE TRIGGER `bm_rules_audit_insert` AFTER INSERT ON `audit_rules`
+CREATE TRIGGER `bm_rules_audit_insert` AFTER INSERT ON `rules`
 FOR EACH ROW
 INSERT INTO audit_rules (`change_seq`
                          ,`rule_id`
@@ -53,7 +53,7 @@ $$
 -- -----------------------------------------------------
 DROP TRIGGER IF EXISTS `bm_rules_audit_update`$$
 
-CREATE TRIGGER `bm_rules_audit_update` AFTER UPDATE ON `audit_rules`
+CREATE TRIGGER `bm_rules_audit_update` AFTER UPDATE ON `rules`
 FOR EACH ROW
 INSERT INTO audit_rules (`change_seq`
                          ,`rule_id`
@@ -98,7 +98,7 @@ $$
 -- -----------------------------------------------------
 DROP TRIGGER IF EXISTS `bm_rules_audit_delete`$$
 
-CREATE TRIGGER `bm_rules_audit_delete` AFTER DELETE ON `audit_rules`
+CREATE TRIGGER `bm_rules_audit_delete` AFTER DELETE ON `rules`
 FOR EACH ROW
 INSERT INTO audit_rules (`change_seq`
                          ,`rule_id`
