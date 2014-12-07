@@ -242,6 +242,8 @@ CREATE PROCEDURE `bm_rules_add_repeat_rule`(
 										, IN repeatDayofmonth VARCHAR(45)
 										, IN repeatMonth VARCHAR(45)
 										, IN repeatYear VARCHAR(45)
+										, IN validFrom DATE
+										, IN validTo DATE
 										, IN scheduleGroupID INT
 										, IN memberID INT
 										, OUT newRuleID INT )
@@ -263,7 +265,22 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Given ruleType is invalid must be inclusion or adhoc';	
 	END IF;
+	
+	-- Assign defaults and check validity range
+	
+	IF validTo IS NULL THEN
+		SET validTo = DATE('3000-01-01');
+	END IF;
 
+	IF validFrom < CAST(NOW() AS DATE) THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Valid from date must be gte NOW';
+	END IF;
+	
+	IF validTo < validFrom THEN 
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Validity period is and invalid range';
+	END IF;
 
 	-- insert schedule group rule into rules table
 	-- the audit trigger will log it after insert
@@ -282,6 +299,8 @@ BEGIN
 		,`repeat_month`
 		,`repeat_year`
 		,`schedule_group_id`
+		,`valid_from`
+		,`valid_to`
 	)
 	VALUES (
 		 NULL
@@ -297,6 +316,8 @@ BEGIN
 		,repeatMonth
 		,repeatYear
 		,scheduleGroupID
+		,validFrom
+		,validTo
 	);
 
 	SET newRuleID = LAST_INSERT_ID();
@@ -334,10 +355,10 @@ BEGIN
 							,numberSlots
 							,repeatMinute
 							,repeatHour
-							, repeatDayofweek
+							,repeatDayofweek
 							,repeatDayofmonth
 							,repeatMonth
-							,repeatYear );
+							,repeatYear);
 	
 	
 	IF @bm_debug = true THEN

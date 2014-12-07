@@ -659,7 +659,7 @@ class RulesPackageTest extends BasicTest
             
             $db->exec('START TRANSACTION');								
             
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
                 ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
             );
             $db->exec('ROLLBACK');
@@ -694,7 +694,7 @@ class RulesPackageTest extends BasicTest
              $db->exec('START TRANSACTION');								
             
            
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
                 ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
             );
             
@@ -728,7 +728,7 @@ class RulesPackageTest extends BasicTest
              $db->exec('START TRANSACTION');								
             
            
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
                 ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
             );
             
@@ -749,17 +749,19 @@ class RulesPackageTest extends BasicTest
         
         $ruleName           = 'ruleA';
         $ruleType           = 'inclusion';
-        $ruleMinute         = 0;
+        $ruleMinute         = '0-59';
         $ruleHour           = 0;
         $ruleDayofweek      = '*';
         $ruleDayofmonth     = 1;
-        $ruleMonth          = 1;
+        $ruleMonth          = '*';
 		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
 		
 		
 		$now = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
+		$validFrom = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
+	
 		$changedBy = $db->fetchColumn('SELECT USER()',array(),0);
         
         $columnMap = array(
@@ -778,10 +780,12 @@ class RulesPackageTest extends BasicTest
     		,'closing_slot_id'  => null
     		,'created_date'     => $now
     		,'updated_date'     => $now
+    		,'valid_from'       => $validFrom
+    		,'valid_to'         => '3000-01-01'
         );
         
-        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
-            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,NULL,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$validFrom,$scheduleGroupID,$memberID)
         );
         
         // ensure that we got a good id back for the new rule
@@ -799,7 +803,7 @@ class RulesPackageTest extends BasicTest
         
         foreach($ruleResult as $key => $result) {
             if($key !== 'rule_id') {
-                $this->assertEquals($columnMap[$key],$result);
+                $this->assertEquals($columnMap[$key],$result,'column '.$key.' is wrong');
             }
         }
         
@@ -829,16 +833,127 @@ class RulesPackageTest extends BasicTest
             }
         }
         
+            
+        return $newRuleID;
         
-        //is their slots
         
-        
-        // Update the rule 
-        
+    }
+    
+    /**
+     * @depends testAddGoodRepeatRule
+     */
+    public function testRepeatRuleDepreciateSuccessfully($newRuleID)
+    {
+        // Update the rule validity date 
+           
         
         // Test audit has been amended too.
+    
+    
+    
+        return $newRuleID;
+    }
+
+    
+    /**
+     * @depends testRepeatRuleDepreciateSuccessfully
+     */
+    public function testNewRepeatRuleHasCorrectSlots($newRuleID)
+    {
+        $db = $this->getDoctrineConnection();
+
+        //is their slots and are they what we expect
+        // Rule::'0-59 0 * 1 * 2014'
+		
+		// Give us 60 slots at midnight on any day of the week but only in the first day of each month 
+		// for every month in 2014 ie 12 months
+        
+        // verify that have required total number of slots
+        $this->assertEquals((60*12)
+                            ,$db->fetchColumn('SELECT count(slot_id) 
+                                              FROM rule_slots 
+                                              WHERE rule_id = ?'
+                                              ,array($newRuleID)
+                                              ,0)
+                                             );
+                                             
+        // Assert that the months are expected value                                     
+                                             
+        $monthsSTH = $db->executeQuery('SELECT c.m as month
+                                       FROM rule_slots rs
+                                       JOIN slots s ON s.slot_id = rs.slot_id
+                                       JOIN calendar c ON c.calendar_date = s.cal_date
+                                       WHERE rs.rule_id = ?
+                                       GROUP BY c.m
+                                       ORDER BY c.m'
+					                    ,array((int)$newRuleID),array(\PDO::PARAM_INT));
+					                    
+        
+        $i =1;
+        while(($value = $monthsSTH->fetch()) !== null && $i <= 12) {
+            $this->assertEquals($i,$value['month']);
+            $i++;
+        }
+        // make sure all months covered
+        $this->assertEquals(12,$i-1);
         
         
+        // Assert the month day is same for all slots
+        $monthsDayFound   = $db->fetchColumn('SELECT c.d as dte
+                                       FROM rule_slots rs
+                                       JOIN slots s ON s.slot_id = rs.slot_id
+                                       JOIN calendar c ON c.calendar_date = s.cal_date
+                                       WHERE rs.rule_id = ?
+                                       GROUP BY c.d
+                                       ORDER BY c.d'
+					                   ,array($newRuleID),0);
+
+        $this->assertEquals(1,$monthsDayFound);
+
+
+        //assert the minute range is between 0-60
+        $dayRangeSTH   = $db->executeQuery('SELECT EXTRACT(MINUTE FROM `s`.`slot_open`) as min
+                                            FROM rule_slots rs
+                                            JOIN slots s ON s.slot_id = rs.slot_id
+                                            JOIN calendar c ON c.calendar_date = s.cal_date
+                                            WHERE rs.rule_id = ?
+                                            GROUP BY EXTRACT(MINUTE FROM `s`.`slot_open`)'
+					                   ,array((int)$newRuleID),array(\PDO::PARAM_INT));
+            
+        $i = 0;    
+        while(($value = $dayRangeSTH->fetch()) !== null && $i <= 59) {
+            $this->assertEquals($i,$value['min']);
+            $i++;
+        }
+        // all minutes where covered.
+        $this->assertEquals(59,$i-1);
+        
+        
+        // assert that all slots from year 2014
+        $yearRangeSTH   = $db->executeQuery('SELECT c.y as year
+                                       FROM rule_slots rs
+                                       JOIN slots s ON s.slot_id = rs.slot_id
+                                       JOIN calendar c ON c.calendar_date = s.cal_date
+                                       WHERE rs.rule_id = ?
+                                       GROUP BY c.y
+                                       ORDER BY c.y'
+					                   ,array((int)$newRuleID),array(\PDO::PARAM_INT));
+            
+           
+        while($value = $yearRangeSTH->fetch()) {
+            $this->assertEquals(2014,(int)$value['year']);
+        }
+        
+        return $newRuleID;
+        
+    }
+
+    
+    /**
+     * @depends testNewRepeatRuleHasCorrectSlots
+     */
+    public function testNewRepeatRuleDeletedSuccessfully($newRuleID)
+    {
         // Delete rule 
         
         // Step 1 . Test cleanup method
@@ -847,12 +962,7 @@ class RulesPackageTest extends BasicTest
         
         // Step 3. Test trigger
         
+        
     }
-
-
-    
-
-    
-    
 }
 /* End of Class */

@@ -185,12 +185,16 @@ CREATE TABLE IF NOT EXISTS `rules` (
   -- common rule fields
   `rule_id` INT NOT NULL AUTO_INCREMENT,
   `rule_name` VARCHAR(45) NOT NULL,
-  `rule_type` ENUM('inclusion', 'exclusion'),
+  `rule_type` ENUM('inclusion', 'exclusion','priority'),
   `rule_repeat` ENUM('adhoc', 'repeat'),
 
   -- audit fields
   `created_date` DATETIME NOT NULL,
   `updated_date` DATETIME NOT NULL,
+
+  -- validity date fields
+  valid_from DATE NOT NULL,
+  valid_to    DATE NOT NULL,
 
   -- repeat rules fields  
   `repeat_minute` VARCHAR(45) NOT NULL,
@@ -256,7 +260,7 @@ CREATE TABLE IF NOT EXISTS `audit_rules` (
   -- common rule fields
   `rule_id` INT NOT NULL,
   `rule_name` VARCHAR(45) NOT NULL,
-  `rule_type` ENUM('inclusion', 'exclusion'),
+  `rule_type` ENUM('inclusion', 'exclusion','priority'),
   `rule_repeat` ENUM('adhoc', 'repeat'),
   
   -- repeat fields  
@@ -270,6 +274,10 @@ CREATE TABLE IF NOT EXISTS `audit_rules` (
   -- adhoc opening rules
   `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
   `closing_slot_id` INT COMMENT 'only for adhoc-rules',
+  
+  -- validity date fields
+  valid_from DATE NOT NULL,
+  valid_to    DATE NOT NULL,
 
   
   -- relation fields

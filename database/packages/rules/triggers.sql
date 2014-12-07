@@ -25,6 +25,8 @@ INSERT INTO audit_rules (`change_seq`
                          ,`membership_id`
                          ,`opening_slot_id`
                          ,`closing_slot_id`
+                         ,`valid_from`
+                         ,`valid_to`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -43,6 +45,8 @@ VALUES (NULL
         , NEW.`membership_id`
         , NEW.`opening_slot_id`
         , NEW.`closing_slot_id`
+        , NEW.`valid_from`
+        , NEW.`valid_to`
         , USER()
         , 'I'
         , NOW());
@@ -67,9 +71,11 @@ INSERT INTO audit_rules (`change_seq`
                          ,`repeat_month`
                          ,`repeat_year`
                          ,`schedule_group_id`
+                         ,`membership_id`
                          ,`opening_slot_id`
                          ,`closing_slot_id`
-                         ,`membership_id`
+                         ,`valid_from`
+                         ,`valid_to`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -88,6 +94,8 @@ VALUES (NULL
         , NEW.`membership_id` 
         , NEW.`opening_slot_id`
         , NEW.`closing_slot_id`
+        , NEW.`valid_from`
+        , NEW.`valid_to`
         ,USER()
         ,'U'
         ,NOW());
@@ -110,11 +118,13 @@ INSERT INTO audit_rules (`change_seq`
                          ,`repeat_dayofweek`
                          ,`repeat_dayofmonth`
                          ,`repeat_month`
-                         , `repeat_year`
+                         ,`repeat_year`
                          ,`schedule_group_id`
                          ,`membership_id`
                          ,`opening_slot_id`
                          ,`closing_slot_id`
+                         ,`valid_from`
+                         ,`valid_to`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -133,6 +143,8 @@ VALUES (NULL
         , OLD.`membership_id`
         , OLD.`opening_slot_id`
         , OLD.`closing_slot_id`
+        , OLD.`valid_from`
+        , OLD.`valid_to`
         , USER()
         ,'D'
         ,NOW());
