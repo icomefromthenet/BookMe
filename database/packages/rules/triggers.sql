@@ -27,6 +27,7 @@ INSERT INTO audit_rules (`change_seq`
                          ,`closing_slot_id`
                          ,`valid_from`
                          ,`valid_to`
+                         ,`rule_duration`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -47,6 +48,7 @@ VALUES (NULL
         , NEW.`closing_slot_id`
         , NEW.`valid_from`
         , NEW.`valid_to`
+        , NEW.`rule_duration`
         , USER()
         , 'I'
         , NOW());
@@ -76,6 +78,7 @@ INSERT INTO audit_rules (`change_seq`
                          ,`closing_slot_id`
                          ,`valid_from`
                          ,`valid_to`
+                         ,`rule_duration`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -96,6 +99,7 @@ VALUES (NULL
         , NEW.`closing_slot_id`
         , NEW.`valid_from`
         , NEW.`valid_to`
+        , NEW.`rule_duration`
         ,USER()
         ,'U'
         ,NOW());
@@ -125,6 +129,7 @@ INSERT INTO audit_rules (`change_seq`
                          ,`closing_slot_id`
                          ,`valid_from`
                          ,`valid_to`
+                         ,`rule_duration`
                          ,`changed_by`
                          ,`action`
                          ,`change_time`) 
@@ -145,6 +150,7 @@ VALUES (NULL
         , OLD.`closing_slot_id`
         , OLD.`valid_from`
         , OLD.`valid_to`
+        , OLD.`rule_duration`
         , USER()
         ,'D'
         ,NOW());

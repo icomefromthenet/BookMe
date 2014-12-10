@@ -151,7 +151,7 @@ BEGIN
 				CALL util_proc_log(concat('insert  bm_parsed_ranges'
 										,' openValue:',openValue
 										,' closeValue:',closeValue
-										,' incrementValue:',incrementValue ));
+										,' incrementValue:',incrementValue));
 			END IF;	
 
 
@@ -242,6 +242,7 @@ CREATE PROCEDURE `bm_rules_add_repeat_rule`(
 										, IN repeatDayofmonth VARCHAR(45)
 										, IN repeatMonth VARCHAR(45)
 										, IN repeatYear VARCHAR(45)
+										, IN ruleDuration INT
 										, IN validFrom DATE
 										, IN validTo DATE
 										, IN scheduleGroupID INT
@@ -282,6 +283,13 @@ BEGIN
 		SET MESSAGE_TEXT = 'Validity period is and invalid range';
 	END IF;
 
+	-- check the duration is valid
+	
+	IF bm_rules_valid_duration(ruleDuration) THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'The rule duration is not in valid range between 1minute and 1year'
+	END IF;
+
 	-- insert schedule group rule into rules table
 	-- the audit trigger will log it after insert
 
@@ -301,6 +309,7 @@ BEGIN
 		,`schedule_group_id`
 		,`valid_from`
 		,`valid_to`
+		,`rule_duration`
 	)
 	VALUES (
 		 NULL
@@ -318,6 +327,7 @@ BEGIN
 		,scheduleGroupID
 		,validFrom
 		,validTo
+		,ruleDuration
 	);
 
 	SET newRuleID = LAST_INSERT_ID();
@@ -358,7 +368,8 @@ BEGIN
 							,repeatDayofweek
 							,repeatDayofmonth
 							,repeatMonth
-							,repeatYear);
+							,repeatYear
+							,ruleDuration);
 	
 	
 	IF @bm_debug = true THEN
@@ -520,7 +531,7 @@ BEGIN
 			range_open INT NOT NULL,
 			range_closed INT NOT NULL,
 			mod_value INT NULL,
-			value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL
+			value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL,
 		) ENGINE=MEMORY;
 		
 	ELSE 
@@ -565,7 +576,8 @@ CREATE PROCEDURE `bm_rules_save_slots`(IN ruleID INT
 									 , IN repeatDayofweek VARCHAR(45)
 									 , IN repeatDayofmonth VARCHAR(45)
 									 , IN repeatMonth VARCHAR(45)
-									 , IN repeatYear VARCHAR(45))
+									 , IN repeatYear VARCHAR(45)
+									 , IN ruleDuration INT)
 BEGIN
 	DECLARE isInsertError BOOL DEFAULT false;
 	
@@ -594,13 +606,18 @@ BEGIN
 	-- insert the requird slots, internally MSQL will create a tmp table to hold
 	-- values from select list
 	
-	-- Each join on this query will filter the slots into smaller sets, for example
-	-- the first join find all slots that are in the minute range 
-	-- this set is reduced by 2nd join which filter frist set down to those 
-	-- slots that meet the hour requirements And so on for each cron rule
 	
 	INSERT INTO rule_slots (rule_slot_id,rule_id,slot_id) 	
-	SELECT NULL,ruleID,`s`.`slot_id`
+	SELECT NULL,ruleID, `sl`.`slot_id` 
+	FROM slots `sl`
+	RIGHT JOIN (
+		
+		-- Each join on this query will filter the slots into smaller sets, for example
+		-- the first join find all slots that are in the minute range 
+		-- this set is reduced by 2nd join which filter frist set down to those 
+		-- slots that meet the hour requirements And so on for each cron rule
+	
+		SELECT s.slot_id ,s.slopt_open
 		FROM slots s
 		RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
 		RIGHT JOIN bm_parsed_minute mr 
@@ -611,23 +628,25 @@ BEGIN
 			ON  EXTRACT(HOUR FROM `s`.`slot_open`) >= `hr`.`range_open` 
 			AND  EXTRACT(HOUR FROM `s`.`slot_open`)   <= `hr`.`range_closed`
 			AND  MOD(EXTRACT(HOUR FROM `s`.`slot_open`),`hr`.`mod_value`) = 0
-	RIGHT JOIN bm_parsed_dayofmonth domr 
+		RIGHT JOIN bm_parsed_dayofmonth domr 
 			ON  `c`.`d` >= `domr`.`range_open` 
 			AND  `c`.`d`   <= `domr`.`range_closed`
 			AND  MOD(`c`.`d`,`domr`.`mod_value`) = 0
-	RIGHT JOIN bm_parsed_dayofweek dowr 
+		RIGHT JOIN bm_parsed_dayofweek dowr 
 			ON  (`c`.`dw`-1) >= `dowr`.`range_open` 
 			AND  (`c`.`dw`-1)   <= `dowr`.`range_closed`
 			AND  MOD((`c`.`dw`-1),`dowr`.`mod_value`) = 0
-	RIGHT JOIN bm_parsed_month monr 
+		RIGHT JOIN bm_parsed_month monr 
 			ON  `c`.`m` >= `monr`.`range_open` 
 			AND  `c`.`m`   <= `monr`.`range_closed`
 			AND  MOD(`c`.`m`,`monr`.`mod_value`) = 0
-	RIGHT JOIN bm_parsed_year yr 
+		RIGHT JOIN bm_parsed_year yr 
 			ON `c`.`y` >= `yr`.`range_open` 
 			AND  `c`.`y`   <= `yr`.`range_closed`
-			AND  MOD(`c`.`y`,`yr`.`mod_value`) = 0;
-	
+			AND  MOD(`c`.`y`,`yr`.`mod_value`) = 0;	) openingSlots
+	) o ON  EXTRACT(MINUTE FROM `o`.`slot_open`) >= `sl`.`slot_open` 
+	    AND `s`.`slot_open` + INTERVAL ruleDuration MINUTE <= `sl`.`slot_open`
+		
 	-- assign insert rows to out param
 	IF isInsertError = true THEN
 		SET numberSlots  = 0;

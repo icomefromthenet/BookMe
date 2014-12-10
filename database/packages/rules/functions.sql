@@ -198,3 +198,22 @@ RETURNS BOOLEAN DETERMINISTIC BEGIN
     
     RETURN isValid;
 END$$
+
+
+-- -----------------------------------------------------
+-- functions `bm_rules_valid_duration` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_valid_duration`$$
+
+CREATE FUNCTION `bm_rules_valid_duration` (duration INT)
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isValid BOOLEAN DEFAULT false;
+    
+    -- Min Duration is 1 minute and Maxium value is 1 leap year
+
+    IF (duration > 0) && (duration < (60*24*7*366)) THEN
+        SET isValid = true;
+    END IF;
+    
+    RETURN isValid;
+END$$

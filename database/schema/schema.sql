@@ -204,6 +204,8 @@ CREATE TABLE IF NOT EXISTS `rules` (
   `repeat_month` VARCHAR(45) NOT NULL,
   `repeat_year` VARCHAR(45) NOT NULL,
   
+  `rule_duration` INT NULL,
+  
   -- adhoc opening rules
   `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
   `closing_slot_id` INT COMMENT 'only for adhoc-rules',
@@ -270,6 +272,8 @@ CREATE TABLE IF NOT EXISTS `audit_rules` (
   `repeat_dayofmonth` VARCHAR(45)  NULL,
   `repeat_month` VARCHAR(45) NULL,
   `repeat_year` VARCHAR(45) NULL,
+  
+  `rule_duration` INT NULL,
 
   -- adhoc opening rules
   `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
