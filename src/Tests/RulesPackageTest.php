@@ -2,6 +2,7 @@
 namespace IComeFromTheNet\BookMe\Tests;
 
 use IComeFromTheNet\BookMe\BookMeService;
+use IComeFromTheNet\BookMe\Tests\BasicTest;
 use Doctrine\DBAL\DBALException;
 
 class RulesPackageTest extends BasicTest
@@ -654,13 +655,14 @@ class RulesPackageTest extends BasicTest
 		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
+		$ruleDuration      = 60;
 		
         try {
             
             $db->exec('START TRANSACTION');								
             
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
-                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
             );
             $db->exec('ROLLBACK');
             
@@ -673,6 +675,28 @@ class RulesPackageTest extends BasicTest
         
         
 
+    }
+    
+    public function testDurationTestFunction()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        
+        $result = (boolean) $db->fetchColumn('SELECT bm_rules_valid_duration(?) as r' ,array(60),0);
+        $resultB = (boolean) $db->fetchColumn('SELECT bm_rules_valid_duration(?) as r' ,array(1),0);
+        $resultC = (boolean) $db->fetchColumn('SELECT bm_rules_valid_duration(?) as r' ,array(-1),0);
+        $resultD = (boolean) $db->fetchColumn('SELECT bm_rules_valid_duration(?) as r' ,array((60*24*366)),0);
+        $resultE = (boolean) $db->fetchColumn('SELECT bm_rules_valid_duration(?) as r' ,array((PHP_INT_MAX)),0);
+        $resultF = (boolean) $db->fetchColumn('SELECT bm_rules_valid_duration(?) as r' ,array((0)),0);
+        
+        $this->assertTrue($result);
+        $this->assertTrue($resultB);
+        $this->assertfalse($resultC);
+        $this->assertTrue($resultD);
+        $this->assertFalse($resultE);
+        $this->assertFalse($resultF);
+        
+        
     }
     
     public function testAddRepatRuleFailesWithNoSlotError()
@@ -689,13 +713,14 @@ class RulesPackageTest extends BasicTest
 		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
-										
+		$ruleDuration       = 60;
+									
        try { 
              $db->exec('START TRANSACTION');								
             
            
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
-                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
             );
             
             $db->exec('ROLLBACK');
@@ -709,7 +734,10 @@ class RulesPackageTest extends BasicTest
         
     }
     
-     public function testAddRepatRuleFailesWithBadType()
+    
+    
+    
+    public function testAddRepatRuleFailesWithBadType()
     {
         $db = $this->getDoctrineConnection();
         
@@ -723,13 +751,14 @@ class RulesPackageTest extends BasicTest
 		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
+		$ruleDuration       = 60;
 										
        try { 
              $db->exec('START TRANSACTION');								
             
            
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
-                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$scheduleGroupID,$memberID)
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
             );
             
             $db->exec('ROLLBACK');
@@ -738,7 +767,42 @@ class RulesPackageTest extends BasicTest
         
        } catch(\Doctrine\DBAL\DBALException $e) {
             $db->exec('ROLLBACK');
-            $this->assertContains('Given ruleType is invalid must be inclusion or adhoc',$e->getMessage());
+            $this->assertContains('Given ruleType is invalid must be inclusion or exclusion or priority',$e->getMessage());
+        }
+        
+    }
+    
+    public function testAddRepatRuleFailesWithBadDuration()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleA';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = 0;
+        $ruleDayofmonth     = 1;
+        $ruleMonth          = 1;
+		$ruleYear           = 2014;
+		$scheduleGroupID    = 2;
+		$memberID           = NULL;
+		$ruleDuration       = -1;
+										
+       try { 
+             $db->exec('START TRANSACTION');								
+            
+           
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
+            );
+            
+            $db->exec('ROLLBACK');
+            
+            $this->assertFalse(true);
+        
+       } catch(\Doctrine\DBAL\DBALException $e) {
+            $db->exec('ROLLBACK');
+            $this->assertContains('The rule duration is not in valid range between 1minute and 1 year',$e->getMessage());
         }
         
     }
@@ -749,7 +813,7 @@ class RulesPackageTest extends BasicTest
         
         $ruleName           = 'ruleA';
         $ruleType           = 'inclusion';
-        $ruleMinute         = '0-59';
+        $ruleMinute         = 0;
         $ruleHour           = 0;
         $ruleDayofweek      = '*';
         $ruleDayofmonth     = 1;
@@ -757,7 +821,7 @@ class RulesPackageTest extends BasicTest
 		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
-		
+		$ruleDuration       = 59;
 		
 		$now = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
 		$validFrom = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
@@ -782,10 +846,11 @@ class RulesPackageTest extends BasicTest
     		,'updated_date'     => $now
     		,'valid_from'       => $validFrom
     		,'valid_to'         => '3000-01-01'
+    		,'rule_duration'    => $ruleDuration
         );
         
-        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,NULL,?,?,@newRuleID)"
-            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$validFrom,$scheduleGroupID,$memberID)
+        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,NULL,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$validFrom,$scheduleGroupID,$memberID)
         );
         
         // ensure that we got a good id back for the new rule
@@ -836,7 +901,6 @@ class RulesPackageTest extends BasicTest
             
         return $newRuleID;
         
-        
     }
     
     /**
@@ -863,7 +927,7 @@ class RulesPackageTest extends BasicTest
         $db = $this->getDoctrineConnection();
 
         //is their slots and are they what we expect
-        // Rule::'0-59 0 * 1 * 2014'
+        // Rule::'0 0 * 1 * 2014' with duration of 60
 		
 		// Give us 60 slots at midnight on any day of the week but only in the first day of each month 
 		// for every month in 2014 ie 12 months

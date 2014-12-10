@@ -264,7 +264,7 @@ BEGIN
 
 	IF bm_rules_valid_rule_type(ruleType) = false THEN
 		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Given ruleType is invalid must be inclusion or adhoc';	
+		SET MESSAGE_TEXT = 'Given ruleType is invalid must be inclusion or exclusion or priority';	
 	END IF;
 	
 	-- Assign defaults and check validity range
@@ -285,9 +285,9 @@ BEGIN
 
 	-- check the duration is valid
 	
-	IF bm_rules_valid_duration(ruleDuration) THEN
+	IF bm_rules_valid_duration(ruleDuration) = false THEN
 		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'The rule duration is not in valid range between 1minute and 1year'
+		SET MESSAGE_TEXT = 'The rule duration is not in valid range between 1minute and 1 year';
 	END IF;
 
 	-- insert schedule group rule into rules table
@@ -531,7 +531,7 @@ BEGIN
 			range_open INT NOT NULL,
 			range_closed INT NOT NULL,
 			mod_value INT NULL,
-			value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL,
+			value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL
 		) ENGINE=MEMORY;
 		
 	ELSE 
@@ -611,13 +611,11 @@ BEGIN
 	SELECT NULL,ruleID, `sl`.`slot_id` 
 	FROM slots `sl`
 	RIGHT JOIN (
-		
 		-- Each join on this query will filter the slots into smaller sets, for example
 		-- the first join find all slots that are in the minute range 
 		-- this set is reduced by 2nd join which filter frist set down to those 
 		-- slots that meet the hour requirements And so on for each cron rule
-	
-		SELECT s.slot_id ,s.slopt_open
+		SELECT s.slot_id,s.slot_open
 		FROM slots s
 		RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
 		RIGHT JOIN bm_parsed_minute mr 
@@ -643,9 +641,9 @@ BEGIN
 		RIGHT JOIN bm_parsed_year yr 
 			ON `c`.`y` >= `yr`.`range_open` 
 			AND  `c`.`y`   <= `yr`.`range_closed`
-			AND  MOD(`c`.`y`,`yr`.`mod_value`) = 0;	) openingSlots
-	) o ON  EXTRACT(MINUTE FROM `o`.`slot_open`) >= `sl`.`slot_open` 
-	    AND `s`.`slot_open` + INTERVAL ruleDuration MINUTE <= `sl`.`slot_open`
+			AND  MOD(`c`.`y`,`yr`.`mod_value`) = 0
+	) o ON   `sl`.`slot_open` >= `o`.`slot_open`
+	    AND  `sl`.`slot_open` <= (`o`.`slot_open` + INTERVAL ruleDuration MINUTE);
 		
 	-- assign insert rows to out param
 	IF isInsertError = true THEN
