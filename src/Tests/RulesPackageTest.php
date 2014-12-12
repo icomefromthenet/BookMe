@@ -908,13 +908,43 @@ class RulesPackageTest extends BasicTest
      */
     public function testRepeatRuleDepreciateSuccessfully($newRuleID)
     {
+        $db = $this->getDoctrineConnection();   
+        
+        $lastDate = $db->fetchColumn('SELECT CAST(((SELECT valid_from 
+                                                    FROM `rules` 
+                                                    WHERE rule_id = ?) + INTERVAL 1 YEAR) AS DATE) as d',array($newRuleID),0);
+        
+        
         // Update the rule validity date 
-           
+        $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array($newRuleID,$lastDate),array());
         
         // Test audit has been amended too.
+        $ruleSTH = $db->executeQuery('SELECT valid_from , valid_to FROM rules where rule_id = ?',array($newRuleID));
+        
+        $ruleResult = $ruleSTH->fetch();
+        
+        $this->assertEquals($lastDate,$ruleResult['valid_to']);
+
+        return $newRuleID;
+    }
     
-    
-    
+     /**
+     * @depends testRepeatRuleDepreciateSuccessfully
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Depreciation date must be on or after today
+     */
+    public function testRepeatRuleDepreciateFailsOnInvalidDate($newRuleID)
+    {
+        $db = $this->getDoctrineConnection();   
+        
+        $lastDate = $db->fetchColumn('SELECT CAST(((SELECT valid_from 
+                                                    FROM `rules` 
+                                                    WHERE rule_id = ?) - INTERVAL 1 YEAR) AS DATE) as d',array($newRuleID),0);
+        
+        
+        // Update the rule validity date 
+        $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array($newRuleID,$lastDate),array());
+     
         return $newRuleID;
     }
 
@@ -1016,17 +1046,61 @@ class RulesPackageTest extends BasicTest
     /**
      * @depends testNewRepeatRuleHasCorrectSlots
      */
-    public function testNewRepeatRuleDeletedSuccessfully($newRuleID)
+    public function testNewRepeatRuleCleanupSuccessfully($newRuleID)
     {
-        // Delete rule 
+        
         
         // Step 1 . Test cleanup method
+        $rowsAffected = null;
+        $db = $this->getDoctrineConnection();
+
+        $db->executeQuery('CALL bm_rules_cleanup_slots(?,@changedRows)',array($newRuleID));
+        
+        $this->assertGreaterThan(0,$db->fetchColumn('SELECT @changedRows',array(),0));
+        
+        // Step 4. Test the slot operation log was updated
+        $ruleOperationSTH = $db->executeQuery('select * from rule_slots_operations where `rule_id` = ? and `operation` = ?',array($newRuleID,'clean'));
+        
+        $ruleOperation = $ruleOperationSTH->fetch();
+        
+        $this->assertNotEmpty($ruleOperation);
         
         // Step 2. Remove the rule
+        $db->executeQuery('DELETE FROM `rules` WHERE `rule_id` = ?',array($newRuleID));
         
-        // Step 3. Test trigger
+        
+        // Step 3. Test trigger work, this not expected operation it should be recorded
+        $auditSTH = $db->executeQuery('SELECT * 
+                                       FROM audit_rules 
+                                       WHERE rule_id = ? 
+                                       AND action = ?',array($newRuleID,'D'));
+        
+       
+        $auditResult = $auditSTH->fetch();
+        
+        $this->assertNotEmpty($auditResult,'No rule Audit Record Found for delete');
+
+    }
+    
+    
+    public function testAddAdHocRuleSucessfuly()
+    {
+        
+    }
+    
+    
+    
+    public function testAddSlotsToAdhochRule()
+    {
+        
+    }
+    
+    public function testRemoveSlotsFromAdhocRule()
+    {
         
         
     }
+    
+    
 }
 /* End of Class */

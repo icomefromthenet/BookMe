@@ -40,7 +40,7 @@ BEGIN
 	SET filteredCron = trim(cron);
 	
 	-- build tmp result tables if not done already
-	CALL bm_create_rule_tmp_table(false);
+	CALL bm_rules_create_tmp_table(false);
 	
 	
 	IF filteredCron = '*' THEN
@@ -464,7 +464,7 @@ BEGIN
 	) 
 	VALUES (
 		NULL
-		,'cleanup'
+		,'clean'
 		,NOW()
 		,USER()
 		,ruleID
@@ -518,11 +518,59 @@ BEGIN
 END$$
 
 -- -----------------------------------------------------
--- procedure bm_create_rule_tmp_table
+-- procedure bm_rules_depreciate_rule
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_create_rule_tmp_table`$$
+DROP PROCEDURE IF EXISTS `bm_rules_depreciate_rule`$$
 
-CREATE procedure `bm_create_rule_tmp_table` (IN expand TINYINT)
+CREATE PROCEDURE `bm_rules_depreciate_rule` (IN ruleID INT,IN validTo DATE)
+BEGIN
+	DECLARE validFrom DATE;
+
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('Starting bm_rules_depreciate_rule'));
+	END IF;
+	
+	-- verify the range is valid
+	
+	SELECT `valid_from` 
+	FROM `rules` 
+	WHERE `rule_id` = ruleID 
+	INTO validFrom;
+	
+	IF @bm_debug = TRUE THEN
+		CALL util_proc_log(concat('validFrom from is set too ',valid_from));
+	END IF;
+
+	IF validFrom > validTo THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Depreciation date must be on or after today';
+	END IF;
+
+	
+	-- do operation
+	UPDATE `rules` SET valid_to = validTo WHERE rule_id = ruleID;
+
+	-- verify if the row was updated
+	IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to set a depreciation date on a rule';
+	END IF;
+
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_depreciate_rule');
+	END IF;
+
+END$$
+
+-- -----------------------------------------------------
+-- procedure bm_rules_create_tmp_table
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_create_tmp_table`$$
+
+CREATE procedure `bm_rules_create_tmp_table` (IN expand TINYINT)
 BEGIN
 	
 	IF expand IS NULL OR EXPAND = FALSE THEN
@@ -548,11 +596,11 @@ BEGIN
 END$$
 
 -- -----------------------------------------------------
--- procedure bm_cleanup_rule_tmp_table
+-- procedure bm_rules_cleanup_tmp_table
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_cleanup_rule_tmp_table`$$
+DROP procedure IF EXISTS `bm_rules_cleanup_tmp_table`$$
 
-CREATE procedure `bm_cleanup_rule_tmp_table` ()
+CREATE procedure `bm_rules_cleanup_tmp_table` ()
 BEGIN
 
 	DROP TEMPORARY TABLE IF EXISTS bm_parsed_ranges ;
@@ -584,7 +632,7 @@ BEGIN
 	DECLARE CONTINUE HANDLER FOR SQLSTATE '23000' SET isInsertError = true;
 	
 	-- Create Primary tmp table
-	CALL bm_create_rule_tmp_table(false);
+	CALL bm_rules_create_tmp_table(false);
 	
 	CALL bm_rules_parse(repeatMinute,'minute');
 	
@@ -601,7 +649,7 @@ BEGIN
 	-- As Waround for MYSQL being unable to access a tmp table more
 	-- than once in same query, call create again and ask
 	-- that frist tmp table be split
-	CALL bm_create_rule_tmp_table(true);
+	CALL bm_rules_create_tmp_table(true);
 	
 	-- insert the requird slots, internally MSQL will create a tmp table to hold
 	-- values from select list
@@ -659,6 +707,6 @@ BEGIN
 
 	
 	-- drop tmp tables
-	  CALL bm_cleanup_rule_tmp_table();
+	  CALL bm_rules_cleanup_tmp_table();
 	
 END;
