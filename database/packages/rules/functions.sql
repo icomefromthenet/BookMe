@@ -217,3 +217,55 @@ RETURNS BOOLEAN DETERMINISTIC BEGIN
     
     RETURN isValid;
 END$$
+
+-- -----------------------------------------------------
+-- functions `bm_rules_is_exclusion` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_exclusion`$$
+
+CREATE FUNCTION `bm_rules_is_exclusion` (ruleType INT)
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isRule BOOLEAN DEFAULT false;
+    
+    IF ruleType = 'exclusion' THEN
+        SET isRule = true;
+    END IF;
+    
+    RETURN isRule;
+END$$
+
+-- -----------------------------------------------------
+-- functions `bm_rules_is_exclusion` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_inclusion`$$
+
+CREATE FUNCTION `bm_rules_is_inclusion` (ruleType INT)
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isRule BOOLEAN DEFAULT false;
+    
+    IF ruleType = 'inclusion' THEN
+        SET isRule = true;
+    END IF;
+    
+    RETURN isRule;
+END$$
+
+-- -----------------------------------------------------
+-- functions `bm_rules_is_exclusion` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_priority`$$
+
+CREATE FUNCTION `bm_rules_is_priority` (ruleType INT)
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isRule BOOLEAN DEFAULT false;
+    
+    IF ruleType ='priority' THEN
+        SET isRule = true;
+    END IF;
+    
+    RETURN isRule;
+END$$
+
+
+
+
