@@ -307,6 +307,7 @@ BEGIN
 		,`repeat_month`
 		,`repeat_year`
 		,`schedule_group_id`
+		,`membership_id`
 		,`valid_from`
 		,`valid_to`
 		,`rule_duration`
@@ -325,6 +326,7 @@ BEGIN
 		,repeatMonth
 		,repeatYear
 		,scheduleGroupID
+		,memberID
 		,validFrom
 		,validTo
 		,ruleDuration
@@ -398,6 +400,8 @@ DROP procedure IF EXISTS `bm_rules_add_adhoc_rule`$$
 
 CREATE PROCEDURE `bm_rules_add_adhoc_rule`(IN ruleName VARCHAR(45)
 										, IN ruleType VARCHAR(45)
+										, IN validTo DATE
+										, IN validFrom DATE
 										, IN memberID INT
 										, IN scheduleGroupID INT
 										, IN openingSlotID INT
@@ -405,13 +409,13 @@ CREATE PROCEDURE `bm_rules_add_adhoc_rule`(IN ruleName VARCHAR(45)
 										, OUT newRuleID INT)
 BEGIN
 	
-	DECLARE repeatRepeat VARCHAR(10) DEFAULT 'adhoc'; -- member rules are always adhoc
-
+	DECLARE repeatValue VARCHAR(10) DEFAULT 'adhoc';
+	DECLARE rowsSlotsAdded INT DEFAULT 0;
 
 	-- Create the debug table
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
-		CALL util_proc_log(concat('Starting bm_rules_add_member_rule'));
+		CALL util_proc_log(concat('Starting bm_rules_add_adhoc_rule'));
 	END IF;
 
 	
@@ -419,16 +423,88 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Given ruleType is invalid';	
 	END IF;
+	
+	-- Assign defaults and check validity range
+	
+	IF validTo IS NULL THEN
+		SET validTo = DATE('3000-01-01');
+	END IF;
+
+	IF validFrom < CAST(NOW() AS DATE) THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Valid from date must be gte NOW';
+	END IF;
+	
+	IF validTo < validFrom THEN 
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Validity period is and invalid range';
+	END IF;
 
 	-- insert member rule into the rules table  the
 	-- audit insert trigger will record the operation
 
-		
+	INSERT INTO rules (
+		 `rule_id`
+		,`rule_name`
+		,`rule_type`
+		,`rule_repeat`
+		,`created_date`
+		,`updated_date`
+		,`repeat_minute`
+		,`repeat_hour`
+		,`repeat_dayofweek`
+		,`repeat_dayofmonth`
+		,`repeat_month`
+		,`repeat_year`
+		,`schedule_group_id`
+		,`membership_id`
+		,`valid_from`
+		,`valid_to`
+		,`rule_duration`
+		,`opening_slot_id`
+		,`closing_slot_id`
+	)
+	VALUES (
+		 NULL
+		,ruleName
+		,ruleType
+		,repeatValue
+		,NOW()
+		,NOW()
+		,NULL
+		,NULL
+		,NULL
+		,NULL
+		,NULL
+		,NULL
+		,scheduleGroupID
+		,memberID
+		,validFrom
+		,validTo
+		,NULL
+		,openingSlotID
+		,closingSlotID
+	);
 
-	-- record operation in slot log if opening and closing slot been provided
+	SET newRuleID = LAST_INSERT_ID();
 	
+
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));
+	END IF;		
+
+
 	
 	-- insert slots if opening and closing slot been provided
+	CALL bm_rules_add_slots(newRuleID,openingSlotID,closingSlotID,rowsSlotsAdded);
+
+
+	IF rowsSlotsAdded = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'We added 0 slots from new adhoc rule, this must be wrong';
+	END IF;
+
 
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('finished procedure bm_rules_add_adhoc_rule');
@@ -487,6 +563,51 @@ END$$
 
 
 -- -----------------------------------------------------
+-- procedure bm_rules_remove_slots
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_remove_slots`$$
+
+CREATE PROCEDURE `bm_rules_remove_slots` (IN ruleID INT
+                                      ,IN openingSlotID INT
+                                      ,IN closingSlotID INT
+                                      ,OUT rowsAffected INT)
+BEGIN
+	
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('Starting bm_rules_remove_slots with openslot::'
+		                          ,ifnull(openingSlotID,0)
+		                          ,' and closingslot::'
+		                          ,ifnull(closingSlotID,0)
+		                  ));
+	END IF;
+
+	
+	-- record operation in slot log if opening and closing slot been provided
+	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`
+	) VALUES (openingSlotID,closingSlotID,ruleID,NULL,'subtraction',NOW(),USER());
+
+
+	-- If this is a duplicate set, the unique index `uk_rule_slots` will stop the insert
+	-- this is an inclusive operation (min <= expr AND expr <= max) so total record ([max-min]+1)
+	DELETE FROM rule_slots WHERE `slot_id` BETWEEN openingSlotID AND closingSlotID;
+	
+	-- Where not going to throw and error leave up to calling code to decide.
+	-- this is to keep it consistent wil cleanup slots method
+	SET rowsAffected = ROW_COUNT();
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Removed ',ifnull(rowsAffected,0),' number of slots to rule id:: ',ruleID));
+	END IF;
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_remove_slots');
+	END IF;
+
+END$$
+
+-- -----------------------------------------------------
 -- procedure bm_rules_add_slots
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_add_slots`$$
@@ -500,22 +621,40 @@ BEGIN
 	-- Create the debug table
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
-		CALL util_proc_log(concat('Starting bm_rules_add_slots'));
+		CALL util_proc_log(concat('Starting bm_rules_add_slots with openslot::'
+		                          ,ifnull(openingSlotID,0)
+		                          ,' and closingslot::'
+		                          ,ifnull(closingSlotID,0)
+		                  ));
 	END IF;
 
 	
-	-- record operation in log
+	-- record operation in slot log if opening and closing slot been provided
+	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`
+	) VALUES (openingSlotID,closingSlotID,ruleID,NULL,'addition',NOW(),USER());
 
 
-	-- do operation
-
-
+	-- If this is a duplicate set, the unique index `uk_rule_slots` will stop the insert
+	-- this is an inclusive operation (min <= expr AND expr <= max) so total record ([max-min]+1)
+	INSERT INTO rule_slots (`rule_slot_id`,`rule_id`,`slot_id`) 
+	SELECT NULL,ruleID,`s`.`slot_id`
+	FROM slots s 
+	WHERE `s`.`slot_id` BETWEEN openingSlotID AND closingSlotID;
+	
+	-- Where not going to throw and error leave up to calling code to decide.
+	-- this is to keep it consistent wil cleanup slots method
+	SET rowsAffected = ROW_COUNT();
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_log(concat('Added ',ifnull(rowsAffected,0),' number of slots to rule id:: ',ruleID));
+	END IF;
+	
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('finished procedure bm_rules_add_slots');
 	END IF;
 
-
 END$$
+
 
 -- -----------------------------------------------------
 -- procedure bm_rules_depreciate_rule

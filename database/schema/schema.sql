@@ -329,25 +329,26 @@ DROP TABLE IF EXISTS `rule_slots_operations`;
 
 CREATE TABLE IF NOT EXISTS `rule_slots_operations` (
   `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
-  `operation` ENUM('addition', 'subtraction','clean'),
+  `operation` ENUM('addition', 'subtraction','clean') NOT NULL,
   `change_time` TIMESTAMP NOT NULL,
   `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
   `opening_slot_id` INT COMMENT 'only known for addition and subtraction operations', 
   `closing_slot_id` INT COMMENT 'only  know for addition and subtraction operations',
-  `rule_id` INT COMMENT ' Rule that change relates too, not fk as rule could be deleted',
+  `rule_id` INT NOT NULL COMMENT ' Rule that change relates too, not fk as rule could be deleted',
   
   PRIMARY KEY (`change_seq`),
-  
-  CONSTRAINT `fk_slot_op_slots_1`
+
+  CONSTRAINT `fk_slot_op_slots_a`
     FOREIGN KEY (`opening_slot_id`)
     REFERENCES `slots` (`slot_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_slot_op_slots_2`
+    
+  CONSTRAINT `fk_slot_op_slots_b`
     FOREIGN KEY (`closing_slot_id`)
     REFERENCES `slots` (`slot_id`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION
+    ON UPDATE NO ACTION 
   
 )
 ENGINE = InnoDB

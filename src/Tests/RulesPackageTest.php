@@ -694,7 +694,7 @@ class RulesPackageTest extends BasicTest
         $this->assertfalse($resultC);
         $this->assertTrue($resultD);
         $this->assertFalse($resultE);
-        $this->assertFalse($resultF);
+        $this->assertTrue($resultF);
         
         
     }
@@ -1041,10 +1041,86 @@ class RulesPackageTest extends BasicTest
         return $newRuleID;
         
     }
-
     
     /**
      * @depends testNewRepeatRuleHasCorrectSlots
+     */
+    public function testAddSlotsToRule($newRuleID)
+    {
+         $db = $this->getDoctrineConnection();
+         
+         // Step 1 call method verify returned number
+         
+         $openingslotID = 7800;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+         $closingslotID = 8000;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+         $rowsAffected  = 0;
+         
+        $db->executeQuery('CALL bm_rules_add_slots(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
+        
+        $this->assertEquals(201,$rowsAffected);
+        
+        // Step 2 verify log was recorded and open/closing slot set correctly
+        
+        $ruleOperationSTH = $db->executeQuery('select * 
+                                              from rule_slots_operations 
+                                              where `rule_id` = ? and `operation` = ? 
+                                              order by change_seq DESC
+                                              limit 1',array($newRuleID,'addition'));
+                                              
+        $auditResult = $ruleOperationSTH ->fetch();
+        
+        $this->assertNotEmpty($auditResult,'No rule Audit Record Found for slot addition');                                      
+        
+        $this->assertEquals($auditResult['opening_slot_id'],$openingslotID);
+        $this->assertEquals($auditResult['closing_slot_id'],$closingslotID);
+        
+        
+        return $newRuleID;
+    }
+    
+     /**
+     * @depends testNewRepeatRuleHasCorrectSlots
+     */
+    public function testRemoveSlots($newRuleID)
+    {
+        
+        $db = $this->getDoctrineConnection();
+         
+         // Step 1 call method verify returned number
+         
+         $openingslotID = 7800;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+         $closingslotID = 8000;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+         $rowsAffected  = 0;
+         
+        $db->executeQuery('CALL bm_rules_remove_slots(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
+        
+        $this->assertEquals(201,$rowsAffected);
+        
+        // Step 2 verify log was recorded and open/closing slot set correctly
+        
+        $ruleOperationSTH = $db->executeQuery('select * 
+                                              from rule_slots_operations 
+                                              where `rule_id` = ? and `operation` = ? 
+                                              order by change_seq DESC
+                                              limit 1',array($newRuleID,'subtraction'));
+                                              
+        $auditResult = $ruleOperationSTH ->fetch();
+        
+        $this->assertNotEmpty($auditResult,'No rule Audit Record Found for slot addition');                                      
+        
+        $this->assertEquals($auditResult['opening_slot_id'],$openingslotID);
+        $this->assertEquals($auditResult['closing_slot_id'],$closingslotID);
+        
+        
+        return $newRuleID;
+        
+    }
+
+    
+    /**
+     * @depends testRemoveSlots
      */
     public function testNewRepeatRuleCleanupSuccessfully($newRuleID)
     {
