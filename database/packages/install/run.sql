@@ -1,7 +1,13 @@
 -- -----------------------------------------------------
+-- Procedures for Install Package
+-- -----------------------------------------------------
+
+DELIMITER $$
+
+-- -----------------------------------------------------
 -- procedure bm_install_run
 -- -----------------------------------------------------
-DELIMITER $$
+
 DROP procedure IF EXISTS `bm_install_run`$$
 
 CREATE PROCEDURE `bm_install_run` (IN years INT)
@@ -10,7 +16,8 @@ BEGIN
 	DECLARE timeslotLength INT;
 	DECLARE l_last_row_fetched INT DEFAULT 0;
 	-- timeslot loop vars
-	DECLARE timeslots_cursor CURSOR FOR SELECT timeslot_id,timeslot_length FROM timeslots;
+	DECLARE timeslots_cursor CURSOR FOR SELECT `timeslot_id`,`timeslot_length` FROM timeslots;
+	
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET l_last_row_fetched=1;
 	
 	-- Create the debug table
@@ -50,13 +57,13 @@ BEGIN
 	CLOSE timeslots_cursor;
 	SET l_last_row_fetched=0;
 
-	-- build inclusion rules
-
-    -- build exclusion rules
-    
+	
     -- execute debug log cleanup
     IF @bm_debug = true THEN
     	CALL util_proc_cleanup('Finished Procedure bm_install_run()');
     END IF;
     
 END$$
+
+
+

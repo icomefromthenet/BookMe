@@ -1158,25 +1158,6 @@ class RulesPackageTest extends BasicTest
 
     }
     
-    
-    public function testAddAdHocRuleSucessfuly()
-    {
-        
-    }
-    
-    
-    
-    public function testAddSlotsToAdhochRule()
-    {
-        
-    }
-    
-    public function testRemoveSlotsFromAdhocRule()
-    {
-        
-        
-    }
-    
-    
+
 }
 /* End of Class */

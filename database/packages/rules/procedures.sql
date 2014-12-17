@@ -969,6 +969,15 @@ BEGIN
  	
  	
  	
+ 	SELECT`sl`.`timeslot_slot_id`
+       , max(`sl`.`timeslot_id`) as timeslot_id
+       , if(ifnull(`rs`.`rule_id`,0)>0,1,0) as has_rule
+	FROM timeslot_slots sl 
+	LEFT JOIN rule_slots rs  on `rs`.`slot_id` BETWEEN `sl`.`opening_slot_id` AND `sl`.`closing_slot_id` 
+	WHERE `sl`.`timeslot_slot_id` between 1  and 100
+	GROUP BY `sl`.`timeslot_slot_id`;
+
+ 	
  	
 END$$                                  
                                             

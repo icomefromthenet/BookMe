@@ -224,7 +224,7 @@ END$$
 -- -----------------------------------------------------
 DROP function IF EXISTS `bm_rules_is_exclusion`$$
 
-CREATE FUNCTION `bm_rules_is_exclusion` (ruleType INT)
+CREATE FUNCTION `bm_rules_is_exclusion` (ruleType varchar(255))
 RETURNS BOOLEAN DETERMINISTIC BEGIN
     DECLARE isRule BOOLEAN DEFAULT false;
     
@@ -236,11 +236,11 @@ RETURNS BOOLEAN DETERMINISTIC BEGIN
 END$$
 
 -- -----------------------------------------------------
--- functions `bm_rules_is_exclusion` 
+-- functions `bm_rules_is_inclusion` 
 -- -----------------------------------------------------
 DROP function IF EXISTS `bm_rules_is_inclusion`$$
 
-CREATE FUNCTION `bm_rules_is_inclusion` (ruleType INT)
+CREATE FUNCTION `bm_rules_is_inclusion` (ruleType varchar(255))
 RETURNS BOOLEAN DETERMINISTIC BEGIN
     DECLARE isRule BOOLEAN DEFAULT false;
     
@@ -252,11 +252,11 @@ RETURNS BOOLEAN DETERMINISTIC BEGIN
 END$$
 
 -- -----------------------------------------------------
--- functions `bm_rules_is_exclusion` 
+-- functions `bm_rules_is_priority` 
 -- -----------------------------------------------------
 DROP function IF EXISTS `bm_rules_is_priority`$$
 
-CREATE FUNCTION `bm_rules_is_priority` (ruleType INT)
+CREATE FUNCTION `bm_rules_is_priority` (ruleType varchar(255))
 RETURNS BOOLEAN DETERMINISTIC BEGIN
     DECLARE isRule BOOLEAN DEFAULT false;
     
@@ -267,6 +267,38 @@ RETURNS BOOLEAN DETERMINISTIC BEGIN
     RETURN isRule;
 END$$
 
+
+-- -----------------------------------------------------
+-- functions `bm_rules_is_member` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_member`$$
+
+CREATE FUNCTION `bm_rules_is_member` (memberID INT,scheduleGroupID INT)
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isRule BOOLEAN DEFAULT false;
+    
+    IF memberID > 0 AND scheduleGroupID is NULL THEN
+        SET isRule = true;
+    END IF;
+    
+    RETURN isRule;
+END$$
+
+-- -----------------------------------------------------
+-- functions `bm_rules_is_schedule_group` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_schedule_group`$$
+
+CREATE FUNCTION `bm_rules_is_schedule_group` (memberID INT,scheduleGroupID INT)
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isRule BOOLEAN DEFAULT false;
+    
+    IF memberID is NULL AND scheduleGroupID > 0 THEN
+        SET isRule = true;
+    END IF;
+    
+    RETURN isRule;
+END$$
 
 
 

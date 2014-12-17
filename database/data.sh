@@ -20,22 +20,7 @@ then
   exit $E_BADARGS;
 fi
  
-# execute schema sql file 
-echo 'Build Schema';
-$MYSQL -u ${2} -p${3} ${1} < ${DIR}'/schema/schema.sql';
-
-
-# execute every sql file under take packages directory 
-echo 'Insert Packages';
-
-for f in $(find ${DIR}/packages/ -name '*.sql');
-do
-  echo "Processing file $f";
-  $MYSQL -u ${2} -p${3} ${1} < $f;
-done 
- 
 # execute common data file
-echo 'Insert common data for install';
-$MYSQL -u ${2} -p${3} ${1} < ${DIR}'/data/common.sql';
+$MYSQL -u ${2} -p${3} ${1} < ${DIR}'/data/data.sql';
  
 

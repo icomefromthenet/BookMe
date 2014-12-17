@@ -1,81 +1,107 @@
+-- -----------------------------------------------------
+-- Prep
+-- -----------------------------------------------------
 DELIMITER ;
 
--- -----------------------------------------------------
--- Data for table `schedule members`
--- -----------------------------------------------------
+CALL util_proc_setup();
+
 START TRANSACTION;
-INSERT INTO `schedule_membership` (`membership_id`,`registered_date`) VALUES (NULL,NOW());
-INSERT INTO `schedule_membership` (`membership_id`,`registered_date`) VALUES (NULL,NOW());
-INSERT INTO `schedule_membership` (`membership_id`,`registered_date`) VALUES (NULL,NOW());
-INSERT INTO `schedule_membership` (`membership_id`,`registered_date`) VALUES (NULL,NOW());
-INSERT INTO `schedule_membership` (`membership_id`,`registered_date`) VALUES (NULL,NOW());
 
-COMMIT;
 
 
 -- -----------------------------------------------------
--- Data for table `schedule groups`
+-- Fake Membership
 -- -----------------------------------------------------
-START TRANSACTION;
+
+CALL bm_add_membership(@membershipID1);
+CALL bm_add_membership(@membershipID2);
+CALL bm_add_membership(@membershipID3);
+CALL bm_add_membership(@membershipID4);
+CALL bm_add_membership(@membershipID5);
+CALL bm_add_membership(@membershipID6);
+
+
+
+-- -----------------------------------------------------
+-- Fake `schedule groups`
+-- -----------------------------------------------------
+
 
 -- Current
-INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (1,'mygroup2',CAST(NOW() AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE));
+CALL bm_schedule_add_group('mygroup2',CAST(NOW() AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE),@newScheduleGroupID1);
 
--- Past
-INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (2,'mygroup3',CAST((NOW() - INTERVAL 7 DAY) AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE));
+-- Past, force past date as setup method will reject
+CALL bm_schedule_add_group('mygroup3',CAST(NOW() AS DATE),CAST((NOW()+ INTERVAL 7 DAY) AS DATE),@newScheduleGroupID2);
+UPDATE schedule_groups set valid_from = CAST((NOW() - INTERVAL 7 DAY) AS DATE) WHERE group_id = 2;
 
 -- future
-INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (3,'mygroup4',CAST((NOW() + INTERVAL 7 DAY) AS DATE),CAST((NOW() + INTERVAL 14 DAY) AS DATE));
+CALL bm_schedule_add_group('mygroup4',CAST((NOW() + INTERVAL 7 DAY) AS DATE),CAST((NOW() + INTERVAL 14 DAY) AS DATE),@newScheduleGroupID3);
 
 -- open date
-INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (4,'mygroup5',CAST(NOW() AS DATE), DATE('3000-01-01'));
+CALL bm_schedule_add_group('mygroup5',CAST(NOW() AS DATE), DATE('3000-01-01'),@newScheduleGroupID4);
 
 -- Used in schedule group retire test
-INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (5,'mygrouptest6',CAST(NOW() AS DATE), DATE('3000-01-01'));
+CALL bm_schedule_add_group('mygrouptest6',CAST(NOW() AS DATE), DATE('3000-01-01'),@newScheduleGroupID5);
 
 -- Used in schedule group retire test
-INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (6,'mygrouptest8',CAST(NOW() AS DATE), DATE('3000-01-01'));
+CALL bm_schedule_add_group('mygrouptest8',CAST(NOW() AS DATE), DATE('3000-01-01'),@newScheduleGroupID6);
 
 -- Used in schedule group removal test
-INSERT INTO `schedule_groups` (`group_id`,`group_name`,`valid_from`,`valid_to`) 
-VALUES (7,'mygrouptest9',CAST((NOW() + INTERVAL + 1 DAY) AS DATE), DATE('3000-01-01'));
+CALL bm_schedule_add_group('mygrouptest9',CAST((NOW() + INTERVAL + 1 DAY) AS DATE), DATE('3000-01-01'),@newScheduleGroupID7);
 
-COMMIT;
+-- Used for rules packages tests
+CALL bm_schedule_add_group('myscheduleGroup1',CAST((NOW() + INTERVAL + 1 DAY) AS DATE), DATE('3000-01-01'),@newScheduleGroupID8);
+
+
 
 -- -----------------------------------------------------
--- Data for table `schedules `
+-- Data for table `schedules`
 -- -----------------------------------------------------
-START TRANSACTION;
+
 
 -- relates to mygroup2 -- Active from today
-INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),1,1);
+CALL bm_schedule_add(@newScheduleGroupID1,@membershipID1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),@schedule1);
 
 -- relate to mygroup5  Active in the future
-INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (2,CAST((NOW()+ INTERVAL 2 YEAR) AS DATE),CAST((NOW() + INTERVAL 3 YEAR) AS DATE),4,1);
+CALL bm_schedule_add(@newScheduleGroupID4,@membershipID1,CAST((NOW()+ INTERVAL 2 YEAR) AS DATE),CAST((NOW() + INTERVAL 3 YEAR) AS DATE),@schedule2);
 
 -- relate to mygroup 3  Active in past
-INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (3,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() - INTERVAL 1 DAY) AS DATE),2,1);
+CALL bm_schedule_add(@newScheduleGroupID2,@membershipID1,CAST(NOW() AS DATE),CAST(NOW() AS DATE),@schedule3);
+UPDATE schedules SET `open_from` = (`open_from` - INTERVAL 4 DAY), `closed_on` = (`closed_on` - INTERVAL 1 DAY) WHERE `schedule_id` = @schedule3;
 
 -- relate to mygroup 3 Active but started in past
-INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (4,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST((NOW() + INTERVAL 3 DAY) AS DATE),2,1);
+CALL bm_schedule_add(@newScheduleGroupID2,@membershipID1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 3 DAY) AS DATE),@schedule4);
+UPDATE schedules SET `open_from` = (`open_from` - INTERVAL 4 DAY) WHERE `schedule_id` = @schedule3;
 
 -- Test for the retirement method so don't use in other tests
-INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (5,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST(NOW() AS DATE),1,1);
+CALL bm_schedule_add(@newScheduleGroupID1,@membershipID1,CAST(NOW() AS DATE),CAST(NOW() AS DATE),@schedule5);
+UPDATE schedules SET `open_from` = (`open_from` - INTERVAL 4 DAY) WHERE `schedule_id` = @schedule3;
 
 -- Test for the retirement method so don't use in other tests
-INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-VALUES (6,CAST((NOW() - INTERVAL 4 DAY) AS DATE),CAST(NOW() AS DATE),6,1);
+CALL bm_schedule_add(@newScheduleGroupID6,@membershipID1,CAST(NOW() AS DATE),CAST(NOW() AS DATE),@schedule6);
+UPDATE schedules SET `open_from` = (`open_from` - INTERVAL 4 DAY) WHERE `schedule_id` = @schedule3;
 
+-- Schedules used in Rules Package tests
+CALL bm_schedule_add(@newScheduleGroupID1,@membershipID1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),@schedule7);
+
+
+/*
+-- -----------------------------------------------------
+-- Data for table `rules`
+-- -----------------------------------------------------
+
+
+
+INSERT INTO `rules` (`rule_id`, `rule_name`, `rule_type`, `rule_repeat`, `created_date`, `updated_date`, `valid_from`, `valid_to`, `repeat_minute`, `repeat_hour`, `repeat_dayofweek`, `repeat_dayofmonth`, `repeat_month`, `repeat_year`, `rule_duration`, `opening_slot_id`, `closing_slot_id`, `schedule_group_id`, `membership_id`)
+VALUES (NULL, 'dataTestRule1', 'inclusion','repeat', NOW(), NOW(), CAST(NOW() AS DATE),DATE('3000-01-01'),'0', '0','*','1', '*', '2014',59,NULL,NULL ,NULL,6); 
+
+
+*/
+
+-- -----------------------------------------------------
+-- Cleanup
+-- -----------------------------------------------------
 
 COMMIT;
+
+CALL util_proc_cleanup('finished adding test data');
