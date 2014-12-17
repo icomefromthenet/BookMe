@@ -532,113 +532,10 @@ class RulesPackageTest extends BasicTest
             
         }
     
-        
+         
     }
     
-    public function testYearValidCombinations() 
-    {
-        $db = $this->getDoctrineConnection();
-        
-        # Test if valid formats create expected result set in 
-        # the result tmp table;
-        
-        # Test for the default '*'
-        $db->executeQuery("CALL bm_rules_parse('*','year')");
-        
-        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
-        
-        $this->assertEquals($result['range_open'],"2000");
-        $this->assertEquals($result['range_closed'],"2199");
-        $this->assertEquals($result['value_type'],"year");
-        $this->assertEquals($result['mod_value'],1);    
-        
-        
-        $db->executeQuery("TRUNCATE bm_parsed_ranges");
-        
-        # Test format ## e.g scalar value range 2000 to 2199
-        $db->executeQuery("CALL bm_rules_parse('2000','year')");
-
-        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
-        $this->assertEquals($result['range_open'],"2000");
-        $this->assertEquals($result['range_closed'],"2000");
-        $this->assertEquals($result['value_type'],"year");
-        $this->assertEquals($result['mod_value'],1);
-        
-        $db->executeQuery("TRUNCATE bm_parsed_ranges");
-        
-        # Test format ##-## e.g range scalar values
-        $db->executeQuery("CALL bm_rules_parse('2001-2005','year')");
-
-        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
-        $this->assertEquals($result['range_open'],"2001");
-        $this->assertEquals($result['range_closed'],2005);
-        $this->assertEquals($result['value_type'],"year");
-        $this->assertEquals($result['mod_value'],1);
-        
-        $db->executeQuery("TRUNCATE bm_parsed_ranges");
-        
-        # Test format ##-## e.g range scalar values
-        $db->executeQuery("CALL bm_rules_parse('*/20','year')");
-
-        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
-        
-        $this->assertEquals($result['range_open'],"2000");
-        $this->assertEquals($result['range_closed'],"2199");
-        $this->assertEquals($result['value_type'],"year");
-        $this->assertEquals($result['mod_value'],20);
-        
-        $db->executeQuery("TRUNCATE bm_parsed_ranges");
-        
-        # Test format ##/## e.g 2014/3 short for 2014-2199/3
-        $db->executeQuery("CALL bm_rules_parse('2014/3','year')");
-
-        $result = $db->fetchAssoc('SELECT * FROM bm_parsed_ranges');
-        $this->assertEquals($result['range_open'],"2014");
-        $this->assertEquals($result['range_closed'],"2199");
-        $this->assertEquals($result['value_type'],"year");
-        $this->assertEquals($result['mod_value'],3);
-        
-        $db->executeQuery("TRUNCATE bm_parsed_ranges");
-        
-        
-        
-    }
-    
-    public function testYearParseFailures()
-    {
-        $db = $this->getDoctrineConnection();
-        $patterns = array(
-            'one'    => '2599'
-            ,'two'   => 'a'
-            ,'three' => '-2000'
-            ,'four'  =>'5-2000'
-            ,'five' => '4-32'
-            ,'six' => '**/20'
-            ,'seven' => '2500/3'
-            ,'eight'   => '6/*'
-            ,'nine'  => '2014-3000/3'
-            ,'ten' => '2014-*/3'
-            ,'eleven' => '-2000-2199/3'
-            
-            
-        );
-        
-        
-        foreach($patterns as $key => $pattern) {
-        
-            try {
-                $db->executeQuery("CALL bm_rules_parse('?','year')",array($pattern));
-                
-                $this->assertTrue(false,'Test for parse fails has failed to cause an exception');
-            }
-            catch(DBALException $e) {
-                $this->assertContains('1644 not support cron format',$e->getMessage());
-            }
-            
-        }
-    
-        
-    }
+   
     
     
     public function testAddRepeatRuleFailsBadFormat() 
@@ -652,17 +549,19 @@ class RulesPackageTest extends BasicTest
         $ruleDayofweek      = 0;
         $ruleDayofmonth     = 0;
         $ruleMonth          = 1;
-		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
-		$ruleDuration      = 60;
+		$ruleDuration       = 60;
+		$ruleStartFrom      = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-01-01')",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-12-31')",array(),0);
+		
 		
         try {
             
             $db->exec('START TRANSACTION');								
             
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
-                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration,$scheduleGroupID,$memberID)
             );
             $db->exec('ROLLBACK');
             
@@ -710,17 +609,19 @@ class RulesPackageTest extends BasicTest
         $ruleDayofweek      = 0;
         $ruleDayofmonth     = 1;
         $ruleMonth          = 1;
-		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
 		$ruleDuration       = 60;
-									
+	    $ruleStartFrom      = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-01-01')",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-12-31')",array(),0);
+				
+		
        try { 
              $db->exec('START TRANSACTION');								
             
            
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
-                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration,$scheduleGroupID,$memberID)
             );
             
             $db->exec('ROLLBACK');
@@ -748,17 +649,20 @@ class RulesPackageTest extends BasicTest
         $ruleDayofweek      = 0;
         $ruleDayofmonth     = 1;
         $ruleMonth          = 1;
-		$ruleYear           = 2014;
+		
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
 		$ruleDuration       = 60;
+	    $ruleStartFrom      = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-01-01')",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-12-31')",array(),0);
+		
 										
        try { 
              $db->exec('START TRANSACTION');								
             
            
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
-                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration,$scheduleGroupID,$memberID)
             );
             
             $db->exec('ROLLBACK');
@@ -783,17 +687,19 @@ class RulesPackageTest extends BasicTest
         $ruleDayofweek      = 0;
         $ruleDayofmonth     = 1;
         $ruleMonth          = 1;
-		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
 		$ruleDuration       = -1;
+		$ruleStartFrom      = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-01-01')",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-12-31')",array(),0);
+		
 										
        try { 
              $db->exec('START TRANSACTION');								
             
            
-            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
-                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$scheduleGroupID,$memberID)
+            $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,CAST(NOW() AS DATE),NULL,?,?,@newRuleID)"
+                ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration,$scheduleGroupID,$memberID)
             );
             
             $db->exec('ROLLBACK');
@@ -818,10 +724,12 @@ class RulesPackageTest extends BasicTest
         $ruleDayofweek      = '*';
         $ruleDayofmonth     = 1;
         $ruleMonth          = '*';
-		$ruleYear           = 2014;
 		$scheduleGroupID    = 2;
 		$memberID           = NULL;
 		$ruleDuration       = 59;
+		$ruleStartFrom      = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-01-01')",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-12-31')",array(),0);
+		
 		
 		$now = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
 		$validFrom = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
@@ -837,7 +745,6 @@ class RulesPackageTest extends BasicTest
             ,'repeat_dayofweek' => $ruleDayofweek
             ,'repeat_dayofmonth'=> $ruleDayofmonth
             ,'repeat_month'     => $ruleMonth     
-    		,'repeat_year'      => $ruleYear      
     		,'schedule_group_id'=> $scheduleGroupID
     		,'membership_id'    => $memberID
     		,'opening_slot_id'  => null
@@ -847,10 +754,13 @@ class RulesPackageTest extends BasicTest
     		,'valid_from'       => $validFrom
     		,'valid_to'         => '3000-01-01'
     		,'rule_duration'    => $ruleDuration
+    		,'start_from'       => $ruleStartFrom
+    		,'end_at'           => $ruleEndAt 
+    		
         );
         
-        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,NULL,?,?,@newRuleID)"
-            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleYear,$ruleDuration,$validFrom,$scheduleGroupID,$memberID)
+        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,?,NULL,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration,$validFrom,$scheduleGroupID,$memberID)
         );
         
         // ensure that we got a good id back for the new rule
@@ -901,6 +811,36 @@ class RulesPackageTest extends BasicTest
             
         return $newRuleID;
         
+    }
+    
+     public function testAddGoodRepeatRuleMixedYears()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleAMixed';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = 1;
+        $ruleDayofmonth     = '*';
+        $ruleMonth          = '*';
+		$scheduleGroupID    = 2;
+		$memberID           = NULL;
+		$ruleDuration       = 59;
+		$ruleStartFrom      = $db->fetchColumn("SELECT DATE_FORMAT((NOW() - INTERVAL 1 YEAR),'%Y-06-01')",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-6-30')",array(),0);
+		$validFrom          = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
+	    
+        $db->executeQuery("CALL bm_rules_add_repeat_rule(?,?,?,?,?,?,?,?,?,?,?,NULL,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration,$validFrom,$scheduleGroupID,$memberID)
+        );
+        
+        // ensure that we got a good id back for the new rule
+        $newRuleID = $db->fetchColumn('SELECT @newRuleID',array(),0);
+            
+        $this->assertNotEmpty($newRuleID);    
+        
+        $db->executeQuery("COMMIT");
     }
     
     /**

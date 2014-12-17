@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS `rules` (
 
   -- validity date fields
   valid_from DATE NOT NULL,
-  valid_to    DATE NOT NULL,
+  valid_to   DATE NOT NULL,
 
   -- repeat rules fields  
   `repeat_minute` VARCHAR(45) NOT NULL,
@@ -202,9 +202,12 @@ CREATE TABLE IF NOT EXISTS `rules` (
   `repeat_dayofweek` VARCHAR(45) NOT NULL,
   `repeat_dayofmonth` VARCHAR(45) NOT NULL,
   `repeat_month` VARCHAR(45) NOT NULL,
-  `repeat_year` VARCHAR(45) NOT NULL,
   
-  `rule_duration` INT NULL,
+  
+  -- rule durations
+  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule', 
+  `start_from`    DATE NULL COMMENT 'for repeat rules first date rule apply on',
+  `end_at`        DATE NULL COMMENT 'only for repat rules last date rule apply on',
   
   -- adhoc opening rules
   `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
@@ -217,6 +220,7 @@ CREATE TABLE IF NOT EXISTS `rules` (
   
   PRIMARY KEY (`rule_id`),
   UNIQUE INDEX `rule_name_UNIQUE` (`rule_name` ASC),
+  INDEX `rule_cover_idx` (`valid_from`,`valid_to`,`rule_type`),
   
   CONSTRAINT `fk_rule_schedule_group`
     FOREIGN KEY (`schedule_group_id`)
@@ -271,13 +275,16 @@ CREATE TABLE IF NOT EXISTS `audit_rules` (
   `repeat_dayofweek` VARCHAR(45) NULL,
   `repeat_dayofmonth` VARCHAR(45)  NULL,
   `repeat_month` VARCHAR(45) NULL,
-  `repeat_year` VARCHAR(45) NULL,
   
+  
+  -- rule durations
   `rule_duration` INT NULL,
+  `start_from` DATE NULL,
+  `end_at` DATE NULL,
 
   -- adhoc opening rules
-  `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
-  `closing_slot_id` INT COMMENT 'only for adhoc-rules',
+  `opening_slot_id` INT, 
+  `closing_slot_id` INT,
   
   -- validity date fields
   valid_from DATE NOT NULL,
@@ -285,8 +292,8 @@ CREATE TABLE IF NOT EXISTS `audit_rules` (
 
   
   -- relation fields
-  `schedule_group_id` INT COMMENT 'Known as a schedule rule',
-  `membership_id` INT COMMENT 'Known as a member rule',
+  `schedule_group_id` INT ,
+  `membership_id` INT ,
   
   PRIMARY KEY (`change_seq`)
 ) ENGINE = InnoDB

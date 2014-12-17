@@ -85,17 +85,19 @@ UPDATE schedules SET `open_from` = (`open_from` - INTERVAL 4 DAY) WHERE `schedul
 CALL bm_schedule_add(@newScheduleGroupID1,@membershipID1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),@schedule7);
 
 
-/*
+
 -- -----------------------------------------------------
 -- Data for table `rules`
 -- -----------------------------------------------------
 
-
-
-INSERT INTO `rules` (`rule_id`, `rule_name`, `rule_type`, `rule_repeat`, `created_date`, `updated_date`, `valid_from`, `valid_to`, `repeat_minute`, `repeat_hour`, `repeat_dayofweek`, `repeat_dayofmonth`, `repeat_month`, `repeat_year`, `rule_duration`, `opening_slot_id`, `closing_slot_id`, `schedule_group_id`, `membership_id`)
-VALUES (NULL, 'dataTestRule1', 'inclusion','repeat', NOW(), NOW(), CAST(NOW() AS DATE),DATE('3000-01-01'),'0', '0','*','1', '*', '2014',59,NULL,NULL ,NULL,6); 
-
-
+/*
+-- Work Day (Inclusion rule) '9am-5pm monday-friday every day of month and every month for 1 year'
+CALL bm_rules_add_repeat_rule('workday','inclusion'
+                             ,'0','9-17','1-5','*','*'
+                             ,DATE_FORMAT((NOW() - INTERVAL 1 YEAR),'%Y-01-01'),DATE_FORMAT(NOW() ,'%Y-12-31')
+                             ,59,NOW(),DATE('3000-01-01')
+                             ,NULL,@membershipID6
+                             ,@newRuleID1);
 */
 
 -- -----------------------------------------------------

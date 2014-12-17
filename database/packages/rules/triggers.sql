@@ -20,7 +20,8 @@ INSERT INTO audit_rules (`change_seq`
                          ,`repeat_dayofweek`
                          ,`repeat_dayofmonth`
                          ,`repeat_month`
-                         ,`repeat_year`
+                         ,`start_from`
+                         ,`end_at`
                          ,`schedule_group_id`
                          ,`membership_id`
                          ,`opening_slot_id`
@@ -41,7 +42,8 @@ VALUES (NULL
         , NEW.`repeat_dayofweek`
         , NEW.`repeat_dayofmonth`
         , NEW.`repeat_month`
-        , NEW.`repeat_year`
+        , NEW.`start_from`
+        , NEW.`end_at`
         , NEW.`schedule_group_id`
         , NEW.`membership_id`
         , NEW.`opening_slot_id`
@@ -71,7 +73,8 @@ INSERT INTO audit_rules (`change_seq`
                          ,`repeat_dayofweek`
                          ,`repeat_dayofmonth`
                          ,`repeat_month`
-                         ,`repeat_year`
+                         ,`start_from`
+                         ,`end_at`
                          ,`schedule_group_id`
                          ,`membership_id`
                          ,`opening_slot_id`
@@ -92,7 +95,8 @@ VALUES (NULL
         , NEW.`repeat_dayofweek`
         , NEW.`repeat_dayofmonth`
         , NEW.`repeat_month`
-        , NEW.`repeat_year`
+        , NEW.`start_from`
+        , NEW.`end_at`
         , NEW.`schedule_group_id`
         , NEW.`membership_id` 
         , NEW.`opening_slot_id`
@@ -122,7 +126,8 @@ INSERT INTO audit_rules (`change_seq`
                          ,`repeat_dayofweek`
                          ,`repeat_dayofmonth`
                          ,`repeat_month`
-                         ,`repeat_year`
+                         ,`start_from`
+                         ,`end_at`
                          ,`schedule_group_id`
                          ,`membership_id`
                          ,`opening_slot_id`
@@ -143,7 +148,8 @@ VALUES (NULL
         , OLD.`repeat_dayofweek`
         , OLD.`repeat_dayofmonth`
         , OLD.`repeat_month`
-        , OLD.`repeat_year`
+        , OLD.`start_from`
+        , OLD.`end_at`
         , OLD.`schedule_group_id`
         , OLD.`membership_id`
         , OLD.`opening_slot_id`

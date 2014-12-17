@@ -241,7 +241,8 @@ CREATE PROCEDURE `bm_rules_add_repeat_rule`(
 										, IN repeatDayofweek VARCHAR(45)
 										, IN repeatDayofmonth VARCHAR(45)
 										, IN repeatMonth VARCHAR(45)
-										, IN repeatYear VARCHAR(45)
+										, IN startFrom DATE
+										, IN endAt DATE
 										, IN ruleDuration INT
 										, IN validFrom DATE
 										, IN validTo DATE
@@ -289,6 +290,12 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'The rule duration is not in valid range between 1minute and 1 year';
 	END IF;
+	
+	-- check end date precesds the start date
+	IF startFrom > endAt THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT ='The rule start date must occur before then given end date';
+	END IF;
 
 	-- insert schedule group rule into rules table
 	-- the audit trigger will log it after insert
@@ -305,12 +312,13 @@ BEGIN
 		,`repeat_dayofweek`
 		,`repeat_dayofmonth`
 		,`repeat_month`
-		,`repeat_year`
 		,`schedule_group_id`
 		,`membership_id`
 		,`valid_from`
 		,`valid_to`
 		,`rule_duration`
+		,`start_from`
+		,`end_at`
 	)
 	VALUES (
 		 NULL
@@ -324,12 +332,13 @@ BEGIN
 		,repeatDayofweek
 		,repeatDayofmonth
 		,repeatMonth
-		,repeatYear
 		,scheduleGroupID
 		,memberID
 		,validFrom
 		,validTo
 		,ruleDuration
+		,startFrom
+		,endAt
 	);
 
 	SET newRuleID = LAST_INSERT_ID();
@@ -370,8 +379,9 @@ BEGIN
 							,repeatDayofweek
 							,repeatDayofmonth
 							,repeatMonth
-							,repeatYear
-							,ruleDuration);
+							,ruleDuration
+							,startFrom
+							,endAt);
 	
 	
 	IF @bm_debug = true THEN
@@ -718,7 +728,7 @@ BEGIN
 			range_open INT NOT NULL,
 			range_closed INT NOT NULL,
 			mod_value INT NULL,
-			value_type ENUM('minute','hour','dayofmonth','dayofweek','year','month') NOT NULL
+			value_type ENUM('minute','hour','dayofmonth','dayofweek','month') NOT NULL
 		) ENGINE=MEMORY;
 		
 	ELSE 
@@ -728,7 +738,6 @@ BEGIN
 		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_dayofmonth AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'dayofmonth');
 		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_dayofweek AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'dayofweek');
 		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_month AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'month');
-		CREATE TEMPORARY  TABLE IF NOT EXISTS bm_parsed_year AS (SELECT * FROM bm_parsed_ranges WHERE value_type = 'year');
 
 	END IF;
 
@@ -748,7 +757,6 @@ BEGIN
 	DROP TEMPORARY TABLE IF EXISTS bm_parsed_dayofmonth;
 	DROP TEMPORARY TABLE IF EXISTS bm_parsed_dayofweek;
 	DROP TEMPORARY TABLE IF EXISTS bm_parsed_month;
-	DROP TEMPORARY TABLE IF EXISTS bm_parsed_year;
 END$$
 
 -- -----------------------------------------------------
@@ -763,8 +771,9 @@ CREATE PROCEDURE `bm_rules_save_slots`(IN ruleID INT
 									 , IN repeatDayofweek VARCHAR(45)
 									 , IN repeatDayofmonth VARCHAR(45)
 									 , IN repeatMonth VARCHAR(45)
-									 , IN repeatYear VARCHAR(45)
-									 , IN ruleDuration INT)
+									 , IN ruleDuration INT
+									 , IN startFrom DATE
+									 , IN endAt DATE)
 BEGIN
 	DECLARE isInsertError BOOL DEFAULT false;
 	
@@ -783,7 +792,6 @@ BEGIN
 	
 	CALL bm_rules_parse(repeatMonth,'month');
 	
-	CALL bm_rules_parse(repeatYear,'year');
 	
 	-- As Waround for MYSQL being unable to access a tmp table more
 	-- than once in same query, call create again and ask
@@ -802,7 +810,7 @@ BEGIN
 		-- the first join find all slots that are in the minute range 
 		-- this set is reduced by 2nd join which filter frist set down to those 
 		-- slots that meet the hour requirements And so on for each cron rule
-		SELECT s.slot_id,s.slot_open
+		SELECT s.slot_id,s.slot_open,s.slot_close
 		FROM slots s
 		RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
 		RIGHT JOIN bm_parsed_minute mr 
@@ -825,12 +833,13 @@ BEGIN
 			ON  `c`.`m` >= `monr`.`range_open` 
 			AND  `c`.`m`   <= `monr`.`range_closed`
 			AND  MOD(`c`.`m`,`monr`.`mod_value`) = 0
-		RIGHT JOIN bm_parsed_year yr 
-			ON `c`.`y` >= `yr`.`range_open` 
-			AND  `c`.`y`   <= `yr`.`range_closed`
-			AND  MOD(`c`.`y`,`yr`.`mod_value`) = 0
+			WHERE `s`.`slot_open` >= CAST(startFrom AS DATETIME) AND `s`.`slot_close` <= CAST(endAt as DATETIME)
 	) o ON   `sl`.`slot_open` >= `o`.`slot_open`
-	    AND  `sl`.`slot_open` <= (`o`.`slot_open` + INTERVAL ruleDuration MINUTE);
+	    AND  `sl`.`slot_close` <= (`o`.`slot_close` + INTERVAL ruleDuration MINUTE)
+	-- faster to cast the endAt and startFrom to same type a date cast to dattime have 00:00:00 hours
+	WHERE `sl`.`slot_open` >= CAST(startFrom AS DATETIME) AND `sl`.`slot_close` <= CAST(endAt as DATETIME);
+ 	
+
 		
 	-- assign insert rows to out param
 	IF isInsertError = true THEN
@@ -839,14 +848,15 @@ BEGIN
 		SET numberSlots  = ROW_COUNT();
 	END IF;
 	
-	
 	IF @bm_debug = true THEN
-		CALL util_proc_cleanup(concat('Inserted ',numberSlots,' slots for new rule at ID::',ruleID));
+		CALL util_proc_cleanup(concat('Inserted ',numberSlots,' slots for new rule at ID::',ruleID
+		                             , 'with start date ',ifnull(startFrom,'NULL')
+		                             ,' with end date of ',ifnull(endAt,'NULL')));
 	END IF;
 
 	
 	-- drop tmp tables
-	  CALL bm_rules_cleanup_tmp_table();
+	CALL bm_rules_cleanup_tmp_table();
 	
 END$$
 
