@@ -171,13 +171,13 @@ CREATE TABLE IF NOT EXISTS `timeslot_slots` (
     FOREIGN KEY (`closing_slot_id`)
     REFERENCES `slots` (`slot_id`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB
+    ON UPDATE NO ACTION
+) ENGINE = InnoDB
 COMMENT = 'Groups our timeslots into slot groups.';
 
 
 -- -----------------------------------------------------
--- Table `rules`
+-- Table `rules` Common table for all rules
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `rules`;
 
@@ -195,109 +195,181 @@ CREATE TABLE IF NOT EXISTS `rules` (
   -- validity date fields
   valid_from DATE NOT NULL,
   valid_to   DATE NOT NULL,
+ 
+  -- rule durations
+  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule', 
+ 
+  PRIMARY KEY (`rule_id`),
+  INDEX `idx_rule_cover` (`valid_from`,`valid_to`,`rule_type`)
+) ENGINE = InnoDB
+COMMENT = 'Common rule storage table';
 
+-- -----------------------------------------------------
+-- Table `rules_relations`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `rules_relations`;
+
+CREATE TABLE IF NOT EXISTS `rules_relations` (
+  `rule_relation_id` INT NOT NULL AUTO_INCREMENT, 
+  `rule_id` INT NOT NULL COMMENT 'Rule from common table',
+  `schedule_group_id` INT COMMENT 'Known as a schedule rule',
+  `membership_id` INT COMMENT 'Known as a member rule',
+  
+  PRIMARY KEY (`rule_relation_id`),
+  CONSTRAINT `fk_rule_relation_rule`
+    FOREIGN KEY (`rule_id`)
+    REFERENCES `rules` (`rule_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  
+  CONSTRAINT `fk_rule_relation_group`
+    FOREIGN KEY (`schedule_group_id`)
+    REFERENCES `schedule_groups` (`group_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  
+  CONSTRAINT `fk_rule_relation_member`
+    FOREIGN KEY (`membership_id`)
+    REFERENCES `schedule_membership` (`membership_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+    
+  UNIQUE KEY `uk_rule_relation_group`  (rule_id, schedule_group_id),
+  UNIQUE KEY `uk_rule_relation_member` (rule_id, membership_id) 
+) ENGINE = InnoDB
+COMMENT = 'Relations table for rules';
+
+-- -----------------------------------------------------
+-- Table `rules_repeat`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `rules_repeat`;
+
+CREATE TABLE IF NOT EXISTS `rules_repeat` (
+  `rule_id` INT NOT NULL,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('inclusion', 'exclusion','priority'),
+  `rule_repeat` ENUM('adhoc', 'repeat'),
+
+  -- validity date fields
+  valid_from DATE NOT NULL,
+  valid_to   DATE NOT NULL,
+  
   -- repeat rules fields  
   `repeat_minute` VARCHAR(45) NOT NULL,
   `repeat_hour` VARCHAR(45) NOT NULL,
   `repeat_dayofweek` VARCHAR(45) NOT NULL,
   `repeat_dayofmonth` VARCHAR(45) NOT NULL,
   `repeat_month` VARCHAR(45) NOT NULL,
-  
-  
-  -- rule durations
-  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule', 
   `start_from`    DATE NULL COMMENT 'for repeat rules first date rule apply on',
   `end_at`        DATE NULL COMMENT 'only for repat rules last date rule apply on',
-  
-  -- adhoc opening rules
-  `opening_slot_id` INT COMMENT 'only for adhoc-rules', 
-  `closing_slot_id` INT COMMENT 'only for adhoc-rules',
-  
-  
-  -- relation fields
-  `schedule_group_id` INT COMMENT 'Known as a schedule rule',
-  `membership_id` INT COMMENT 'Known as a member rule',
+
+  -- rule durations
+  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule',
   
   PRIMARY KEY (`rule_id`),
-  UNIQUE INDEX `rule_name_UNIQUE` (`rule_name` ASC),
-  INDEX `rule_cover_idx` (`valid_from`,`valid_to`,`rule_type`),
-  
-  CONSTRAINT `fk_rule_schedule_group`
-    FOREIGN KEY (`schedule_group_id`)
-    REFERENCES `schedule_groups` (`group_id`)
+  CONSTRAINT `fk_rule_repeat_rule`
+    FOREIGN KEY (`rule_id`)
+    REFERENCES `rules` (`rule_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  
-  CONSTRAINT `fk_rule_member`
-    FOREIGN KEY (`membership_id`)
-    REFERENCES `schedule_membership` (`membership_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-    
-  CONSTRAINT `fk_rule_op_slots`
-    FOREIGN KEY (`opening_slot_id`)
-    REFERENCES `slots` (`slot_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-    
-  CONSTRAINT `fk_rule_cl_slots`
-    FOREIGN KEY (`closing_slot_id`)
-    REFERENCES `slots` (`slot_id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION
+  INDEX `idx_rule_repeat_cover` (`valid_from`,`valid_to`,`rule_type`)
+) ENGINE = InnoDB
+COMMENT = 'Stores an entire repeat rule';
 
+-- -----------------------------------------------------
+-- Table `rules_repeat`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `audit_rules_repeat`;
+
+CREATE TABLE IF NOT EXISTS `audit_rules_repeat` (
+   -- audit fields
+  `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
+  `action` CHAR(1) DEFAULT '',
+  `change_time` TIMESTAMP NOT NULL,
+  `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+  
+  `rule_id` INT NOT NULL,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('inclusion', 'exclusion','priority'),
+  `rule_repeat` ENUM('adhoc', 'repeat'),
+
+  -- validity date fields
+  valid_from DATE NOT NULL,
+  valid_to   DATE NOT NULL,
+  
+  -- repeat rules fields  
+  `repeat_minute` VARCHAR(45) NOT NULL,
+  `repeat_hour` VARCHAR(45) NOT NULL,
+  `repeat_dayofweek` VARCHAR(45) NOT NULL,
+  `repeat_dayofmonth` VARCHAR(45) NOT NULL,
+  `repeat_month` VARCHAR(45) NOT NULL,
+  `start_from`    DATE NULL COMMENT 'for repeat rules first date rule apply on',
+  `end_at`        DATE NULL COMMENT 'only for repat rules last date rule apply on',
+
+  -- rule durations
+  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule',
+  
+  PRIMARY KEY (`change_seq`)
 )
 ENGINE = InnoDB
-COMMENT = 'Rules that mark intervals to are available\\unavailable to schedule\n';
+COMMENT = 'Stores audit trail for repeat rule';
 
 -- -----------------------------------------------------
--- Table `audit_rules`
+-- Table `rules_adhoc`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `audit_rules`;
+DROP TABLE IF EXISTS `rules_adhoc`;
 
-CREATE TABLE IF NOT EXISTS `audit_rules` (
-  -- audit fields
+CREATE TABLE IF NOT EXISTS `rules_adhoc` (
+  `rule_id` INT NOT NULL AUTO_INCREMENT,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('inclusion', 'exclusion','priority'),
+  `rule_repeat` ENUM('adhoc', 'repeat'),
+
+   -- validity date fields
+  valid_from DATE NOT NULL,
+  valid_to   DATE NOT NULL,
+  
+  -- rule durations
+  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule',
+  
+  PRIMARY KEY (`rule_id`),
+  CONSTRAINT `fk_rule_adhoc_rule`
+    FOREIGN KEY (`rule_id`)
+    REFERENCES `rules` (`rule_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  INDEX `idx_rule_adhoc_cover` (`valid_from`,`valid_to`,`rule_type`)
+)
+ENGINE = InnoDB
+COMMENT = 'Stores an entire adhoc rule';
+-- -----------------------------------------------------
+-- Table `rules_repeat`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `audit_rules_adhoc`;
+
+CREATE TABLE IF NOT EXISTS `audit_rules_adhoc` (
+   -- audit fields
   `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
   `action` CHAR(1) DEFAULT '',
   `change_time` TIMESTAMP NOT NULL,
   `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
 
-  
-  -- common rule fields
   `rule_id` INT NOT NULL,
   `rule_name` VARCHAR(45) NOT NULL,
   `rule_type` ENUM('inclusion', 'exclusion','priority'),
   `rule_repeat` ENUM('adhoc', 'repeat'),
-  
-  -- repeat fields  
-  `repeat_minute` VARCHAR(45) NULL,
-  `repeat_hour` VARCHAR(45) NULL,
-  `repeat_dayofweek` VARCHAR(45) NULL,
-  `repeat_dayofmonth` VARCHAR(45)  NULL,
-  `repeat_month` VARCHAR(45) NULL,
-  
+
+   -- validity date fields
+  valid_from DATE NOT NULL,
+  valid_to   DATE NOT NULL,
   
   -- rule durations
-  `rule_duration` INT NULL,
-  `start_from` DATE NULL,
-  `end_at` DATE NULL,
-
-  -- adhoc opening rules
-  `opening_slot_id` INT, 
-  `closing_slot_id` INT,
-  
-  -- validity date fields
-  valid_from DATE NOT NULL,
-  valid_to    DATE NOT NULL,
-
-  
-  -- relation fields
-  `schedule_group_id` INT ,
-  `membership_id` INT ,
+  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule',
   
   PRIMARY KEY (`change_seq`)
-) ENGINE = InnoDB
-COMMENT = 'Audit table for rule changes';
+)
+ENGINE = InnoDB
+COMMENT = 'Stores audit trail for adhoc rule';
 
 
 -- -----------------------------------------------------
