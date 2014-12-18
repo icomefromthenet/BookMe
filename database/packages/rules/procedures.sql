@@ -4,12 +4,40 @@
 DELIMITER $$
 
 -- -----------------------------------------------------
+-- procedure `bm_rules_check_sequence_duplicate`
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_check_sequence_duplicate`$$
+
+CREATE PROCEDURE `bm_rules_check_sequence_duplicate` (IN ruleID INT, OUT duplciateFound BOOL)
+BEGIN
+	DECLARE isDuplicateFound BOOLEAN DEFAULT FALSE;
+	
+	SET isDuplicateFound = EXISTS (
+			-- Select all periods where there is a second (overlapping / start / finish) period
+			-- the unique key on table will stop 'equal periods' (same open and closing slot).
+			SELECT *
+			FROM rule_slots AS r1
+			WHERE 1 < (
+				-- return a count 1
+				SELECT COUNT(*)
+				FROM rule_slots AS r2
+				WHERE r2.rule_id = r1.rule_id -- correlated subquery
+				AND r1.open_slot_id <= r2.close_slot_id
+				AND r2.open_slot_id <= r1.close_slot_id
+			)
+			AND r1.rule_id = ruleID);
+	
+	IF isDuplicateFound = 1 THEN
+		SET  duplciateFound = TRUE;
+   END IF;
+END$$
+
+-- -----------------------------------------------------
 -- procedure bm_rules_parse
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_parse`$$
 
-CREATE PROCEDURE `bm_rules_parse`(IN cron VARCHAR(100)
-								 ,IN cronType VARCHAR(10))
+CREATE PROCEDURE `bm_rules_parse`(IN cron VARCHAR(100), IN cronType VARCHAR(10))
 BEGIN
 
 	DECLARE filteredCron VARCHAR(100) DEFAULT '';
@@ -176,10 +204,7 @@ END$$
 -- -----------------------------------------------------
 DROP PROCEDURE IF EXISTS `bm_rules_remove_slots` $$
 
-CREATE PROCEDURE `bm_rules_remove_slots` (  IN ruleID INT
-                                         , IN openingSlotID INT
-                                         , IN closingSlotID INT
-                                         , IN rowsAffected INT)
+CREATE PROCEDURE `bm_rules_remove_slots` (IN ruleID INT, IN openingSlotID INT, IN closingSlotID INT, IN rowsAffected INT)
 BEGIN
 	
 	-- Create the debug table
@@ -189,24 +214,8 @@ BEGIN
 	END IF;
 
 	-- record operation in log
-	INSERT INTO rule_slots_operations (
-		`change_seq`
-		,`operation`
-		,`change_time`
-		,`changed_by`
-		,`rule_id`
-		,`opening_slot_id`
-  		,`closing_slot_id`
-	) 
-	VALUES (
-		NULL
-		,'subtraction'
-		,NOW()
-		,USER()
-		,ruleID
-		,openingSlotID
-		,closingSlotID
-	);
+	INSERT INTO rule_slots_operations (`change_seq`,`operation`,`change_time`,`changed_by`,`rule_id`,`opening_slot_id`,`closing_slot_id`) 
+	VALUES (NULL,'subtraction',NOW(),USER(),ruleID,openingSlotID,closingSlotID);
 	
 	-- remove all slots for this rule
 	DELETE FROM rule_slots 
@@ -246,8 +255,6 @@ CREATE PROCEDURE `bm_rules_add_repeat_rule`(
 										, IN ruleDuration INT
 										, IN validFrom DATE
 										, IN validTo DATE
-										, IN scheduleGroupID INT
-										, IN memberID INT
 										, OUT newRuleID INT )
 BEGIN
 	
@@ -297,73 +304,28 @@ BEGIN
 		SET MESSAGE_TEXT ='The rule start date must occur before then given end date';
 	END IF;
 
-	-- insert schedule group rule into rules table
-	-- the audit trigger will log it after insert
-
-	INSERT INTO rules (
-		 `rule_id`
-		,`rule_name`
-		,`rule_type`
-		,`rule_repeat`
-		,`created_date`
-		,`updated_date`
-		,`repeat_minute`
-		,`repeat_hour`
-		,`repeat_dayofweek`
-		,`repeat_dayofmonth`
-		,`repeat_month`
-		,`schedule_group_id`
-		,`membership_id`
-		,`valid_from`
-		,`valid_to`
-		,`rule_duration`
-		,`start_from`
-		,`end_at`
-	)
-	VALUES (
-		 NULL
-		,ruleName
-		,ruleType
-		,repeatValue
-		,NOW()
-		,NOW()
-		,repeatMinute
-		,repeatHour
-		,repeatDayofweek
-		,repeatDayofmonth
-		,repeatMonth
-		,scheduleGroupID
-		,memberID
-		,validFrom
-		,validTo
-		,ruleDuration
-		,startFrom
-		,endAt
-	);
-
+	-- insert into common rules table
+	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
+	VALUES (NULL,ruleName,ruleType,repeatValue,validFrom,validTo,ruleDuration);
 	SET newRuleID = LAST_INSERT_ID();
-
-
-    IF @bm_debug = true THEN
+	IF newRuleID = 0 OR newRuleID IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to insert common adhoc rule';
+	END IF;
+	
+	-- insert rule into concrete table
+	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`repeat_minute`,`repeat_hour`,`repeat_dayofweek`
+		,`repeat_dayofmonth`,`repeat_month`,`valid_from`,`valid_to`,`rule_duration`,`start_from`,`end_at`)
+	VALUES (newRuleID,ruleName,ruleType,repeatValue,repeatMinute,repeatHour,repeatDayofweek,repeatDayofmonth
+		,repeatMonth,validFrom,validTo,ruleDuration,startFrom,endAt);
+	
+	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));
 	END IF;	
 
 	-- record operation in slot log
-	
-	INSERT INTO rule_slots_operations (
-		`change_seq`
-		,`operation`
-		,`change_time`
-		,`changed_by`
-		,`rule_id`
-	) 
-	VALUES (
-		NULL
-		,'addition'
-		,NOW()
-		,USER()
-		,newRuleID
-	);
+	INSERT INTO rule_slots_operations (`change_seq`,`operation`,`change_time`,`changed_by`,`rule_id`) 
+	VALUES (NULL,'addition',NOW(),USER(),newRuleID);
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule slot operation at::',ifnull(LAST_INSERT_ID(),'NULL')));
@@ -371,17 +333,7 @@ BEGIN
 	
 	
 	-- save slots for the new rule
-	
-	CALL bm_rules_save_slots(newRuleID
-							,numberSlots
-							,repeatMinute
-							,repeatHour
-							,repeatDayofweek
-							,repeatDayofmonth
-							,repeatMonth
-							,ruleDuration
-							,startFrom
-							,endAt);
+	CALL bm_rules_save_slots(newRuleID,numberSlots,repeatMinute,repeatHour,repeatDayofweek,repeatDayofmonth,repeatMonth,ruleDuration,startFrom,endAt);
 	
 	
 	IF @bm_debug = true THEN
@@ -393,7 +345,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'The new Rule did not have any slots to insert';
 	END IF;
-	
 	
 
 	IF @bm_debug = true THEN
@@ -408,15 +359,7 @@ END$$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_add_adhoc_rule`$$
 
-CREATE PROCEDURE `bm_rules_add_adhoc_rule`(IN ruleName VARCHAR(45)
-										, IN ruleType VARCHAR(45)
-										, IN validTo DATE
-										, IN validFrom DATE
-										, IN memberID INT
-										, IN scheduleGroupID INT
-										, IN openingSlotID INT
-										, IN closingSlotID INT
-										, OUT newRuleID INT)
+CREATE PROCEDURE `bm_rules_add_adhoc_rule`(IN ruleName VARCHAR(45), IN ruleType VARCHAR(45), IN validTo DATE, IN validFrom DATE, IN ruleDuration INT, OUT newRuleID INT)
 BEGIN
 	
 	DECLARE repeatValue VARCHAR(10) DEFAULT 'adhoc';
@@ -450,76 +393,28 @@ BEGIN
 		SET MESSAGE_TEXT = 'Validity period is and invalid range';
 	END IF;
 
-	-- insert member rule into the rules table  the
-	-- audit insert trigger will record the operation
-
-	INSERT INTO rules (
-		 `rule_id`
-		,`rule_name`
-		,`rule_type`
-		,`rule_repeat`
-		,`created_date`
-		,`updated_date`
-		,`repeat_minute`
-		,`repeat_hour`
-		,`repeat_dayofweek`
-		,`repeat_dayofmonth`
-		,`repeat_month`
-		,`repeat_year`
-		,`schedule_group_id`
-		,`membership_id`
-		,`valid_from`
-		,`valid_to`
-		,`rule_duration`
-		,`opening_slot_id`
-		,`closing_slot_id`
-	)
-	VALUES (
-		 NULL
-		,ruleName
-		,ruleType
-		,repeatValue
-		,NOW()
-		,NOW()
-		,NULL
-		,NULL
-		,NULL
-		,NULL
-		,NULL
-		,NULL
-		,scheduleGroupID
-		,memberID
-		,validFrom
-		,validTo
-		,NULL
-		,openingSlotID
-		,closingSlotID
-	);
-
+	-- insert member rule into the common rules table 
+	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
+	VALUES (NULL,ruleName,ruleType,repeatValue,validFrom,validTo,ruleDuration);
 	SET newRuleID = LAST_INSERT_ID();
+	IF newRuleID = 0 OR newRuleID IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to insert common adhoc rule';
+	END IF;
 	
+	-- insert into concret table
+	INSERT INTO rules_adhoc (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
+	VALUES (newRuleID,ruleName,ruleType,repeatValue,validFrom,validTo,ruleDuration);
 
-	
+
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));
 	END IF;		
 
 
-	
-	-- insert slots if opening and closing slot been provided
-	CALL bm_rules_add_slots(newRuleID,openingSlotID,closingSlotID,rowsSlotsAdded);
-
-
-	IF rowsSlotsAdded = 0 THEN
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'We added 0 slots from new adhoc rule, this must be wrong';
-	END IF;
-
-
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('finished procedure bm_rules_add_adhoc_rule');
 	END IF;
-
 
 END$$
 
@@ -528,8 +423,7 @@ END$$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_cleanup_slots`$$
 
-CREATE PROCEDURE `bm_rules_cleanup_slots`(  IN ruleID INT
-										  , OUT rowsAffected INT)
+CREATE PROCEDURE `bm_rules_cleanup_slots`(IN ruleID INT, OUT rowsAffected INT)
 
 BEGIN
 
@@ -541,20 +435,8 @@ BEGIN
 
 
 	-- record operation in log
-	INSERT INTO rule_slots_operations (
-		`change_seq`
-		,`operation`
-		,`change_time`
-		,`changed_by`
-		,`rule_id`
-	) 
-	VALUES (
-		NULL
-		,'clean'
-		,NOW()
-		,USER()
-		,ruleID
-	);
+	INSERT INTO rule_slots_operations (`change_seq`,`operation`,`change_time`,`changed_by`,`rule_id`) 
+	VALUES (NULL,'clean',NOW(),USER(),ruleID);
 
 	-- remove all slots for this rule
 	DELETE FROM rule_slots WHERE rule_id = ruleID;
@@ -577,31 +459,28 @@ END$$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_remove_slots`$$
 
-CREATE PROCEDURE `bm_rules_remove_slots` (IN ruleID INT
-                                      ,IN openingSlotID INT
-                                      ,IN closingSlotID INT
-                                      ,OUT rowsAffected INT)
+CREATE PROCEDURE `bm_rules_remove_slots` (IN ruleID INT, IN openingSlotID INT, IN closingSlotID INT, OUT rowsAffected INT)
 BEGIN
 	
 	-- Create the debug table
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
-		CALL util_proc_log(concat('Starting bm_rules_remove_slots with openslot::'
-		                          ,ifnull(openingSlotID,0)
-		                          ,' and closingslot::'
-		                          ,ifnull(closingSlotID,0)
-		                  ));
+		CALL util_proc_log(concat('Starting bm_rules_remove_slots' 
+								  ,' with openslot::',ifnull(openingSlotID,0)
+		                          ,' and closingslot::',ifnull(closingSlotID,0)));
 	END IF;
 
 	
-	-- record operation in slot log if opening and closing slot been provided
-	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`
-	) VALUES (openingSlotID,closingSlotID,ruleID,NULL,'subtraction',NOW(),USER());
+	-- record operation in slot log 
+	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`) 
+	VALUES (openingSlotID,closingSlotID,ruleID,NULL,'subtraction',NOW(),USER());
 
-
-	-- If this is a duplicate set, the unique index `uk_rule_slots` will stop the insert
-	-- this is an inclusive operation (min <= expr AND expr <= max) so total record ([max-min]+1)
-	DELETE FROM rule_slots WHERE `slot_id` BETWEEN openingSlotID AND closingSlotID;
+	-- remove all rule intervals that are between these slots.
+	-- since rules are not allowed to overlap if speciify and exact open/close it only remove single interval for rule X
+	DELETE FROM rule_slots 
+	WHERE `open_slot_id` >= openingSlotID 
+	AND `close_slot_id` <= closingSlotID
+	AND `rule_id` = ruleID;
 	
 	-- Where not going to throw and error leave up to calling code to decide.
 	-- this is to keep it consistent wil cleanup slots method
@@ -627,6 +506,7 @@ CREATE PROCEDURE `bm_rules_add_slots` (IN ruleID INT
                                       ,IN closingSlotID INT
                                       ,OUT rowsAffected INT)
 BEGIN
+	DECLARE duplciateFound BOOL DEFAULT FALSE;
 	
 	-- Create the debug table
 	IF @bm_debug = true THEN
@@ -640,16 +520,24 @@ BEGIN
 
 	
 	-- record operation in slot log if opening and closing slot been provided
-	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`
-	) VALUES (openingSlotID,closingSlotID,ruleID,NULL,'addition',NOW(),USER());
+	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`) 
+	VALUES (openingSlotID,closingSlotID,ruleID,NULL,'addition',NOW(),USER());
 
 
 	-- If this is a duplicate set, the unique index `uk_rule_slots` will stop the insert
 	-- this is an inclusive operation (min <= expr AND expr <= max) so total record ([max-min]+1)
-	INSERT INTO rule_slots (`rule_slot_id`,`rule_id`,`slot_id`) 
-	SELECT NULL,ruleID,`s`.`slot_id`
-	FROM slots s 
-	WHERE `s`.`slot_id` BETWEEN openingSlotID AND closingSlotID;
+	INSERT INTO rule_slots (`rule_slot_id`,`rule_id`,`open_slot_id`,`close_slot_id`) 
+	VALUES(NULL,ruleID,openingSlotID,closingSlotID);
+	
+	-- Verify that no overlaps of periods, the unique key only stop rule equal periods.
+	-- We still need to catch periods that (start / finish / overlap), thus making them SEQUENCED DUPLICATES
+	CALL bm_rules_check_sequence_duplicate(ruleID,duplciateFound);
+	IF duplciateFound = true THEN
+		-- be up to the user to handle this error and do cleanup
+   		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Overlapping Rule Interval found, make sure to cleanup this table by either rolling back the transaction or execute a slot clean';
+   END IF;
+	
 	
 	-- Where not going to throw and error leave up to calling code to decide.
 	-- this is to keep it consistent wil cleanup slots method
@@ -674,6 +562,7 @@ DROP PROCEDURE IF EXISTS `bm_rules_depreciate_rule`$$
 CREATE PROCEDURE `bm_rules_depreciate_rule` (IN ruleID INT,IN validTo DATE)
 BEGIN
 	DECLARE validFrom DATE;
+	DECLARE ruleRepeat VARCHAR(25);
 
 	-- Create the debug table
 	IF @bm_debug = true THEN
@@ -681,32 +570,39 @@ BEGIN
 		CALL util_proc_log(concat('Starting bm_rules_depreciate_rule'));
 	END IF;
 	
-	-- verify the range is valid
-	
-	SELECT `valid_from` 
+	SELECT `valid_from`,`rule_repeat` 
 	FROM `rules` 
 	WHERE `rule_id` = ruleID 
-	INTO validFrom;
+	INTO validFrom, ruleRepeat;
 	
 	IF @bm_debug = TRUE THEN
-		CALL util_proc_log(concat('validFrom from is set too ',valid_from));
+		CALL util_proc_log(concat('validFrom from is set too ',valid_from , ' ruleRepeat is ',ruleRepeat));
 	END IF;
 
+	-- verify the range is valid
 	IF validFrom > validTo THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Depreciation date must be on or after today';
 	END IF;
 
 	
-	-- do operation
+	-- do operation on common table
 	UPDATE `rules` SET valid_to = validTo WHERE rule_id = ruleID;
-
-	-- verify if the row was updated
 	IF ROW_COUNT() = 0 THEN
 		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Unable to set a depreciation date on a rule';
+		SET MESSAGE_TEXT = 'Unable to set a depreciation date on a rule for common table';
 	END IF;
 
+	-- do operation on concrete table
+	IF ruleRepeat = 'adhoc' THEN
+		UPDATE `rules_adhoc` SET valid_to = validTo WHERE rule_id = ruleID;
+	ELSE 
+		UPDATE `rules_repeat` SET valid_to = validTo WHERE rule_id = ruleID;
+	END IF;
+	IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to set a depreciation date on a rule for concrete table';
+	END IF;
 
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('finished procedure bm_rules_depreciate_rule');
@@ -776,7 +672,8 @@ CREATE PROCEDURE `bm_rules_save_slots`(IN ruleID INT
 									 , IN endAt DATE)
 BEGIN
 	DECLARE isInsertError BOOL DEFAULT false;
-	
+	DECLARE duplciateFound BOOL DEFAULT false;
+	DECLARE maxSlotID INT DEFAULT 0;
 	DECLARE CONTINUE HANDLER FOR SQLSTATE '23000' SET isInsertError = true;
 	
 	-- Create Primary tmp table
@@ -801,52 +698,58 @@ BEGIN
 	-- insert the requird slots, internally MSQL will create a tmp table to hold
 	-- values from select list
 	
+	SET maxSlotID = (SELECT MAX(slot_id) FROM slots);
 	
-	INSERT INTO rule_slots (rule_slot_id,rule_id,slot_id) 	
-	SELECT NULL,ruleID, `sl`.`slot_id` 
-	FROM slots `sl`
-	RIGHT JOIN (
-		-- Each join on this query will filter the slots into smaller sets, for example
-		-- the first join find all slots that are in the minute range 
-		-- this set is reduced by 2nd join which filter frist set down to those 
-		-- slots that meet the hour requirements And so on for each cron rule
-		SELECT s.slot_id,s.slot_open,s.slot_close
-		FROM slots s
-		RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
-		RIGHT JOIN bm_parsed_minute mr 
+	
+	INSERT INTO rule_slots (rule_slot_id,rule_id,open_slot_id,close_slot_id) 	
+	-- Each join on this query will filter the slots into smaller sets, for example
+	-- the first join find all slots that are in the minute range 
+	-- this set is reduced by 2nd join which filter frist set down to those 
+	-- slots that meet the hour requirements And so on for each cron rule
+	SELECT NULL
+		  ,ruleID
+		  , `sl`.`slot_id` 
+		  -- using int match to fast cal on closing slot
+		  ,if((sl.`slot_id` + ruleDuration) > maxSlotID, maxSlotID ,(sl.`slot_id` + ruleDuration)) AS close_slot
+	FROM slots s
+	RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
+	RIGHT JOIN bm_parsed_minute mr 
 		    ON  EXTRACT(MINUTE FROM `s`.`slot_open`) >= `mr`.`range_open` 
 			AND  EXTRACT(MINUTE FROM `s`.`slot_open`)   <= `mr`.`range_closed`
 			AND  MOD(EXTRACT(MINUTE FROM `s`.`slot_open`),`mr`.`mod_value`) = 0
-		RIGHT JOIN bm_parsed_hour hr 
+	RIGHT JOIN bm_parsed_hour hr 
 			ON  EXTRACT(HOUR FROM `s`.`slot_open`) >= `hr`.`range_open` 
 			AND  EXTRACT(HOUR FROM `s`.`slot_open`)   <= `hr`.`range_closed`
 			AND  MOD(EXTRACT(HOUR FROM `s`.`slot_open`),`hr`.`mod_value`) = 0
-		RIGHT JOIN bm_parsed_dayofmonth domr 
+	RIGHT JOIN bm_parsed_dayofmonth domr 
 			ON  `c`.`d` >= `domr`.`range_open` 
 			AND  `c`.`d`   <= `domr`.`range_closed`
 			AND  MOD(`c`.`d`,`domr`.`mod_value`) = 0
-		RIGHT JOIN bm_parsed_dayofweek dowr 
+	RIGHT JOIN bm_parsed_dayofweek dowr 
 			ON  (`c`.`dw`-1) >= `dowr`.`range_open` 
 			AND  (`c`.`dw`-1)   <= `dowr`.`range_closed`
 			AND  MOD((`c`.`dw`-1),`dowr`.`mod_value`) = 0
-		RIGHT JOIN bm_parsed_month monr 
+	RIGHT JOIN bm_parsed_month monr 
 			ON  `c`.`m` >= `monr`.`range_open` 
 			AND  `c`.`m`   <= `monr`.`range_closed`
 			AND  MOD(`c`.`m`,`monr`.`mod_value`) = 0
-			WHERE `s`.`slot_open` >= CAST(startFrom AS DATETIME) AND `s`.`slot_close` <= CAST(endAt as DATETIME)
-	) o ON   `sl`.`slot_open` >= `o`.`slot_open`
-	    AND  `sl`.`slot_close` <= (`o`.`slot_close` + INTERVAL ruleDuration MINUTE)
 	-- faster to cast the endAt and startFrom to same type a date cast to dattime have 00:00:00 hours
 	WHERE `sl`.`slot_open` >= CAST(startFrom AS DATETIME) AND `sl`.`slot_close` <= CAST(endAt as DATETIME);
  	
-
-		
 	-- assign insert rows to out param
 	IF isInsertError = true THEN
 		SET numberSlots  = 0;
 	ELSE 
 		SET numberSlots  = ROW_COUNT();
 	END IF;
+	
+	-- verify overlaps
+	CALL bm_rules_check_sequence_duplicate(ruleID,duplciateFound);
+	IF duplciateFound = true THEN
+			SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'A duplicate period has been found while setting up a repeating rule';
+	END IF;
+	
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup(concat('Inserted ',numberSlots,' slots for new rule at ID::',ruleID
@@ -871,7 +774,7 @@ CREATE PROCEDURE `bm_rules_timeslot_details`(IN timeslotSlotID INT
                                             ,IN groupID INT
                                             ,IN ruleType VARCHAR(20))
 BEGIN 
-
+	
 	-- fetch a list of rules that affects the given timeslot.
 	-- this is a detail view of a single timeslot and rules that interset it
 

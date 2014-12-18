@@ -188,10 +188,6 @@ CREATE TABLE IF NOT EXISTS `rules` (
   `rule_type` ENUM('inclusion', 'exclusion','priority'),
   `rule_repeat` ENUM('adhoc', 'repeat'),
 
-  -- audit fields
-  `created_date` DATETIME NOT NULL,
-  `updated_date` DATETIME NOT NULL,
-
   -- validity date fields
   valid_from DATE NOT NULL,
   valid_to   DATE NOT NULL,
@@ -364,7 +360,7 @@ CREATE TABLE IF NOT EXISTS `audit_rules_adhoc` (
   valid_to   DATE NOT NULL,
   
   -- rule durations
-  `rule_duration` INT  NULL COMMENT 'event duration of repeat rule',
+  `rule_duration` INT  NULL COMMENT 'smallest interval to use in rule_slots',
   
   PRIMARY KEY (`change_seq`)
 )
@@ -380,18 +376,25 @@ DROP TABLE IF EXISTS `rule_slots` ;
 CREATE TABLE IF NOT EXISTS `rule_slots` (
   `rule_slot_id` INT NOT NULL AUTO_INCREMENT,
   `rule_id` INT NOT NULL,
-  `slot_id` INT NOT NULL,
-  INDEX `idx_rule_slots_slot` (`slot_id` ASC),
-  INDEX `idx_rule_slots_rule` (`rule_id` ASC),
-  UNIQUE INDEX `uk_rule_slots` (`rule_id` ASC, `slot_id` ASC),
+  `open_slot_id` INT NOT NULL,
+  `close_slot_id` INT NOT NULL,
+  
+  INDEX `idx_rule_slots_slot` (`rule_id` ASC,`open_slot_id` ASC,`close_slot_id` ASC),
+  -- need a constraint check in the procedure to stop periods that equal 
+  -- ie sequence duplicates, but won't stop periods that start / finish / overlap, we use a constrain check in procedure
+  UNIQUE KEY `uk_rule_slots` (`rule_id` ASC, `open_slot_id` ASC, `close_slot_id` ASC),
   
   PRIMARY KEY (`rule_slot_id`),
-  CONSTRAINT `fk_rule_slots_slot`
-    FOREIGN KEY (`slot_id`)
+  CONSTRAINT `fk_rule_slots_openslot`
+    FOREIGN KEY (`open_slot_id`)
     REFERENCES `slots` (`slot_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  
+  CONSTRAINT `fk_rule_slots_closeslot`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
   CONSTRAINT `fk_rule_slots_rule`
     FOREIGN KEY (`rule_id`)
     REFERENCES `rules` (`rule_id`)
