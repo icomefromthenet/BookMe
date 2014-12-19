@@ -47,7 +47,9 @@ DROP procedure IF EXISTS `bm_rules_slots_remove`$$
 
 CREATE PROCEDURE `bm_rules_slots_remove` (IN ruleID INT, IN openingSlotID INT, IN closingSlotID INT, OUT rowsAffected INT)
 BEGIN
-	
+	DECLARE minSlotID INT;
+	DECLARE maxSlotID INT;
+
 	-- Create the debug table
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
@@ -56,6 +58,22 @@ BEGIN
 		                          ,' and closingslot::',ifnull(closingSlotID,0)));
 	END IF;
 
+
+	-- find the matching period(s) from rules table and get opending and closing slots.
+	-- the given slot params could be values that (overlap | equal |start | finish ) within other periods in the table.
+	SELECT min(`open_slot_id`),max(`close_slot_id`) FROM rule_slots 
+	WHERE `rule_id` = ruleID
+	-- rows that begin before deletion period and end after it
+	OR (`open_slot_id` < openingSlotID AND `close_slot_id` > closingSlotID);
+	-- rows that begin before deletion period and end within it
+	OR (`open_slot_id` < openingSlotID  AND `close_slot_id` <= closingSlotID)
+	-- rows that begin within deletion period and end after it
+	OR(`open_slot_id` >= openingSlotID  AND `close_slot_id` >= closingSlotID)
+	-- rows within the deletion period
+	OR (`open_slot_id` >= openingSlotID AND `close_slot_id` <= closingSlotID)
+	-- but selected values into variables
+	INTO minSlotID,maxSlotID;
+	
 	
 	-- record operation in slot log 
 	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`) 

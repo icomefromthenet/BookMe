@@ -70,10 +70,20 @@ BEGIN
 		
 	-- Need to group our slots and insert results into group cache table
     -- As out slot tabe has sequential id we can use this to build buckets
-	INSERT INTO timeslot_slots (timeslot_slot_id,opening_slot_id,closing_slot_id,timeslot_id)  
+    
+    -- Unlike slot table where using a closed:open with this schema a closing interval is always
+    -- last instance +1 which opening of the next interval. Two intervals with 5 mintues each [1:6)[6:11)
+    --
+    -- For reference for an interval range 1-5
+    -- open:open     (0:6)
+    -- closed:closed [1:5]
+    -- open:closed   (0:5]
+    -- close:open    [1:6)
+    --
+    INSERT INTO timeslot_slots (timeslot_slot_id,opening_slot_id,closing_slot_id,timeslot_id)  
 		SELECT NULL
               ,min(a.slot_id) as slot_open_id	
-			  ,max(a.slot_id) as slot_close_id
+              ,max(a.slot_id) as slot_close_id +1
               ,timeslotID
         FROM slots a
 		GROUP BY ceil(a.slot_id/timeslotLength);
@@ -92,12 +102,15 @@ DROP procedure IF EXISTS `bm_calender_setup_slots`$$
 
 CREATE PROCEDURE `bm_calender_setup_slots`()
 BEGIN
+	
+	-- AS the slot length is 1 minute and a minute is the smallets granual we are
+	-- using a closed:closed period two intervals are written as [1:1][1:1]
 		
 	INSERT INTO slots (slot_id,cal_date,slot_open,slot_close)
 		SELECT NULL
               ,calendar_date 
 			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i MINUTE as slot_open
-			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i + 1 MINUTE as slot_closed FROM calendar
+			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i MINUTE as slot_closed FROM calendar
 		JOIN ints a JOIN ints b JOIN ints c JOIN ints d
 		WHERE d.i*1000 + c.i *100 + b.i*10 + a.i < 1440;
 

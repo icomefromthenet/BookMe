@@ -119,7 +119,7 @@ class RulesAdhocPackageTest extends BasicTest
                 }
             }
             
-            $db->exec('ROLLBACK');
+            $db->exec('COMMIT');
             
         
        } catch(\Doctrine\DBAL\DBALException $e) {
@@ -127,7 +127,7 @@ class RulesAdhocPackageTest extends BasicTest
             $this->assertFalse(true,$e->getMessage());
         }
         
-        exit;
+        
         
         return $newRuleID;
         
@@ -147,10 +147,11 @@ class RulesAdhocPackageTest extends BasicTest
          
          $rowsAffected  = 0;
          
-        $db->executeQuery('CALL bm_rules_add_slots(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+        $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
         $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
         
-        $this->assertEquals(201,$rowsAffected);
+        # as where using periods in our rules this should be 1 row inserted with length of 1-500
+        $this->assertEquals(1,$rowsAffected);
         
         // Step 2 verify log was recorded and open/closing slot set correctly
         
@@ -181,14 +182,14 @@ class RulesAdhocPackageTest extends BasicTest
          
          // Step 1 call method verify returned number
          
-         $openingslotID = 7800;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
-         $closingslotID = 8000;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+         $openingslotID = 1;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+         $closingslotID = 500;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
          $rowsAffected  = 0;
          
-        $db->executeQuery('CALL bm_rules_remove_slots(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+        $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
         $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
         
-        $this->assertEquals(201,$rowsAffected);
+        $this->assertEquals(1,$rowsAffected);
         
         // Step 2 verify log was recorded and open/closing slot set correctly
         
@@ -204,7 +205,6 @@ class RulesAdhocPackageTest extends BasicTest
         
         $this->assertEquals($auditResult['opening_slot_id'],$openingslotID);
         $this->assertEquals($auditResult['closing_slot_id'],$closingslotID);
-        
         
         return $newRuleID;
         
