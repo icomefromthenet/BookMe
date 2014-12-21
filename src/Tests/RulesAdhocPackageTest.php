@@ -545,9 +545,35 @@ class RulesAdhocPackageTest extends BasicTest
         
     }
     
-    
      /**
      * @depends testNewAdhocRule
+     */
+    public function testNewRepeatRuleDepreciateAdhocRule($newRuleID)
+    {
+        
+        $db = $this->getDoctrineConnection();
+        
+        $dte = $db->fetchColumn('SELECT CAST((NOW() + INTERVAL 5 WEEK) as DATE)',array(),0);
+
+        $db->executeQuery('CALL bm_rules_depreciate_rule(?,?)',array($newRuleID,$dte));
+        
+        # verify in common table
+        $ruleSTH = $db->executeQuery('SELECT * FROM `rules` where `rule_id` = ?',array($newRuleID));
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertEquals($dte,$ruleResult['valid_to']);
+        
+        
+        # verify in the concrent table the new date been set        
+        $ruleSTH = $db->executeQuery('SELECT * FROM `rules_adhoc` where `rule_id` = ?',array($newRuleID));
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertEquals($dte,$ruleResult['valid_to']);
+        
+        return $newRuleID;
+    }
+    
+    
+     /**
+     * @depends testNewRepeatRuleDepreciateAdhocRule
      */
     public function testRuleDeleteAudiTrigger($newRuleID)
     {

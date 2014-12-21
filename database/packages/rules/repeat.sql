@@ -39,7 +39,7 @@ BEGIN
 	SET filteredCron = trim(cron);
 	
 	-- build tmp result tables if not done already
-	CALL bm_rules_create_tmp_table(false);
+	CALL bm_rules_repeat_create_tmp(false);
 	
 	
 	IF filteredCron = '*' THEN
@@ -50,7 +50,7 @@ BEGIN
 		-- test if we  have default * only
 		-- insert the default range into the parsed ranges table
 		INSERT INTO bm_parsed_ranges (id,range_open,range_closed,mod_value,value_type) 
-		VALUES (NULL,minOpenValue, maxCloseValue ,1,cronType);
+		VALUES (NULL,minOpenValue, maxCloseValue+1 ,1,cronType);
 
 	ELSE 
 		-- split our set and parse each range declaration.
@@ -278,35 +278,38 @@ BEGIN
 	-- slots that meet the hour requirements And so on for each cron rule
 	SELECT NULL
 		  ,ruleID
-		  , `sl`.`slot_id` 
+		  , `s`.`slot_id` 
 		  -- using int match to fast cal on closing slot
-		  ,if((sl.`slot_id` + ruleDuration) > maxSlotID, maxSlotID ,(sl.`slot_id` + ruleDuration)) AS close_slot
+		  ,if((`s`.`slot_id` + ruleDuration) > maxSlotID, maxSlotID ,(`s`.`slot_id` + ruleDuration +1)) AS close_slot
+		-- debug columns 
+		-- ,s.slot_open
+		-- , (SELECT ms.slot_open from slots ms where ms.slot_id = if((`s`.`slot_id` + ruleDuration) > maxSlotID, maxSlotID ,(`s`.`slot_id` + ruleDuration +1)) ) as close_slot_dte
 	FROM slots s
-	RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
+	RIGHT JOIN calendar c ON `c`.`calendar_date` = `s`.`cal_date`
 	RIGHT JOIN bm_parsed_minute mr 
-			-- the slot table and the range table is using closes:open interval range
-		    ON  EXTRACT(MINUTE FROM `s`.`slot_open`) > `mr`.`range_open` 
-			AND  EXTRACT(MINUTE FROM `s`.`slot_close`)   < `mr`.`range_closed`
-			AND  MOD(EXTRACT(MINUTE FROM `s`.`slot_open`),`mr`.`mod_value`) = 0
+	-- the slot table and the range table is using closes:open interval range
+	    ON  EXTRACT(MINUTE FROM `s`.`slot_open`) >= `mr`.`range_open` 
+		AND  EXTRACT(MINUTE FROM `s`.`slot_open`)   < `mr`.`range_closed`
+		AND  MOD(EXTRACT(MINUTE FROM `s`.`slot_open`),`mr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_hour hr 
-			-- the slot table is using closes:closed so we need '<=' not '<' (we use if had closed:open)
-			ON  EXTRACT(HOUR FROM `s`.`slot_open`) > `hr`.`range_open` 
-			AND  EXTRACT(HOUR FROM `s`.`slot_close`)   < `hr`.`range_closed`
-			AND  MOD(EXTRACT(HOUR FROM `s`.`slot_open`),`hr`.`mod_value`) = 0
+		-- the slot table is using closes:closed so we need '<=' not '<' (we use if had closed:open)
+		ON  EXTRACT(HOUR FROM `s`.`slot_open`) >= `hr`.`range_open` 
+		AND  EXTRACT(HOUR FROM `s`.`slot_open`)   < `hr`.`range_closed`
+		AND  MOD(EXTRACT(HOUR FROM `s`.`slot_open`),`hr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_dayofmonth domr 
-			ON  `c`.`d` > `domr`.`range_open` 
-			AND  `c`.`d`   < `domr`.`range_closed`
-			AND  MOD(`c`.`d`,`domr`.`mod_value`) = 0
+		ON  `c`.`d` >= `domr`.`range_open` 
+		AND  `c`.`d`   < `domr`.`range_closed`
+		AND  MOD(`c`.`d`,`domr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_dayofweek dowr 
-			ON  (`c`.`dw`-1) > `dowr`.`range_open` 
-			AND  (`c`.`dw`-1)   < `dowr`.`range_closed`
-			AND  MOD((`c`.`dw`-1),`dowr`.`mod_value`) = 0
+		ON  (`c`.`dw`-1) >= `dowr`.`range_open` 
+		AND  (`c`.`dw`-1)   < `dowr`.`range_closed`
+		AND  MOD((`c`.`dw`-1),`dowr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_month monr 
-			ON  `c`.`m` > `monr`.`range_open` 
-			AND  `c`.`m`   < `monr`.`range_closed`
-			AND  MOD(`c`.`m`,`monr`.`mod_value`) = 0
+		ON  `c`.`m` >= `monr`.`range_open` 
+		AND  `c`.`m`   < `monr`.`range_closed`
+		AND  MOD(`c`.`m`,`monr`.`mod_value`) = 0
 	-- faster to cast the endAt and startFrom to same type a date cast to dattime have 00:00:00 hours
-	WHERE `sl`.`slot_open` >= CAST(startFrom AS DATETIME) AND `sl`.`slot_close` <= CAST(endAt as DATETIME);
+	WHERE `s`.`slot_open` >= CAST(startFrom AS DATETIME) AND `s`.`slot_close` < CAST(endAt as DATETIME);
  	
 	-- assign insert rows to out param
 	IF isInsertError = true THEN
@@ -315,12 +318,22 @@ BEGIN
 		SET numberSlots  = ROW_COUNT();
 	END IF;
 	
+	
+	IF numberSlots = 0 THEN 
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'No slots found to insert for repeat rule';
+	END IF;
+	
 	-- verify overlaps
 	CALL bm_rules_check_sequence_duplicate(ruleID,duplciateFound);
 	IF duplciateFound = true THEN
-			SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'A duplicate period has been found while setting up a repeating rule';
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'A duplicate period has been found while setting up a repeating rule';
 	END IF;
+	
+	-- record operation in slot log
+	INSERT INTO rule_slots_operations (`change_seq`,`operation`,`change_time`,`changed_by`,`rule_id`) 
+	VALUES (NULL,'addition',NOW(),USER(),ruleID);
 	
 	
 	IF @bm_debug = true THEN
@@ -329,7 +342,6 @@ BEGIN
 		                             ,' with end date of ',ifnull(endAt,'NULL')));
 	END IF;
 
-	
 	-- drop tmp tables
 	CALL bm_rules_repeat_cleanup_tmp();
 	
@@ -340,8 +352,7 @@ END$$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_repeat_add_rule`$$
 
-CREATE PROCEDURE `bm_rules_repeat_add_rule`( 
-										  IN ruleName VARCHAR(45)
+CREATE PROCEDURE `bm_rules_repeat_add_rule`( IN ruleName VARCHAR(45)
 										, IN ruleType VARCHAR(45)
 										, IN repeatMinute VARCHAR(45)
 										, IN repeatHour VARCHAR(45)
@@ -351,8 +362,6 @@ CREATE PROCEDURE `bm_rules_repeat_add_rule`(
 										, IN startFrom DATE
 										, IN endAt DATE
 										, IN ruleDuration INT
-										, IN validFrom DATE
-										, IN validTo DATE
 										, OUT newRuleID INT )
 BEGIN
 	
@@ -375,16 +384,16 @@ BEGIN
 	
 	-- Assign defaults and check validity range
 	
-	IF validTo IS NULL THEN
-		SET validTo = DATE('3000-01-01');
+	IF endAt IS NULL THEN
+		SET endAt = DATE('3000-01-01');
 	END IF;
 
-	IF validFrom < CAST(NOW() AS DATE) THEN
+	IF CAST(NOW() AS DATE) > startFrom THEN
 		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Valid from date must be gte NOW';
+		SET MESSAGE_TEXT = 'Start from date must be gte NOW';
 	END IF;
 	
-	IF validTo < validFrom THEN 
+	IF endAt < startFrom THEN 
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Validity period is and invalid range';
 	END IF;
@@ -393,18 +402,13 @@ BEGIN
 	
 	IF bm_rules_valid_duration(ruleDuration) = false THEN
 		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'The rule duration is not in valid range between 1minute and 1 year';
+		SET MESSAGE_TEXT = 'The rule duration is not in valid range between 1 minute and 1 year';
 	END IF;
 	
-	-- check end date precesds the start date
-	IF startFrom > endAt THEN
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT ='The rule start date must occur before then given end date';
-	END IF;
-
+	
 	-- insert into common rules table
 	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
-	VALUES (NULL,ruleName,ruleType,repeatValue,validFrom,validTo,ruleDuration);
+	VALUES (NULL,ruleName,ruleType,repeatValue,startFrom,endAt,ruleDuration);
 	SET newRuleID = LAST_INSERT_ID();
 	IF newRuleID = 0 OR newRuleID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
@@ -412,38 +416,20 @@ BEGIN
 	END IF;
 	
 	-- insert rule into concrete table
-	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`repeat_minute`,`repeat_hour`,`repeat_dayofweek`
+	INSERT INTO rules_repeat (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`repeat_minute`,`repeat_hour`,`repeat_dayofweek`
 		,`repeat_dayofmonth`,`repeat_month`,`valid_from`,`valid_to`,`rule_duration`,`start_from`,`end_at`)
 	VALUES (newRuleID,ruleName,ruleType,repeatValue,repeatMinute,repeatHour,repeatDayofweek,repeatDayofmonth
-		,repeatMonth,validFrom,validTo,ruleDuration,startFrom,endAt);
+		,repeatMonth,startFrom,endAt,ruleDuration,startFrom,endAt);
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));
 	END IF;	
 
-	-- record operation in slot log
-	INSERT INTO rule_slots_operations (`change_seq`,`operation`,`change_time`,`changed_by`,`rule_id`) 
-	VALUES (NULL,'addition',NOW(),USER(),newRuleID);
-	
+
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule slot operation at::',ifnull(LAST_INSERT_ID(),'NULL')));
 	END IF;	
-	
-	
-	-- save slots for the new rule
-	CALL bm_rules_repeat_save_slots(newRuleID,numberSlots,repeatMinute,repeatHour,repeatDayofweek,repeatDayofmonth,repeatMonth,ruleDuration,startFrom,endAt);
-	
-	
-	IF @bm_debug = true THEN
-		CALL util_proc_log(concat('Inserted ',ifnull(numberSlots,'NULL'),' rule slots for rule *',ifnull(newRuleID,'NULL')));
-	END IF;	
-	
-	
-	IF numberSlots = 0 THEN
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'The new Rule did not have any slots to insert';
-	END IF;
-	
+
 
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('finished procedure bm_rules_add_repeat_rule');
