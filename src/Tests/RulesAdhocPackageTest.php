@@ -173,26 +173,81 @@ class RulesAdhocPackageTest extends BasicTest
     }
     
      /**
-     * @depends testNewAdhocRule
+     * @depends testAddSlotsToRule
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Cannot add or update a child row: a foreign key constraint fails (`bookme`.`rule_slots_operations`, CONSTRAINT `fk_slot_op_slots_a`
      */
-    public function testRemoveSlots($newRuleID)
+    public function testRemoveSlotsFailesBadOpenSlot($newRuleID)
     {
-        
         $db = $this->getDoctrineConnection();
          
-         // Step 1 call method verify returned number
+        // Step 1 call method verify returned number
          
-         $openingslotID = 1;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
-         $closingslotID = 500;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
-         $rowsAffected  = 0;
+        $openingslotID = -1;  
+        $closingslotID = 500;  
+        $rowsAffected  = 0;
          
         $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
         $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
         
+        
+    }
+    
+     /**
+     * @depends testAddSlotsToRule
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Cannot add or update a child row: a foreign key constraint fails (`bookme`.`rule_slots_operations`, CONSTRAINT `fk_slot_op_slots_b`
+     */
+    public function testRemoveSlotsFailesBadClosingSlot($newRuleID)
+    {
+        $db = $this->getDoctrineConnection();
+         
+        // Step 1 call method verify returned number
+         
+        $openingslotID = 1;  
+        $closingslotID = -500;  
+        $rowsAffected  = 0;
+         
+        $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
+        
+    }
+    
+    /**
+     * @depends testAddSlotsToRule
+     */
+    public function testRemoveSlotsWhereEqual($newRuleID)
+    {
+        // in this breakdown where testing the remove a period that are equal.
+        
+        $db = $this->getDoctrineConnection();
+         
+        // Step 1 call method verify 1 period removed,
+         
+        $openingslotID = 1;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+        $closingslotID = 500;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+        $rowsAffected  = 0;
+        
+        // truncate and add the expected range
+        $db->executeQuery('TRUNCATE rule_slots');
+        $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+         
+        // remove the period 
+        $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+        
+        // Step 1 verify 1 procedure told us its remove the period.    
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
         $this->assertEquals(1,$rowsAffected);
         
-        // Step 2 verify log was recorded and open/closing slot set correctly
+        // Step 2 verify the period has actually been removed
+        $this->assertEmpty($db->fetchColumn('SELECT 1 FROM rule_slots 
+                                            WHERE open_slot_id = ? 
+                                            AND close_slot_id = ? 
+                                            AND rule_id = ?'
+                            ,array($openingslotID,$closingslotID,$newRuleID),0));
         
+        
+        // Step 3 verify log was recorded and open/closing slot set correctly
         $ruleOperationSTH = $db->executeQuery('select * 
                                               from rule_slots_operations 
                                               where `rule_id` = ? and `operation` = ? 
@@ -209,7 +264,180 @@ class RulesAdhocPackageTest extends BasicTest
         return $newRuleID;
         
     }
+    
+    /**
+     * @depends testRemoveSlotsWhereEqual
+     */
+    public function testRemoveSlotsWhereDuring($newRuleID)
+    {
+        // in this breakdown where testing the remove periods that occur during the delete interval
+        
+        $db = $this->getDoctrineConnection();
+         
+        // Step 1 call method verify 1 period slot removed,
+         
+        $openingslotID = 100;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+        $closingslotID = 500;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+        $rowsAffected  = 0;
+        
+        // truncate and add the expected range
+        $db->executeQuery('TRUNCATE rule_slots');
+        $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+         
+        // remove the period 
+        $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,1,500),array());
+        
+        // Step 1 verify 1 procedure told us its remove the period.    
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
+        $this->assertEquals(1,$rowsAffected);
+        
+        // Step 2 verify the period has actually been removed
+        $this->assertEmpty($db->fetchColumn('SELECT 1 FROM rule_slots 
+                                            WHERE open_slot_id = ? 
+                                            AND close_slot_id = ? 
+                                            AND rule_id = ?'
+                            ,array($openingslotID,$closingslotID,$newRuleID),0));
+        
+        
+        return $newRuleID;
+    }
 
+
+    /**
+     * @depends testRemoveSlotsWhereEqual
+     */
+    public function testRemoveSlotsWhereSplitOverlap($newRuleID)
+    {
+        // in this breakdown where testing the remove periods and slot a slot where delete occured
+        
+        $db = $this->getDoctrineConnection();
+         
+        // Step 1 call method verify 1 period slot removed,
+         
+        $openingslotID = 1;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+        $closingslotID = 500;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+        $rowsAffected  = 0;
+        
+        // truncate and add the expected range
+        $db->executeQuery('TRUNCATE rule_slots');
+        $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+         
+        // remove the period 
+        $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,250,260),array());
+        
+        // Step 1 verify 1 procedure told us that slot been split a new period insert and old updated    
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
+        $this->assertEquals(2,$rowsAffected);
+        
+        // Step 2 verify the period has actually been removed
+        $this->assertEmpty($db->fetchColumn('SELECT 1 FROM rule_slots 
+                                            WHERE open_slot_id = ? 
+                                            AND close_slot_id = ? 
+                                            AND rule_id = ?'
+                            ,array($openingslotID,$closingslotID,$newRuleID),0));
+        
+        // step 3 assert dates are valid
+        $resultSTH = $db->executeQuery('SELECT * FROM rule_slots WHERE rule_id = ? ORDER BY rule_slot_id ASC',array($newRuleID));
+        
+        // Assert the original period closing slot set to delete period opending slot
+        $period = $resultSTH->fetch();
+        
+        $this->assertEquals($period['open_slot_id'],1);
+        $this->assertEquals($period['close_slot_id'],250);
+        
+        
+        // Assert the new period has opening slot of the delete periods closing slot. 
+        $period = $resultSTH->fetch();
+        $this->assertEquals($period['open_slot_id'],260);
+        $this->assertEquals($period['close_slot_id'],500);
+        
+        
+        return $newRuleID;
+    }
+    
+    /**
+     * @depends testRemoveSlotsWhereEqual
+     */
+    public function testRemoveSlotsWhereShortenedHead($newRuleID)
+    {
+        // in this breakdown where testing where shorten periods that end in the deleteion period
+        
+        $db = $this->getDoctrineConnection();
+         
+        // Step 1 call method verify 1 period slot removed,
+         
+        $openingslotID = 1;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+        $closingslotID = 500;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+        $rowsAffected  = 0;
+        
+        // truncate and add the expected range
+        $db->executeQuery('TRUNCATE rule_slots');
+        $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+         
+        // remove the period 
+        $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,250,500),array());
+        
+        // Step 1 verify 1 procedure told us that slot been split a new period insert and old updated    
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
+        $this->assertEquals(1,$rowsAffected);
+        
+        // Step 2 verify the period has actually been removed
+        $this->assertEmpty($db->fetchColumn('SELECT 1 FROM rule_slots 
+                                            WHERE open_slot_id = ? 
+                                            AND close_slot_id = ? 
+                                            AND rule_id = ?'
+                            ,array($openingslotID,$closingslotID,$newRuleID),0));
+        
+        // step 3 assert dates are valid
+        $resultSTH = $db->executeQuery('SELECT * FROM rule_slots WHERE rule_id = ? ORDER BY rule_slot_id ASC',array($newRuleID));
+        $period = $resultSTH->fetch();
+        $this->assertEquals($period['open_slot_id'],1);
+        $this->assertEquals($period['close_slot_id'],250);
+        
+        return $newRuleID;
+    }
+    
+     /**
+     * @depends testRemoveSlotsWhereEqual
+     */
+    public function testRemoveSlotsWhereShortenedTail($newRuleID)
+    {
+        // in this breakdown where testing where shorten periods that begin in deleteion period
+        
+        $db = $this->getDoctrineConnection();
+         
+        // Step 1 call method verify 1 period slot removed,
+         
+        $openingslotID = 1;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+        $closingslotID = 500;  // The method uses a inclusive between which expression (min <= expr AND expr <= max) give 201 records
+        $rowsAffected  = 0;
+        
+        // truncate and add the expected range
+        $db->executeQuery('TRUNCATE rule_slots');
+        $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+         
+        // remove the period 
+        $db->executeQuery('CALL bm_rules_slots_remove(?,?,?,@myRowsAffected)',array($newRuleID,1,250),array());
+        
+        // Step 1 verify 1 procedure told us that slot been split a new period insert and old updated    
+        $rowsAffected = $db->fetchColumn('SELECT @myRowsAffected',array(),0);
+        $this->assertEquals(1,$rowsAffected);
+        
+        // Step 2 verify the period has actually been removed
+        $this->assertEmpty($db->fetchColumn('SELECT 1 FROM rule_slots 
+                                            WHERE open_slot_id = ? 
+                                            AND close_slot_id = ? 
+                                            AND rule_id = ?'
+                            ,array($openingslotID,$closingslotID,$newRuleID),0));
+        
+        // step 3 assert dates are valid
+        $resultSTH = $db->executeQuery('SELECT * FROM rule_slots WHERE rule_id = ? ORDER BY rule_slot_id ASC',array($newRuleID));
+        $period = $resultSTH->fetch();
+        $this->assertEquals($period['open_slot_id'],250);
+        $this->assertEquals($period['close_slot_id'],500);
+        
+        return $newRuleID;
+    }
     
     /**
      * @depends testNewAdhocRule
@@ -217,12 +445,11 @@ class RulesAdhocPackageTest extends BasicTest
     public function testNewRepeatRuleCleanupSuccessfully($newRuleID)
     {
         
-        
         // Step 1 . Test cleanup method
         $rowsAffected = null;
         $db = $this->getDoctrineConnection();
 
-        $db->executeQuery('CALL bm_rules_cleanup_slots(?,@changedRows)',array($newRuleID));
+        $db->executeQuery('CALL bm_rules_slots_cleanup(?,@changedRows)',array($newRuleID));
         
         $this->assertGreaterThan(0,$db->fetchColumn('SELECT @changedRows',array(),0));
         
@@ -233,13 +460,27 @@ class RulesAdhocPackageTest extends BasicTest
         
         $this->assertNotEmpty($ruleOperation);
         
-        // Step 2. Remove the rule
+    }
+    
+    
+     /**
+     * @depends testNewAdhocRule
+     */
+    public function testRuleDeleteAudiTrigger($newRuleID)
+    {
+        
+        // Step 1 . Test cleanup method
+        $rowsAffected = null;
+        $db = $this->getDoctrineConnection();
+        
+        $db->executeQuery('TRUNCATE rule_slots');
+        $db->executeQuery('DELETE FROM `rules_adhoc` WHERE `rule_id` = ?',array($newRuleID));
         $db->executeQuery('DELETE FROM `rules` WHERE `rule_id` = ?',array($newRuleID));
         
         
         // Step 3. Test trigger work, this not expected operation it should be recorded
         $auditSTH = $db->executeQuery('SELECT * 
-                                       FROM audit_rules 
+                                       FROM audit_rules_adhoc 
                                        WHERE rule_id = ? 
                                        AND action = ?',array($newRuleID,'D'));
         
@@ -247,7 +488,6 @@ class RulesAdhocPackageTest extends BasicTest
         $auditResult = $auditSTH->fetch();
         
         $this->assertNotEmpty($auditResult,'No rule Audit Record Found for delete');
-
     }
     
 

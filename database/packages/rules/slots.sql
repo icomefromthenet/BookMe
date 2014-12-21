@@ -47,9 +47,7 @@ DROP procedure IF EXISTS `bm_rules_slots_remove`$$
 
 CREATE PROCEDURE `bm_rules_slots_remove` (IN ruleID INT, IN openingSlotID INT, IN closingSlotID INT, OUT rowsAffected INT)
 BEGIN
-	DECLARE minSlotID INT;
-	DECLARE maxSlotID INT;
-
+	
 	-- Create the debug table
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
@@ -59,37 +57,67 @@ BEGIN
 	END IF;
 
 
-	-- find the matching period(s) from rules table and get opending and closing slots.
-	-- the given slot params could be values that (overlap | equal |start | finish ) within other periods in the table.
-	SELECT min(`open_slot_id`),max(`close_slot_id`) FROM rule_slots 
-	WHERE `rule_id` = ruleID
-	-- rows that begin before deletion period and end after it
-	OR (`open_slot_id` < openingSlotID AND `close_slot_id` > closingSlotID);
-	-- rows that begin before deletion period and end within it
-	OR (`open_slot_id` < openingSlotID  AND `close_slot_id` <= closingSlotID)
-	-- rows that begin within deletion period and end after it
-	OR(`open_slot_id` >= openingSlotID  AND `close_slot_id` >= closingSlotID)
-	-- rows within the deletion period
-	OR (`open_slot_id` >= openingSlotID AND `close_slot_id` <= closingSlotID)
-	-- but selected values into variables
-	INTO minSlotID,maxSlotID;
-	
-	
 	-- record operation in slot log 
+	-- this also verify the slots exist in slots table though the fk relation
 	INSERT INTO rule_slots_operations (`opening_slot_id`,`closing_slot_id`,`rule_id`,`change_seq`,`operation`,`change_time`,`changed_by`) 
 	VALUES (openingSlotID,closingSlotID,ruleID,NULL,'subtraction',NOW(),USER());
 
-	-- remove all rule intervals that are between these slots.
-	-- since rules are not allowed to overlap if speciify and exact open/close it only remove single interval for rule X
-	DELETE FROM rule_slots 
-	WHERE `open_slot_id` >= openingSlotID 
-	AND `close_slot_id` <= closingSlotID
-	AND `rule_id` = ruleID;
+	-- Where using a sequenced delete query and our RuleSlots Table is using a closed:open interval format.
+	-- This query and description is supplied from Get It Done With MySQL 5&6, Copyright © Peter Brawley and Arthur Fuller 2014. 
+	-- All rights reserved. Chapter 21, Page 25
 	
-	-- Where not going to throw and error leave up to calling code to decide.
-	-- this is to keep it consistent wil cleanup slots method
-	SET rowsAffected = ROW_COUNT();
+	-- 1. For a matching row whose period begins before and ends after the deletion
+	--    period, insert its values to a new row with a start date equal to the end of the deletion period, and the row's existing end date.
 	
+	-- 2. For a matching row whose period begins before the deletion period and ends within it, set its end date to the start of the deletion period.
+	
+	-- 3. For a matching row whose period begins within the deletion period and ends after it, set its start date to the end of the deletion period.
+	
+	-- 4. Delete any matching row whose period is entirely within the deletion period
+
+	-- need to disable the key checks, this insert create duplicates when 
+	SET foreign_key_checks=0;
+	
+	-- this table uses a closed:open interval format so we expected the functions params to use closed:open format too. 
+	-- in an interface expect the user to use the closing_slot_id from the given timeslot which also in closed:open format
+
+	-- rows that begin before deletion period and end after it (eclipse)
+	INSERT INTO `rule_slots` (`rule_slot_id`,`rule_id`,`open_slot_id`,`close_slot_id`)
+	SELECT NULL,ruleID, closingSlotID, `close_slot_id`
+	FROM `rule_slots`
+	WHERE `rule_id` = ruleID
+	AND `open_slot_id` < openingSlotID
+	AND `close_slot_id` > closingSlotID;
+	SET rowsAffected  = ROW_COUNT();
+	
+	-- rows that begin before deletion period and end within it (overlap)
+	
+	UPDATE `rule_slots`
+	SET `close_slot_id` = openingSlotID
+	WHERE  rule_id = ruleID
+	AND `open_slot_id` < openingSlotID 
+	AND `close_slot_id` >= openingSlotID;
+	SET rowsAffected  = rowsAffected  + ROW_COUNT();
+
+	-- rows that begin within deletion period and end after it (overlap)
+	UPDATE `rule_slots`
+	SET `open_slot_id` = closingSlotID
+	WHERE  rule_id = ruleID
+	-- note that with closed:open interval the closingslotid always same value as next opensing slot so we use '<'
+	AND `open_slot_id` < closingSlotID
+	AND `close_slot_id` > closingSlotID;
+	SET rowsAffected  = rowsAffected  + ROW_COUNT();
+		
+	-- rows within the deletion period (during) (also includes equal periods)
+	DELETE FROM `rule_slots`
+	WHERE  rule_id = ruleID
+	AND `open_slot_id` >= openingSlotID
+	AND `close_slot_id` <= closingSlotID;
+	SET rowsAffected = rowsAffected + ROW_COUNT();
+
+	-- Re-enable foreign key checks
+	SET foreign_key_checks=1;
+
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Removed ',ifnull(rowsAffected,0),' number of slots to rule id:: ',ruleID));
 	END IF;

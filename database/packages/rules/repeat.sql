@@ -134,7 +134,7 @@ BEGIN
 			
 				IF @bm_debug = true THEN
 					CALL util_proc_log(concat('openValue:',openValue
-										,' closeValue:',closeValue
+										,' closeValue:',closeValue+1
 										,' incrementValue:',incrementValue ));
 				END IF;	
 
@@ -149,13 +149,13 @@ BEGIN
 			IF @bm_debug = true THEN
 				CALL util_proc_log(concat('insert  bm_parsed_ranges'
 										,' openValue:',openValue
-										,' closeValue:',closeValue
+										,' closeValue:',closeValue +1
 										,' incrementValue:',incrementValue));
 			END IF;	
 
-
+			-- range table using a closed:open so need to add +1 to last value in range
 			INSERT INTO bm_parsed_ranges (ID,range_open,range_closed,mod_value,value_type) 
-			VALUES (null,openValue,closeValue,incrementValue,cronType);
+			VALUES (null,openValue,closeValue+1,incrementValue,cronType);
 			
 			-- increment the loop
 			SET i = i +1;
@@ -178,6 +178,9 @@ DROP procedure IF EXISTS `bm_rules_repeat_create_tmp`$$
 CREATE procedure `bm_rules_repeat_create_tmp` (IN expand TINYINT)
 BEGIN
 	
+	-- this table is using closed:open style of interval
+	-- means that closing slot will always be (last value in range +1) 
+	-- which happens to be the opening of the next slot if we have two consecutive ranges
 	IF expand IS NULL OR EXPAND = FALSE THEN
 		CREATE TEMPORARY TABLE IF NOT EXISTS bm_parsed_ranges (
 			id INT PRIMARY KEY AUTO_INCREMENT,
@@ -281,24 +284,26 @@ BEGIN
 	FROM slots s
 	RIGHT JOIN calendar c ON c.calendar_date = s.cal_date
 	RIGHT JOIN bm_parsed_minute mr 
-		    ON  EXTRACT(MINUTE FROM `s`.`slot_open`) >= `mr`.`range_open` 
-			AND  EXTRACT(MINUTE FROM `s`.`slot_open`)   <= `mr`.`range_closed`
+			-- the slot table and the range table is using closes:open interval range
+		    ON  EXTRACT(MINUTE FROM `s`.`slot_open`) > `mr`.`range_open` 
+			AND  EXTRACT(MINUTE FROM `s`.`slot_close`)   < `mr`.`range_closed`
 			AND  MOD(EXTRACT(MINUTE FROM `s`.`slot_open`),`mr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_hour hr 
-			ON  EXTRACT(HOUR FROM `s`.`slot_open`) >= `hr`.`range_open` 
-			AND  EXTRACT(HOUR FROM `s`.`slot_open`)   <= `hr`.`range_closed`
+			-- the slot table is using closes:closed so we need '<=' not '<' (we use if had closed:open)
+			ON  EXTRACT(HOUR FROM `s`.`slot_open`) > `hr`.`range_open` 
+			AND  EXTRACT(HOUR FROM `s`.`slot_close`)   < `hr`.`range_closed`
 			AND  MOD(EXTRACT(HOUR FROM `s`.`slot_open`),`hr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_dayofmonth domr 
-			ON  `c`.`d` >= `domr`.`range_open` 
-			AND  `c`.`d`   <= `domr`.`range_closed`
+			ON  `c`.`d` > `domr`.`range_open` 
+			AND  `c`.`d`   < `domr`.`range_closed`
 			AND  MOD(`c`.`d`,`domr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_dayofweek dowr 
-			ON  (`c`.`dw`-1) >= `dowr`.`range_open` 
-			AND  (`c`.`dw`-1)   <= `dowr`.`range_closed`
+			ON  (`c`.`dw`-1) > `dowr`.`range_open` 
+			AND  (`c`.`dw`-1)   < `dowr`.`range_closed`
 			AND  MOD((`c`.`dw`-1),`dowr`.`mod_value`) = 0
 	RIGHT JOIN bm_parsed_month monr 
-			ON  `c`.`m` >= `monr`.`range_open` 
-			AND  `c`.`m`   <= `monr`.`range_closed`
+			ON  `c`.`m` > `monr`.`range_open` 
+			AND  `c`.`m`   < `monr`.`range_closed`
 			AND  MOD(`c`.`m`,`monr`.`mod_value`) = 0
 	-- faster to cast the endAt and startFrom to same type a date cast to dattime have 00:00:00 hours
 	WHERE `sl`.`slot_open` >= CAST(startFrom AS DATETIME) AND `sl`.`slot_close` <= CAST(endAt as DATETIME);

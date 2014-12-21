@@ -35,6 +35,8 @@ COMMENT = 'Calender table that store the next 10 years of dates';
 DROP TABLE IF EXISTS `slots` ;
 
 CREATE TABLE IF NOT EXISTS `slots` (
+  -- uses a closed:closed interval format due to  slots only have 1 minute length
+
   `slot_id` INT NOT NULL AUTO_INCREMENT COMMENT 'Table primary key',
   `cal_date` DATE NOT NULL COMMENT 'Date this slot occurs on used to join date time',
   `slot_open` DATETIME NOT NULL COMMENT 'Opending Interval of this slot',
@@ -148,6 +150,8 @@ COMMENT = 'This contains a list of schedules that can have bookings';
 DROP TABLE IF EXISTS `timeslot_slots` ;
 
 CREATE TABLE IF NOT EXISTS `timeslot_slots` (
+  -- uses a closed:open interval format
+
   `timeslot_slot_id` INT NOT NULL AUTO_INCREMENT,
   `opening_slot_id` INT NOT NULL,
   `closing_slot_id` INT NOT NULL,
@@ -374,6 +378,8 @@ COMMENT = 'Stores audit trail for adhoc rule';
 DROP TABLE IF EXISTS `rule_slots` ;
 
 CREATE TABLE IF NOT EXISTS `rule_slots` (
+  -- uses a closed:open interval format
+  
   `rule_slot_id` INT NOT NULL AUTO_INCREMENT,
   `rule_id` INT NOT NULL,
   `open_slot_id` INT NOT NULL,
