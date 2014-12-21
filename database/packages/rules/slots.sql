@@ -138,7 +138,7 @@ CREATE PROCEDURE `bm_rules_slots_add` (IN ruleID INT
                                       ,IN closingSlotID INT
                                       ,OUT rowsAffected INT)
 BEGIN
-	DECLARE duplciateFound BOOL DEFAULT FALSE;
+	DECLARE duplicateFound BOOL DEFAULT FALSE;
 	
 	-- Create the debug table
 	IF @bm_debug = true THEN
@@ -163,8 +163,8 @@ BEGIN
 	
 	-- Verify that no overlaps of periods, the unique key only stop rule equal periods.
 	-- We still need to catch periods that (start / finish / overlap), thus making them SEQUENCED DUPLICATES
-	CALL bm_rules_check_sequence_duplicate(ruleID,duplciateFound);
-	IF duplciateFound = true THEN
+	CALL bm_rules_check_sequence_duplicate(ruleID,duplicateFound);
+	IF duplicateFound = true THEN
 		-- be up to the user to handle this error and do cleanup
    		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Overlapping Rule Interval found, make sure to cleanup this table by either rolling back the transaction or execute a slot clean';

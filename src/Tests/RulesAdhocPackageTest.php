@@ -31,6 +31,60 @@ class RulesAdhocPackageTest extends BasicTest
         
     }
     
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Validity period is and invalid range
+    */
+    public function testAdhocFailsOnBadDateRange()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'adhoc1';
+        $ruleType = 'inclusion';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() - INTERVAL 1 DAY) AS DATE)",array(),0);
+        $ruleDuration = 5;
+        $newRuleID = null;
+        
+        $db->executeQuery('CALL bm_rules_adhoc_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$ruleType,$validFrom,$validTo,$ruleDuration));   
+    }
+    
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Valid from date must be gte NOW
+    */
+    public function testAdhocFailsOnWhenValidToLessThanNow()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'adhoc1';
+        $ruleType = 'inclusion';
+        $validFrom = $db->fetchColumn("SELECT CAST((NOW() - INTERVAL 1 DAY) AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $ruleDuration = 5;
+        $newRuleID = null;
+        
+        $db->executeQuery('CALL bm_rules_adhoc_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$ruleType,$validFrom,$validTo,$ruleDuration));   
+    }
+    
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Given ruleType is invalid
+    */
+    public function testAdhocFailsOnBadRuleType()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'adhoc1';
+        $ruleType = 'inclusionnnn';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW()  + INTERVAL 1 DAY) AS DATE)",array(),0);
+        $ruleDuration = 5;
+        $newRuleID = null;
+        
+        $db->executeQuery('CALL bm_rules_adhoc_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$ruleType,$validFrom,$validTo,$ruleDuration));   
+    }
+
 
     public function testNewAdhocRule()
     {
@@ -168,6 +222,35 @@ class RulesAdhocPackageTest extends BasicTest
         $this->assertEquals($auditResult['opening_slot_id'],$openingslotID);
         $this->assertEquals($auditResult['closing_slot_id'],$closingslotID);
         
+        
+        return $newRuleID;
+    }
+    
+    /**
+     * @depends testNewAdhocRule
+     */
+    public function testAddSlotsFailsOnDuplicate($newRuleID)
+    {
+         $db = $this->getDoctrineConnection();
+         
+        
+        $openingslotID = 1;  // since this repeat rule add a range not included in original rule if that value is changed this range might need to change too.
+        $closingslotID = 500;  //Give 500 records
+        
+        try { 
+            $db->exec('START TRANSACTION');
+            $db->exec('TRUNCATE rule_slots');
+            
+            $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+            $db->executeQuery('CALL bm_rules_slots_add(?,?,?,@myRowsAffected)',array($newRuleID,$openingslotID,$closingslotID),array());
+            
+            $db->exec('ROLLBACK');
+            $this->assertTrue(false,'faild to error out on sequence duplicate');
+        
+        } catch(\Doctrine\DBAL\DBALException $e) {
+            $this->assertTrue(true);
+            $db->exec('ROLLBACK');
+        }
         
         return $newRuleID;
     }

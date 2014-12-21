@@ -33,7 +33,7 @@ BEGIN
 		SET validTo = DATE('3000-01-01');
 	END IF;
 
-	IF validFrom < CAST(NOW() AS DATE) THEN
+	IF CAST(NOW() AS DATE) > validFrom THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Valid from date must be gte NOW';
 	END IF;
@@ -59,10 +59,6 @@ BEGIN
 
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));
-	END IF;		
-
-
-	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('finished procedure bm_rules_add_adhoc_rule');
 	END IF;
 
