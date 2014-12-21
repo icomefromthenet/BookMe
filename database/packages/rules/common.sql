@@ -22,8 +22,10 @@ BEGIN
 				SELECT COUNT(*)
 				FROM rule_slots AS r2
 				WHERE r2.rule_id = r1.rule_id -- correlated subquery
-				AND r1.open_slot_id <= r2.close_slot_id
-				AND r2.open_slot_id <= r1.close_slot_id
+				-- as the rule and slot table use closed:open interval format
+				-- we only need to use '<' comparison as the previous closing slot is always equal to the next opening slot.
+				AND r1.open_slot_id < r2.close_slot_id
+				AND r2.open_slot_id < r1.close_slot_id
 			)
 			AND r1.rule_id = ruleID);
 	

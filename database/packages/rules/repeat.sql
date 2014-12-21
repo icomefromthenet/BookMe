@@ -280,7 +280,7 @@ BEGIN
 		  ,ruleID
 		  , `s`.`slot_id` 
 		  -- using int match to fast cal on closing slot
-		  ,if((`s`.`slot_id` + ruleDuration) > maxSlotID, maxSlotID ,(`s`.`slot_id` + ruleDuration +1)) AS close_slot
+		  ,if((`s`.`slot_id` + ruleDuration) > maxSlotID, maxSlotID ,(`s`.`slot_id` + ruleDuration)) AS close_slot
 		-- debug columns 
 		-- ,s.slot_open
 		-- , (SELECT ms.slot_open from slots ms where ms.slot_id = if((`s`.`slot_id` + ruleDuration) > maxSlotID, maxSlotID ,(`s`.`slot_id` + ruleDuration +1)) ) as close_slot_dte

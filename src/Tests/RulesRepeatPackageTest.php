@@ -620,7 +620,7 @@ class RulesRepeatPackageTest extends BasicTest
         $ruleDayofweek      = '*';
         $ruleDayofmonth     = 1;
         $ruleMonth          = '*';
-		$ruleDuration       = 59;
+		$ruleDuration       = 60;
 		$ruleStartFrom      = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
 		$ruleEndAt          = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 YEAR) AS DATE)",array(),0);
 	

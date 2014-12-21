@@ -90,15 +90,16 @@ CALL bm_schedule_add(@newScheduleGroupID1,@membershipID1,CAST(NOW() AS DATE),CAS
 -- Data for table `rules`
 -- -----------------------------------------------------
 
-/*
+
 -- Work Day (Inclusion rule) '9am-5pm monday-friday every day of month and every month for 1 year'
-CALL bm_rules_add_repeat_rule('workday','inclusion'
+
+CALL bm_rules_repeat_add_rule('workday','inclusion'
                              ,'0','9-17','1-5','*','*'
-                             ,DATE_FORMAT((NOW() - INTERVAL 1 YEAR),'%Y-01-01'),DATE_FORMAT(NOW() ,'%Y-12-31')
-                             ,59,NOW(),DATE('3000-01-01')
-                             ,NULL,@membershipID6
-                             ,@newRuleID1);
-*/
+                             ,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR)AS DATE)
+                             ,60,@newRuleID1);
+CALL bm_rules_repeat_save_slots(@newRuleID1,@slotsAffetced,'0','9-17','1-5','*','*',60,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR) AS DATE));
+
+-- @membershipID6
 
 -- -----------------------------------------------------
 -- Cleanup
