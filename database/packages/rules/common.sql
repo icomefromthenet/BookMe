@@ -107,8 +107,9 @@ BEGIN
 		CALL util_proc_log(concat('Starting bm_rules_relate_member'));
 	END IF;
 	
+	-- fk stop a bad insert
 	INSERT INTO `rules_relations` (`rule_relation_id`,`rule_id`,`membership_id`) VALUES (NULL,ruleID,memberID);
-
+	
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup(concat('Inserted member relation for rule at ID::',ruleID,' for member:: ',ifnull(memberID,'NULL')));
 	END IF;
@@ -129,7 +130,19 @@ BEGIN
 		CALL util_proc_log(concat('Starting bm_rules_relate_group'));
 	END IF;
 
-	INSERT INTO `rules_relations` (`rule_relation_id`,`rule_id`,`schedule_group_id`) VALUES (NULL,ruleID,scheduleGroupID);
+	-- Need to do a validity date check, the FK relation won't stop the relations between
+	-- a active rule and an in-active group. 
+	INSERT INTO `rules_relations` (`rule_relation_id`,`rule_id`,`schedule_group_id`)
+	SELECT NULL,ruleID,`g`.`group_id`
+	FROM schedule_groups `g`
+	WHERE `g`.`valid_from` <= NOW()
+	AND `g`.`valid_to` > NOW()
+	AND `g`.`group_id` = scheduleGroupID;
+	
+	IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to relate rule to schedule group as rule may have a bad validity range';
+	END IF;
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup(concat('Inserted member relation for rule at ID::',ruleID,' for schedule group:: ',ifnull(scheduleGroupID,'NULL')));

@@ -543,37 +543,62 @@ class RulesAdhocPackageTest extends BasicTest
         
         $this->assertNotEmpty($ruleOperation);
         
+        return $newRuleID;
+        
     }
     
-     /**
-     * @depends testNewAdhocRule
-     */
-    public function testNewRepeatRuleDepreciateAdhocRule($newRuleID)
+    public function testNewRepeatRuleDepreciateAdhocRule()
     {
         
         $db = $this->getDoctrineConnection();
-        
+        $ruleID = 3;
         $dte = $db->fetchColumn('SELECT CAST((NOW() + INTERVAL 5 WEEK) as DATE)',array(),0);
 
-        $db->executeQuery('CALL bm_rules_depreciate_rule(?,?)',array($newRuleID,$dte));
+        $db->executeQuery('CALL bm_rules_depreciate_rule(?,?)',array($ruleID,$dte));
         
         # verify in common table
-        $ruleSTH = $db->executeQuery('SELECT * FROM `rules` where `rule_id` = ?',array($newRuleID));
+        $ruleSTH = $db->executeQuery('SELECT * FROM `rules` where `rule_id` = ?',array($ruleID));
         $ruleResult = $ruleSTH->fetch();
         $this->assertEquals($dte,$ruleResult['valid_to']);
         
         
         # verify in the concrent table the new date been set        
-        $ruleSTH = $db->executeQuery('SELECT * FROM `rules_adhoc` where `rule_id` = ?',array($newRuleID));
+        $ruleSTH = $db->executeQuery('SELECT * FROM `rules_adhoc` where `rule_id` = ?',array($ruleID));
         $ruleResult = $ruleSTH->fetch();
         $this->assertEquals($dte,$ruleResult['valid_to']);
         
-        return $newRuleID;
     }
     
+    /**
+    * @expectedException \Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage Unable to set a depreciation date on a rule for common table
+    */
+    public function testRuleDepreciationFailsBadRuleID()
+    {
+        $db = $this->getDoctrineConnection();
+        $date = $db->fetchColumn("SELECT CAST((NOW()+ INTERVAL 1 Day) AS DATE)",array(),0);
+        $ruleID = 3;
+        
+        $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array(-2,$date));
+        
+    }
     
      /**
-     * @depends testNewRepeatRuleDepreciateAdhocRule
+    * @expectedException \Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage Depreciation date must be on or after today
+    */
+    public function testRuleDepreciationFailsBadValidDate()
+    {
+        $db = $this->getDoctrineConnection();
+        $date = $db->fetchColumn("SELECT CAST((NOW()- INTERVAL 1 Day) AS DATE)",array(),0);
+        $ruleID = 3;
+        
+        $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array(2,$date));
+        
+    }
+
+    /**
+     * @depends testNewRepeatRuleCleanupSuccessfully
      */
     public function testRuleDeleteAudiTrigger($newRuleID)
     {
@@ -581,6 +606,7 @@ class RulesAdhocPackageTest extends BasicTest
         // Step 1 . Test cleanup method
         $rowsAffected = null;
         $db = $this->getDoctrineConnection();
+        
         
         $db->executeQuery('TRUNCATE rule_slots');
         $db->executeQuery('DELETE FROM `rules_adhoc` WHERE `rule_id` = ?',array($newRuleID));

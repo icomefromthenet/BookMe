@@ -866,7 +866,156 @@ class RulesRepeatPackageTest extends BasicTest
     }
   
    
+    public function testRuleRelationToGroup()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleA';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = '*';
+        $ruleDayofmonth     = 1;
+        $ruleMonth          = '*';
+		$ruleDuration       = 60;
+		$ruleStartFrom      = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 YEAR) AS DATE)",array(),0);
+	    $scheduleGroupID    = 1;
+	
+		$changedBy = $db->fetchColumn('SELECT USER()',array(),0);
+        
+        
+        $db->executeQuery("CALL bm_rules_repeat_add_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration)
+        );
+        
+        // ensure that we got a good id back for the new rule
+        $newRuleID = $db->fetchColumn('SELECT @newRuleID',array(),0);
+       
+       $db->executeQuery("CALL bm_rules_relate_group(?,?)",array($newRuleID,$scheduleGroupID));
+       
+       $this->assertEquals(1,$db->fetchColumn('SELECT 1 FROM rules_relations WHERE rule_id = ? AND schedule_group_id = ? ',array($newRuleID,$scheduleGroupID),0));
+       
+       return $newRuleID;
+        
+    }
     
+    /**
+    * @expectedException \Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage Unable to relate rule to schedule group as rule may have a bad validity range
+    */
+    public function testRuleRelationFailesOnInValidGroup()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleA';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = '*';
+        $ruleDayofmonth     = 1;
+        $ruleMonth          = '*';
+		$ruleDuration       = 60;
+		$ruleStartFrom      = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 YEAR) AS DATE)",array(),0);
+	    $scheduleGroupID    = 9;
+	
+		$changedBy = $db->fetchColumn('SELECT USER()',array(),0);
+        
+        
+        $db->executeQuery("CALL bm_rules_repeat_add_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration)
+        );
+        
+        // ensure that we got a good id back for the new rule
+        $newRuleID = $db->fetchColumn('SELECT @newRuleID',array(),0);
+       
+       $db->executeQuery("CALL bm_rules_relate_group(?,?)",array($newRuleID,$scheduleGroupID));
+       
+       
+       
+       return $newRuleID;
+        
+    }
+    
+    public function testRuleRelationToMember()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName           = 'ruleA';
+        $ruleType           = 'inclusion';
+        $ruleMinute         = 0;
+        $ruleHour           = 0;
+        $ruleDayofweek      = '*';
+        $ruleDayofmonth     = 1;
+        $ruleMonth          = '*';
+		$ruleDuration       = 60;
+		$ruleStartFrom      = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+		$ruleEndAt          = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 YEAR) AS DATE)",array(),0);
+	    $memberID           = 1;
+	
+		$changedBy = $db->fetchColumn('SELECT USER()',array(),0);
+        
+        
+        $db->executeQuery("CALL bm_rules_repeat_add_rule(?,?,?,?,?,?,?,?,?,?,@newRuleID)"
+            ,array($ruleName,$ruleType,$ruleMinute,$ruleHour,$ruleDayofweek,$ruleDayofmonth,$ruleMonth,$ruleStartFrom,$ruleEndAt,$ruleDuration)
+        );
+        
+        // ensure that we got a good id back for the new rule
+        $newRuleID = $db->fetchColumn('SELECT @newRuleID',array(),0);
+       
+       $db->executeQuery("CALL bm_rules_relate_member(?,?)",array($newRuleID,$memberID));
+       
+       $this->assertEquals(1,$db->fetchColumn('SELECT 1 FROM rules_relations WHERE rule_id = ? AND membership_id = ? ',array($newRuleID,$memberID),0));
+       
+       return $newRuleID;
+        
+    }
+    
+    
+    public function testRuleDepreciation()
+    {
+        $db = $this->getDoctrineConnection();
+        $date = $db->fetchColumn("SELECT CAST((NOW()+ INTERVAL 1 Day) AS DATE)",array(),0);
+        $ruleID = 2;
+        
+        $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array($ruleID,$date));
+        
+        # test from common table
+        $this->assertEquals($date,$db->fetchColumn('SELECT valid_to FROM rules WHERE rule_id = ?',array($ruleID),0));
+      
+        # test from concrete table
+        $this->assertEquals($date,$db->fetchColumn('SELECT valid_to FROM rules_repeat WHERE rule_id = ?',array($ruleID),0));
+    }
+    
+    
+    /**
+    * @expectedException \Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage Unable to set a depreciation date on a rule for common table
+    */
+    public function testRuleDepreciationFailsBadRuleID()
+    {
+        $db = $this->getDoctrineConnection();
+        $date = $db->fetchColumn("SELECT CAST((NOW()+ INTERVAL 1 Day) AS DATE)",array(),0);
+        $ruleID = -2;
+        
+        $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array(-2,$date));
+        
+    }
+    
+     /**
+    * @expectedException \Doctrine\DBAL\DBALException
+    * @expectedExceptionMessage Depreciation date must be on or after today
+    */
+    public function testRuleDepreciationFailsBadValidDate()
+    {
+        $db = $this->getDoctrineConnection();
+        $date = $db->fetchColumn("SELECT CAST((NOW()- INTERVAL 1 Day) AS DATE)",array(),0);
+        $ruleID = -2;
+        
+        $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array(2,$date));
+        
+    }
 
 }
 /* End of Class */
