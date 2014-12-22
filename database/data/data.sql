@@ -104,7 +104,8 @@ CALL bm_rules_repeat_add_rule('workday','inclusion'
                              ,60,@newRuleID1);
 CALL bm_rules_repeat_save_slots(@newRuleID1,@slotsAffetced,'0','9-17','1-5','*','*',60,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR) AS DATE));
 
--- @membershipID6
+CALL bm_rules_relate_member(@newRuleID1,@membershipID6);
+
 
 
 -- Used to test rule depreciation, we dont care about cal slots or relations

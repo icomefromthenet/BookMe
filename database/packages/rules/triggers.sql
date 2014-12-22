@@ -80,3 +80,27 @@ INSERT INTO audit_rules_adhoc (`change_seq`,`rule_id`,`rule_name`,`rule_type`,`r
                         VALUES (NULL, OLD.`rule_id`, OLD.`rule_name`, OLD.`rule_type`, OLD.`rule_repeat`,OLD.`rule_duration`, USER(), 'D', NOW(),OLD.`valid_from`,OLD.`valid_to`);
 
 $$
+
+
+-- -----------------------------------------------------
+-- trigger bm_rules_relations_audit_insert
+-- -----------------------------------------------------
+DROP TRIGGER IF EXISTS `bm_rules_relations_audit_insert`$$
+
+CREATE TRIGGER `bm_rules_relations_audit_insert` AFTER INSERT ON `rules_relations`
+FOR EACH ROW
+ INSERT INTO `audit_rules_relations` (`change_seq`,`action`,`change_time`,`changed_by`,`rule_id`,`schedule_group_id`,`membership_id`) 
+ VALUES (NULL,'I',NOW(),USER(),NEW.`rule_id`,NEW.`schedule_group_id`,NEW.`membership_id`);
+$$
+
+-- -----------------------------------------------------
+-- trigger bm_rules_relations_audit_delete
+-- -----------------------------------------------------
+DROP TRIGGER IF EXISTS `bm_rules_relations_audit_delete`$$
+
+CREATE TRIGGER `bm_rules_relations_audit_delete` AFTER DELETE ON `rules_relations`
+FOR EACH ROW
+INSERT INTO `audit_rules_relations` (`change_seq`,`action`,`change_time`,`changed_by`,`rule_id`,`schedule_group_id`,`membership_id`) 
+ VALUES (NULL,'D',NOW(),USER(),OLD.`rule_id`,OLD.`schedule_group_id`,OLD.`membership_id`);
+$$
+

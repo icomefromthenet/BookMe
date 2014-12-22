@@ -279,4 +279,108 @@ BEGIN
  	
  	
 END$$                                  
+
+-- -----------------------------------------------------
+-- procedure bm_rules_relate_member
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_find_changed`$$
+
+CREATE PROCEDURE `bm_rules_find_affected_schedules`(IN afterDate DATE)
+BEGIN
+
+	DECLARE l_last_row_fetched INT DEFAULT 0;
+	DECLARE ruleID INT DEFAULT NULL;	
+	DECLARE changed_rules_cursor CURSOR FOR SELECT rule_id FROM bm_changed_rules;
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET l_last_row_fetched=1;
+	
+	
+	-- Create the debug table
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log(concat('starting bm_rules_find_affected_schedules'));
+	END IF;
+
+	IF CAST(NOW() AS DATE) < afterDate THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'The date param must be before NOW';
+	END IF;
+
+	-- table will hold a list of schedules that are affected by rules
+	DROP TEMPORARY TABLE IF EXISTS `bm_affected_schedules`;
+	CREATE TEMPORARY TABLE `bm_affected_schedules` (
+		schedule_id INT NOT NULL PRIMARY KEY
+	) ENGINE=MEMORY;
+
+	DROP TEMPORARY TABLE IF EXISTS `bm_changed_rules`;
+	CREATE TEMPORARY TABLE `bm_changed_rules` (
+		rule_id INT NOT NULL PRIMARY KEY
+	) ENGINE=MEMORY;
+
+	
+	-- find all rules that have changed since datetime
+	INSERT INTO `bm_changed_rules` (`rule_id`) 
+	-- find repeat rules that have been insert/updated/deleted
+		SELECT `rr`.`rule_id` 
+		FROM audit_rules_repeat rr
+		WHERE `rr`.`rule_type` IN ('inclusion','exclusion')
+		AND `rr`.`change_time` >= CAST(afterDate AS DATETIME)
+		UNION
+		-- find adhoc rules that been updated/inserted/deleted
+		SELECT `ar`.`rule_id`
+		FROM audit_rules_adhoc `ar`
+		WHERE `ar`.`rule_type` IN ('inclusion','exclusion')
+		AND `ar`.`change_time` >= CAST(afterDate AS DATETIME)
+		UNION
+		-- find rules that have had slot operations
+		SELECT `op`.`rule_id`
+		FROM rule_slots_operations op
+		JOIN rules r ON `r`.rule_id = `op`.`rule_id`
+		WHERE `r`.`rule_type` IN ('inclusion','exclusion')
+		AND `op`.`change_time` >= CAST(afterDate AS DATETIME)
+		-- find rules that been related to new members and schedules
+		UNION
+		SELECT `rel`.`rule_id`
+		FROM `audit_rules_relations` rel
+		JOIN rules r ON `rel`.rule_id = `r`.`rule_id`
+		WHERE `r`.`rule_type` IN ('inclusion','exclusion')
+		AND `rel`.`change_time` >= CAST(afterDate AS DATETIME);
+	
+	
+	-- find schedules that are linked to those rules, check if we have
+	-- inserted them already
+	
+	SET l_last_row_fetched=0;
+	OPEN changed_rules_cursor;
+		cursor_loop:LOOP
+
+		FETCH changed_rules_cursor INTO ruleID;
+		IF l_last_row_fetched=1 THEN
+			LEAVE cursor_loop;
+		END IF;
+
+		IF @bm_debug = true THEN
+			CALL util_proc_log(concat('finding schedules for changed rule at::',ifnull(ruleID,'null')));
+		END IF;
+
+		-- find schedules 
+			
+		
+	
+		END LOOP cursor_loop;
+	CLOSE changed_rules_cursor;
+	SET l_last_row_fetched=0;
+
+	
+	
+	
+	-- cleanup internal tmp table
+	DROP TABLE IF EXISTS `bm_changed_rules`;
+
+
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_find_affected_schedules');
+	END IF;
+
+END$$
+                                            
                                             

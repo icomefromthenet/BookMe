@@ -240,6 +240,30 @@ CREATE TABLE IF NOT EXISTS `rules_relations` (
 COMMENT = 'Relations table for rules';
 
 -- -----------------------------------------------------
+-- Table `audit_rules_relations`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `audit_rules_relations`;
+
+CREATE TABLE `audit_rules_relations` (
+  -- audit fields
+  `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
+  `action` CHAR(1) DEFAULT '',
+  `change_time` TIMESTAMP NOT NULL,
+  `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+  
+  
+  `rule_id` INT NOT NULL COMMENT 'Rule from common table',
+  `schedule_group_id` INT COMMENT 'Known as a schedule rule',
+  `membership_id` INT COMMENT 'Known as a member rule',
+  
+  PRIMARY KEY (`change_seq`),
+  INDEX idx_audit_rules_rel_rule (`rule_id`)
+
+) ENGINE = InnoDB
+COMMENT= 'Audit trail for rule relationships';
+
+
+-- -----------------------------------------------------
 -- Table `rules_repeat`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `rules_repeat`;
