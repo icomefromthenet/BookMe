@@ -223,17 +223,16 @@ END$$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_repeat_save_slots`$$
 
-CREATE PROCEDURE `bm_rules_repeat_save_slots`(IN ruleID INT
-									 , OUT numberSlots INT
-									 , IN repeatMinute VARCHAR(45)
-									 , IN repeatHour VARCHAR(45)
-									 , IN repeatDayofweek VARCHAR(45)
-									 , IN repeatDayofmonth VARCHAR(45)
-									 , IN repeatMonth VARCHAR(45)
-									 , IN ruleDuration INT
-									 , IN startFrom DATE
-									 , IN endAt DATE)
+CREATE PROCEDURE `bm_rules_repeat_save_slots`(IN ruleID INT, OUT numberSlots INT)
 BEGIN
+	DECLARE repeatMinute VARCHAR(45);
+	DECLARE repeatHour VARCHAR(45);
+	DECLARE repeatDayofweek VARCHAR(45);
+	DECLARE repeatDayofmonth VARCHAR(45);
+	DECLARE repeatMonth VARCHAR(45);
+	DECLARE ruleDuration INT;
+	DECLARE startFrom DATE;
+	DECLARE endAt DATE;
 	DECLARE isInsertError BOOL DEFAULT false;
 	DECLARE duplciateFound BOOL DEFAULT false;
 	DECLARE maxSlotID INT DEFAULT 0;
@@ -245,6 +244,13 @@ BEGIN
 		CALL util_proc_setup();
 		CALL util_proc_log(concat('Starting bm_rules_repeat_save_slots'));
 	END IF;
+
+	-- pull rule data for concrete table
+	SELECT `start_from`,`end_at`,`repeat_minute`,`repeat_hour`,`repeat_dayofweek`,`repeat_dayofmonth`,`repeat_month`,`rule_duration` 
+	FROM rules_repeat 
+	WHERE rule_id = ruleID
+	INTO startFrom, endAt, repeatMinute, repeatHour, repeatDayofweek, repeatDayofmonth, repeatMonth, ruleDuration;
+	
 	
 	-- Create Primary tmp table
 	CALL bm_rules_repeat_create_tmp(false);

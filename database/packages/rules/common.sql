@@ -283,16 +283,15 @@ END$$
 -- -----------------------------------------------------
 -- procedure bm_rules_relate_member
 -- -----------------------------------------------------
-DROP procedure IF EXISTS `bm_rules_find_changed`$$
+DROP procedure IF EXISTS `bm_rules_find_affected_schedules` $$
 
-CREATE PROCEDURE `bm_rules_find_affected_schedules`(IN afterDate DATE)
+CREATE PROCEDURE `bm_rules_find_affected_schedules`(IN afterDate DATETIME)
 BEGIN
 
 	DECLARE l_last_row_fetched INT DEFAULT 0;
 	DECLARE ruleID INT DEFAULT NULL;	
 	DECLARE changed_rules_cursor CURSOR FOR SELECT rule_id FROM bm_changed_rules;
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET l_last_row_fetched=1;
-	
 	
 	-- Create the debug table
 	IF @bm_debug = true THEN
@@ -305,17 +304,15 @@ BEGIN
 		SET MESSAGE_TEXT = 'The date param must be before NOW';
 	END IF;
 
-	-- table will hold a list of schedules that are affected by rules
-	DROP TEMPORARY TABLE IF EXISTS `bm_affected_schedules`;
-	CREATE TEMPORARY TABLE `bm_affected_schedules` (
-		schedule_id INT NOT NULL PRIMARY KEY
-	) ENGINE=MEMORY;
-
+	-- table will hold a list of rules changed
 	DROP TEMPORARY TABLE IF EXISTS `bm_changed_rules`;
 	CREATE TEMPORARY TABLE `bm_changed_rules` (
 		rule_id INT NOT NULL PRIMARY KEY
 	) ENGINE=MEMORY;
 
+	-- clear the result table
+	TRUNCATE `schedules_affected_by_changes`;
+	
 	
 	-- find all rules that have changed since datetime
 	INSERT INTO `bm_changed_rules` (`rule_id`) 
@@ -323,31 +320,32 @@ BEGIN
 		SELECT `rr`.`rule_id` 
 		FROM audit_rules_repeat rr
 		WHERE `rr`.`rule_type` IN ('inclusion','exclusion')
-		AND `rr`.`change_time` >= CAST(afterDate AS DATETIME)
+		AND `rr`.`change_time` >= afterDate
 		UNION
 		-- find adhoc rules that been updated/inserted/deleted
 		SELECT `ar`.`rule_id`
 		FROM audit_rules_adhoc `ar`
 		WHERE `ar`.`rule_type` IN ('inclusion','exclusion')
-		AND `ar`.`change_time` >= CAST(afterDate AS DATETIME)
+		AND `ar`.`change_time` >= afterDate
 		UNION
 		-- find rules that have had slot operations
 		SELECT `op`.`rule_id`
 		FROM rule_slots_operations op
 		JOIN rules r ON `r`.rule_id = `op`.`rule_id`
 		WHERE `r`.`rule_type` IN ('inclusion','exclusion')
-		AND `op`.`change_time` >= CAST(afterDate AS DATETIME)
+		AND `op`.`change_time` >= afterDate
 		-- find rules that been related to new members and schedules
 		UNION
 		SELECT `rel`.`rule_id`
 		FROM `audit_rules_relations` rel
 		JOIN rules r ON `rel`.rule_id = `r`.`rule_id`
 		WHERE `r`.`rule_type` IN ('inclusion','exclusion')
-		AND `rel`.`change_time` >= CAST(afterDate AS DATETIME);
+		AND `rel`.`change_time` >= afterDate;
 	
 	
 	-- find schedules that are linked to those rules, check if we have
 	-- inserted them already
+	
 	
 	SET l_last_row_fetched=0;
 	OPEN changed_rules_cursor;
@@ -362,17 +360,40 @@ BEGIN
 			CALL util_proc_log(concat('finding schedules for changed rule at::',ifnull(ruleID,'null')));
 		END IF;
 
-		-- find schedules 
-			
+		-- find schedules that rule relates too.
+		-- A schedule can be related either through the schedule group or a member.
+		-- We also find any removed relationships from the rule relations audit table, for example removing 
+		-- an inclusion rule would count as a change to a schedule
 		
+		
+		INSERT INTO `schedules_affected_by_changes`
+		SELECT `s`.`schedule_id`
+		FROM schedules s
+		JOIN (SELECT `membership_id`,`schedule_group_id` 
+			  FROM rule_relations 
+			  WHERE `rule_id` = ruleID
+			  UNION
+			  SELECT membership_id,schedule_group_id 
+			  FROM audit_rules_relations
+			  WHERE `rule_id` = ruleID 
+			  AND `action` = 'D'
+			  AND `change_time` >= afterDate
+			  GROUP BY `rule_id`,`membership_id`,`schedule_group_id`
+			  
+		) 
+		-- a rule can be related to a member OR schedule group while schedule must be related to both.
+		a ON `a`.`membership_id` = `s`.`membership_id` OR `a`.`schedule_group_id` = `s`.`schedule_group_id`
+		-- schedule table using open:close interval format
+		WHERE `s`.`open_from` <= NOW() 
+		AND `s`.`closed_on` > NOW() 
+		AND 1 < (SELECT 1 
+		              FROM schedules_affected_by_changes af 
+		              WHERE `s`.`schedule_id` = `af`.`schedule_id`);
 	
 		END LOOP cursor_loop;
 	CLOSE changed_rules_cursor;
 	SET l_last_row_fetched=0;
 
-	
-	
-	
 	-- cleanup internal tmp table
 	DROP TABLE IF EXISTS `bm_changed_rules`;
 

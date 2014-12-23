@@ -513,6 +513,26 @@ CREATE TABLE IF NOT EXISTS `app_activity_log` (
   PRIMARY KEY (`activity_id`))
 ENGINE = InnoDB;
 
+-- -----------------------------------------------------
+-- Table `schedules_affected_by_changes`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `schedules_affected_by_changes`;
+
+CREATE TABLE IF NOT EXISTS `schedules_affected_by_changes`(
+  `schedule_id` INT NOT NULL,
+  `date_known` DATETIME NOT NULL,
+  
+  PRIMARY KEY (`schedule_id`),
+  CONSTRAINT `fk_affected_schedules`
+    FOREIGN KEY (`schedule_id`)
+    REFERENCES `schedules` (`schedule_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+)
+ENGINE = InnoDB
+COMMENT = 'Schedules affected by last set of rule changes';
+
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

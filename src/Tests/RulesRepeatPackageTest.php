@@ -737,16 +737,7 @@ class RulesRepeatPackageTest extends BasicTest
     
         $this->assertNotEmpty($ruleData);
         
-        $db->executeQuery('CALL bm_rules_repeat_save_slots(?,@numberOfSlots,?,?,?,?,?,?,?,?)'
-            ,array($newRuleID
-                    ,$ruleData['repeat_minute']
-                    ,$ruleData['repeat_hour']
-                    ,$ruleData['repeat_dayofweek']
-                    ,$ruleData['repeat_dayofmonth']
-                    ,$ruleData['repeat_month']
-                    ,$ruleData['rule_duration']
-                    ,$ruleData['start_from']
-                    ,$ruleData['end_at']));
+        $db->executeQuery('CALL bm_rules_repeat_save_slots(?,@numberOfSlots)',array($newRuleID));
         
         $slotsCount = $db->fetchColumn('SELECT @numberOfSlots',array(),0);
         
