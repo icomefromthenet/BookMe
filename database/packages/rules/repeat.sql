@@ -8,6 +8,15 @@ DELIMITER $$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_repeat_parse`$$
 
+/*
+Helpul debug query for method below, to find the slots dates
+
+select s1.slot_open as oslot, s2.slot_close as cslot  
+from rule_slots r 
+join slots s1 on r.open_slot_id = s1.slot_id
+join slots s2 on r.close_slot_id = s2.slot_id
+where rule_id = ?;
+*/
 CREATE PROCEDURE `bm_rules_repeat_parse`(IN cron VARCHAR(100), IN cronType VARCHAR(10))
 BEGIN
 
@@ -414,7 +423,7 @@ BEGIN
 	
 	-- insert into common rules table
 	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
-	VALUES (NULL,ruleName,ruleType,repeatValue,startFrom,endAt,ruleDuration);
+	VALUES (NULL,ruleName,ruleType,repeatValue,startFrom,(endAt + INTERVAL 1 DAY),ruleDuration);
 	SET newRuleID = LAST_INSERT_ID();
 	IF newRuleID = 0 OR newRuleID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
@@ -425,7 +434,7 @@ BEGIN
 	INSERT INTO rules_repeat (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`repeat_minute`,`repeat_hour`,`repeat_dayofweek`
 		,`repeat_dayofmonth`,`repeat_month`,`valid_from`,`valid_to`,`rule_duration`,`start_from`,`end_at`)
 	VALUES (newRuleID,ruleName,ruleType,repeatValue,repeatMinute,repeatHour,repeatDayofweek,repeatDayofmonth
-		,repeatMonth,startFrom,endAt,ruleDuration,startFrom,endAt);
+		,repeatMonth,startFrom,(endAt + INTERVAL 1 DAY),ruleDuration,startFrom,(endAt + INTERVAL 1 DAY));
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));

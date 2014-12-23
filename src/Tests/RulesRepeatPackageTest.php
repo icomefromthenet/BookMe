@@ -660,10 +660,10 @@ class RulesRepeatPackageTest extends BasicTest
     		,'opening_slot_id'  => null
     		,'closing_slot_id'  => null
     		,'valid_from'       => $ruleStartFrom
-    		,'valid_to'         => $ruleEndAt
+    		,'valid_to'         => $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 YEAR + INTERVAL 1 DAY) AS DATE)",array(),0)
     		,'rule_duration'    => $ruleDuration
     		,'start_from'       => $ruleStartFrom
-    		,'end_at'           => $ruleEndAt 
+    		,'end_at'           => $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 YEAR + INTERVAL 1 DAY) AS DATE)",array(),0)
     		
         );
         

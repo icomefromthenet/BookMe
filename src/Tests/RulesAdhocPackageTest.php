@@ -93,7 +93,7 @@ class RulesAdhocPackageTest extends BasicTest
         $ruleName = 'adhoc1';
         $ruleType = 'inclusion';
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
-        $validTo   = $db->fetchColumn("SELECT DATE_FORMAT(NOW() ,'%Y-12-31')",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 30 DAY) AS DATE)",array(),0);
         $ruleDuration = 5;
         $newRuleID = null;
         
@@ -113,7 +113,7 @@ class RulesAdhocPackageTest extends BasicTest
                 ,"rule_type"  => $ruleType
                 ,"rule_repeat" => 'adhoc'
                 ,"valid_from" => $validFrom
-                ,"valid_to" => $validTo
+                ,"valid_to" => $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 31 DAY) AS DATE)",array(),0)
                 ,"rule_duration" => $ruleDuration
             );
             

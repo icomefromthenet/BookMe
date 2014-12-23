@@ -370,7 +370,7 @@ BEGIN
 		SELECT `s`.`schedule_id`
 		FROM schedules s
 		JOIN (SELECT `membership_id`,`schedule_group_id` 
-			  FROM rule_relations 
+			  FROM rules_relations 
 			  WHERE `rule_id` = ruleID
 			  UNION
 			  SELECT membership_id,schedule_group_id 
@@ -386,10 +386,10 @@ BEGIN
 		-- schedule table using open:close interval format
 		WHERE `s`.`open_from` <= NOW() 
 		AND `s`.`closed_on` > NOW() 
-		AND 1 < (SELECT 1 
+		AND NOT EXISTS (SELECT 1 
 		              FROM schedules_affected_by_changes af 
 		              WHERE `s`.`schedule_id` = `af`.`schedule_id`);
-	
+
 		END LOOP cursor_loop;
 	CLOSE changed_rules_cursor;
 	SET l_last_row_fetched=0;
