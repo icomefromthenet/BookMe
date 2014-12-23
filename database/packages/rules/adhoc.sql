@@ -31,21 +31,22 @@ BEGIN
 	
 	IF validTo IS NULL THEN
 		SET validTo = DATE('3000-01-01');
+	ELSE 
+	
+		IF utl_is_valid_date_range(validFrom,validTo) = 0 THEN 
+			SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Validity period is and invalid range';
+		END IF;
+		
+		SET validTo = (validTo + INTERVAL 1 DAY);
+		
 	END IF;
 
-	IF CAST(NOW() AS DATE) > validFrom THEN
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Valid from date must be gte NOW';
-	END IF;
 	
-	IF validFrom > validTo THEN 
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Validity period is and invalid range';
-	END IF;
 
 	-- insert member rule into the common rules table 
 	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
-	VALUES (NULL,ruleName,ruleType,repeatValue,validFrom,(validTo + INTERVAL 1 DAY),ruleDuration);
+	VALUES (NULL,ruleName,ruleType,repeatValue,validFrom,validTo,ruleDuration);
 	SET newRuleID = LAST_INSERT_ID();
 	IF newRuleID = 0 OR newRuleID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
@@ -54,7 +55,7 @@ BEGIN
 	
 	-- insert into concret table
 	INSERT INTO rules_adhoc (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
-	VALUES (newRuleID,ruleName,ruleType,repeatValue,validFrom,(validTo + INTERVAL 1 DAY),ruleDuration);
+	VALUES (newRuleID,ruleName,ruleType,repeatValue,validFrom,validTo,ruleDuration);
 
 
 	IF @bm_debug = true THEN

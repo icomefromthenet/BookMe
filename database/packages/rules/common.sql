@@ -52,6 +52,7 @@ BEGIN
 		CALL util_proc_log(concat('Starting bm_rules_depreciate_rule'));
 	END IF;
 	
+	
 	SELECT `valid_from`,`rule_repeat` 
 	FROM `rules` 
 	WHERE `rule_id` = ruleID 
@@ -65,6 +66,8 @@ BEGIN
 	IF validFrom > validTo THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Depreciation date must be on or after today';
+	ELSE 
+		SET validTo = validTo + INTERVAL 1 DAY;
 	END IF;
 
 	

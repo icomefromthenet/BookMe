@@ -401,16 +401,15 @@ BEGIN
 	
 	IF endAt IS NULL THEN
 		SET endAt = DATE('3000-01-01');
-	END IF;
-
-	IF CAST(NOW() AS DATE) > startFrom THEN
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Start from date must be gte NOW';
-	END IF;
-	
-	IF endAt < startFrom THEN 
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = 'Validity period is and invalid range';
+	ELSE 
+		
+		IF utl_is_valid_date_range(startFrom,endAt) = 0 THEN 
+			SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Validity period is and invalid range';
+		END IF;
+		
+		SET endAt = endAt + INTERVAL 1 DAY;
+		
 	END IF;
 
 	-- check the duration is valid
@@ -423,7 +422,7 @@ BEGIN
 	
 	-- insert into common rules table
 	INSERT INTO rules (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
-	VALUES (NULL,ruleName,ruleType,repeatValue,startFrom,(endAt + INTERVAL 1 DAY),ruleDuration);
+	VALUES (NULL,ruleName,ruleType,repeatValue,startFrom,endAt,ruleDuration);
 	SET newRuleID = LAST_INSERT_ID();
 	IF newRuleID = 0 OR newRuleID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
@@ -434,7 +433,7 @@ BEGIN
 	INSERT INTO rules_repeat (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`repeat_minute`,`repeat_hour`,`repeat_dayofweek`
 		,`repeat_dayofmonth`,`repeat_month`,`valid_from`,`valid_to`,`rule_duration`,`start_from`,`end_at`)
 	VALUES (newRuleID,ruleName,ruleType,repeatValue,repeatMinute,repeatHour,repeatDayofweek,repeatDayofmonth
-		,repeatMonth,startFrom,(endAt + INTERVAL 1 DAY),ruleDuration,startFrom,(endAt + INTERVAL 1 DAY));
+		,repeatMonth,startFrom,endAt,ruleDuration,startFrom,endAt);
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));

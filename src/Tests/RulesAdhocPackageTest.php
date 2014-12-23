@@ -51,7 +51,7 @@ class RulesAdhocPackageTest extends BasicTest
     
     /**
      * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage Valid from date must be gte NOW
+     * @expectedExceptionMessage Validity period is and invalid range
     */
     public function testAdhocFailsOnWhenValidToLessThanNow()
     {
@@ -553,19 +553,20 @@ class RulesAdhocPackageTest extends BasicTest
         $db = $this->getDoctrineConnection();
         $ruleID = 3;
         $dte = $db->fetchColumn('SELECT CAST((NOW() + INTERVAL 5 WEEK) as DATE)',array(),0);
+        $dte2 = $db->fetchColumn('SELECT CAST((NOW() + INTERVAL 5 WEEK + INTERVAL 1 DAY) as DATE)',array(),0);
 
         $db->executeQuery('CALL bm_rules_depreciate_rule(?,?)',array($ruleID,$dte));
         
         # verify in common table
         $ruleSTH = $db->executeQuery('SELECT * FROM `rules` where `rule_id` = ?',array($ruleID));
         $ruleResult = $ruleSTH->fetch();
-        $this->assertEquals($dte,$ruleResult['valid_to']);
+        $this->assertEquals($dte2,$ruleResult['valid_to']);
         
         
         # verify in the concrent table the new date been set        
         $ruleSTH = $db->executeQuery('SELECT * FROM `rules_adhoc` where `rule_id` = ?',array($ruleID));
         $ruleResult = $ruleSTH->fetch();
-        $this->assertEquals($dte,$ruleResult['valid_to']);
+        $this->assertEquals($dte2,$ruleResult['valid_to']);
         
     }
     

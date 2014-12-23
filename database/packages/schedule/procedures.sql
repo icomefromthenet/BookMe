@@ -30,14 +30,21 @@ CREATE PROCEDURE `bm_schedule_add_group` (IN groupName VARCHAR(100)
 											, IN validTo DATE
 											, OUT groupID INT)
 BEGIN
+
+	-- table uses closed:open interval format
+	
 	IF (validTo IS NULL) THEN 
-      SET validTo = DATE('3000-01-01');
+     	SET validTo = DATE('3000-01-01');
+    ELSE 
+		IF utl_is_valid_date_range(validFrom,validTo) = 0 THEN
+			SIGNAL SQLSTATE '45000' 
+			SET MESSAGE_TEXT = 'Date range is not valid';
+		END IF;
+	
+    	SET validTo = (validTo + INTERVAL 1 DAY);
 	END IF;
 
-	IF utl_is_valid_date_range(validFrom,validTo) = 0 THEN
-		SIGNAL SQLSTATE '45000' 
-		SET MESSAGE_TEXT = 'Date range is not valid';
-	END IF;
+
 	
 	-- add new group and fetch the assigned ID	
 	-- trigger will update the audit table with insert 
@@ -61,18 +68,26 @@ DROP procedure IF EXISTS `bm_schedule_retire_group`$$
 CREATE PROCEDURE `bm_schedule_retire_group` (IN groupID INT, IN validTo DATE)
 BEGIN
 
+	-- table used closed:open interval format
+	SET validTo = (validTo + INTERVAL 1 DAY);
+
+
 	-- assign new valid to date to retire this group
 	-- verify that new validTo date is wihin the existsing
     -- validity range.
 	UPDATE schedule_groups SET valid_to = validTo
 	WHERE group_id = groupID 
 	AND NOT EXISTS(
+		-- if we have valid schedule we can't reitre the group
+		-- until they too are retired
 		SELECT 1 FROM schedules
 	    WHERE schedule_group_id = groupID
 	    AND closed_on > validTo
 	    LIMIT 1) 
-	AND valid_from <= validTo
-	AND valid_to >= validTo; 
+	-- can't reitire a group before it was valid
+	AND valid_from < validTo
+	-- cant retire a group on same date it originally had, no change here
+	AND valid_to > validTo; 
 		
 	IF ROW_COUNT() = 0 THEN
 		SIGNAL SQLSTATE '45000'
@@ -132,23 +147,29 @@ BEGIN
 
 	IF (validTo IS NULL) THEN 
       SET validTo = DATE('3000-01-01');
+	ELSE 
+	
+		IF (utl_is_valid_date_range(validFrom,validTo) = 0) THEN
+			SIGNAL SQLSTATE '45000' 
+			SET MESSAGE_TEXT = 'Date range is not valid';
+		END IF;
+
+		SET validTo = (validTo + INTERVAL 1 DAY);
+
 	END IF;
 
-	IF (utl_is_valid_date_range(validFrom,validTo) = 0) THEN
-		SIGNAL SQLSTATE '45000' 
-		SET MESSAGE_TEXT = 'Date range is not valid';
-	END IF;
 	
 	-- We require that the schedule validity period  be contained within the assigned groups validity period
 	-- that being the assign group must be valid for each day the schedule exists.
 	
 	-- Members, Timeslot do not have a validity period, the normal FK will maintain consistency
 	
+	
 	INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
 	VALUES (NULL,validFrom,validTo,(SELECT gs.group_id 
 	                                           FROM schedule_groups gs
 	                                           WHERE gs.valid_from <= validFrom
-	                                           AND gs.valid_to >= validTo
+	                                           AND gs.valid_to > validTo
 	                                           AND gs.group_id = groupID),memberID);
 	
 	SET scheduleID =  LAST_INSERT_ID();
@@ -168,6 +189,8 @@ CREATE PROCEDURE `bm_schedule_retire` (IN scheduleID INT
                                    	 , IN validTo DATE)
 BEGIN
 
+	-- table uses closed:open interval period
+	SET validTo = (validTo + INTERVAL 1 DAY);
 	
 	UPDATE `schedules` s SET `s`.`closed_on` = validTo 
 	WHERE NOT EXISTS (

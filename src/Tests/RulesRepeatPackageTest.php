@@ -839,19 +839,20 @@ class RulesRepeatPackageTest extends BasicTest
         $db = $this->getDoctrineConnection();
         
         $dte = $db->fetchColumn('SELECT CAST((NOW() + INTERVAL 5 WEEK) as DATE)',array(),0);
+        $dte2 = $db->fetchColumn('SELECT CAST(((NOW() + INTERVAL 5 WEEK) + INTERVAL 1 DAY) as DATE)',array(),0);
 
         $db->executeQuery('CALL bm_rules_depreciate_rule(?,?)',array($newRuleID,$dte));
         
         # verify in common table
         $ruleSTH = $db->executeQuery('SELECT * FROM `rules` where `rule_id` = ?',array($newRuleID));
         $ruleResult = $ruleSTH->fetch();
-        $this->assertEquals($dte,$ruleResult['valid_to']);
+        $this->assertEquals($dte2,$ruleResult['valid_to']);
         
         
         # verify in the concrent table the new date been set        
         $ruleSTH = $db->executeQuery('SELECT * FROM `rules_repeat` where `rule_id` = ?',array($newRuleID));
         $ruleResult = $ruleSTH->fetch();
-        $this->assertEquals($dte,$ruleResult['valid_to']);
+        $this->assertEquals($dte2,$ruleResult['valid_to']);
         
         return $newRuleID;
     }
@@ -968,15 +969,16 @@ class RulesRepeatPackageTest extends BasicTest
     {
         $db = $this->getDoctrineConnection();
         $date = $db->fetchColumn("SELECT CAST((NOW()+ INTERVAL 1 Day) AS DATE)",array(),0);
+        $date2 = $db->fetchColumn("SELECT CAST(((NOW() + INTERVAL 1 Day) + INTERVAL 1 DAY) AS DATE)",array(),0);
         $ruleID = 2;
         
         $db->executeQuery("CALL bm_rules_depreciate_rule(?,?)",array($ruleID,$date));
         
         # test from common table
-        $this->assertEquals($date,$db->fetchColumn('SELECT valid_to FROM rules WHERE rule_id = ?',array($ruleID),0));
+        $this->assertEquals($date2,$db->fetchColumn('SELECT valid_to FROM rules WHERE rule_id = ?',array($ruleID),0));
       
         # test from concrete table
-        $this->assertEquals($date,$db->fetchColumn('SELECT valid_to FROM rules_repeat WHERE rule_id = ?',array($ruleID),0));
+        $this->assertEquals($date2,$db->fetchColumn('SELECT valid_to FROM rules_repeat WHERE rule_id = ?',array($ruleID),0));
     }
     
     

@@ -33,6 +33,7 @@ class SchedulePackageTest extends BasicTest
         $db     = $this->getDoctrineConnection();
         $now    = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
         $later  = $db->fetchColumn('SELECT CAST(date_add(now(),INTERVAL 7 DAY) AS DATE)',array(),0);
+        $later2  = $db->fetchColumn('SELECT CAST(date_add(now(),INTERVAL 8 DAY) AS DATE)',array(),0);
         $name   = 'mygroup';
         
         $db->executeQuery('call bm_schedule_add_group(?,?,?,@groupID);',array($name,$now,$later),array(\PDO::PARAM_STR,\PDO::PARAM_STR)); 
@@ -47,7 +48,7 @@ class SchedulePackageTest extends BasicTest
         # assert that dates and name are set
         $this->assertEquals((int)$result['group_id'],$groupID);
         $this->assertEquals($result['valid_from'],$now);
-        $this->assertEquals($result['valid_to'],$later);
+        $this->assertEquals($result['valid_to'],$later2);
         $this->assertEquals($result['group_name'],$name);
         
     }
@@ -57,7 +58,9 @@ class SchedulePackageTest extends BasicTest
     {
         $db         = $this->getDoctrineConnection();
         $now         = $db->fetchColumn('SELECT CAST(NOW() AS DATE)',array(),0);
-        $later       = $db->fetchColumn('SELECT CAST(date_add(now(),INTERVAL 1 YEAR) AS DATE)',array(),0);
+        $later       = $db->fetchColumn('SELECT CAST((now() + INTERVAL 1 YEAR) AS DATE)',array(),0);
+        $later2       = $db->fetchColumn('SELECT CAST((now() + INTERVAL 1 YEAR + INTERVAL 1 DAY) AS DATE)',array(),0);
+    
         $groupID     = $db->fetchColumn('SELECT group_id from schedule_groups where group_name = ?',array('mygroup5'),0);
         $memberID    = 1;
         
@@ -88,7 +91,7 @@ class SchedulePackageTest extends BasicTest
             
             $this->assertEquals($scheduleID ,(int)$result['schedule_id']);
             $this->assertEquals($now,$result['open_from']);
-            $this->assertEquals($later,$result['closed_on']);
+            $this->assertEquals($later2,$result['closed_on']);
             $this->assertEquals($groupID,$result['schedule_group_id']);
             $this->assertEquals($memberID,$result['membership_id']);
             
