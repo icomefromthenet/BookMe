@@ -189,12 +189,12 @@ CREATE TABLE IF NOT EXISTS `rules` (
   -- common rule fields
   `rule_id` INT NOT NULL AUTO_INCREMENT,
   `rule_name` VARCHAR(45) NOT NULL,
-  `rule_type` ENUM('inclusion', 'exclusion','priority'),
-  `rule_repeat` ENUM('adhoc', 'repeat'),
+  `rule_type` ENUM('inclusion', 'exclusion','priority','padding','maxbook'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
 
   -- validity date fields
-  valid_from DATE NOT NULL,
-  valid_to   DATE NOT NULL,
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
  
   -- rule durations
   `rule_duration` INT  NULL COMMENT 'event duration of repeat rule', 
@@ -264,6 +264,120 @@ COMMENT= 'Audit trail for rule relationships';
 
 
 -- -----------------------------------------------------
+-- Table `rules_maxbook`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `rules_maxbook`;
+
+CREATE TABLE IF NOT EXISTS `rules_maxbook` (
+  `rule_id` INT NOT NULL AUTO_INCREMENT,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('maxbook'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
+
+  -- validity date fields
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
+ 
+  -- custom rule fields
+  `max_bookings` INT NOT NULL COMMENT 'Maximum number of allows booking per X calendar period',
+  `calendar_period` ENUM('day','week','month','year') NOT NULL COMMENT 'periods to group booking into',
+ 
+  PRIMARY KEY (`rule_id`)
+
+)ENGINE=InnoDB 
+COMMENT='Holds rule to allow a maxium number of bookings';
+
+
+-- -----------------------------------------------------
+-- Table `rules_maxbook`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `audit_rules_maxbook`;
+
+CREATE TABLE IF NOT EXISTS `audit_rules_maxbook` (
+   -- audit fields
+  `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
+  `action` CHAR(1) DEFAULT '',
+  `change_time` TIMESTAMP NOT NULL,
+  `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+  
+  
+  -- validity date fields
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
+  
+  `rule_id` INT NOT NULL,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('maxbook'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
+
+  -- custom rule fields
+  `max_bookings` INT NOT NULL COMMENT 'Maximum number of allows booking per X calendar period',
+  `calendar_period` ENUM('day','week','month','year') NOT NULL COMMENT 'periods to group booking into',
+ 
+
+  PRIMARY KEY (`change_seq`)
+
+
+)ENGINE=InnoDB 
+COMMENT='Audit trail for maxbook rule';
+
+-- -----------------------------------------------------
+-- Table `rules_padding`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `rules_padding`;
+
+CREATE TABLE IF NOT EXISTS `rules_padding` (
+  `rule_id` INT NOT NULL AUTO_INCREMENT,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('padding'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
+
+  -- validity date fields
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
+ 
+  -- custom fields
+  `before_duration` INT NOT NULL COMMENT 'Length in minutes to pad before a booking',
+  `after_duration` INT NOT NULL COMMENT 'Length in minutes to pad after a booking',
+
+
+  PRIMARY KEY (`rule_id`)
+
+)ENGINE=InnoDB 
+COMMENT='Adds padding time between bookings';
+
+-- -----------------------------------------------------
+-- Table `audit_rules_padding`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `audit_rules_padding`;
+
+CREATE TABLE IF NOT EXISTS `audit_rules_padding` (
+  -- audit fields
+  `change_seq` INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key\n',
+  `action` CHAR(1) DEFAULT '',
+  `change_time` TIMESTAMP NOT NULL,
+  `changed_by` VARCHAR(100) NOT NULL COMMENT 'Database user not application user',
+ 
+  `rule_id` INT NOT NULL,
+  `rule_name` VARCHAR(45) NOT NULL,
+  `rule_type` ENUM('padding'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
+
+  -- validity date fields
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
+ 
+   -- custom fields
+  `before_duration` INT NOT NULL COMMENT 'Length in minutes to pad before a booking',
+  `after_duration` INT NOT NULL COMMENT 'Length in minutes to pad after a booking',
+
+ 
+
+  PRIMARY KEY (`change_seq`)
+
+)ENGINE=InnoDB COMMENT='Audit trail for the padding rules table';
+
+-- -----------------------------------------------------
 -- Table `rules_repeat`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `rules_repeat`;
@@ -272,11 +386,11 @@ CREATE TABLE IF NOT EXISTS `rules_repeat` (
   `rule_id` INT NOT NULL,
   `rule_name` VARCHAR(45) NOT NULL,
   `rule_type` ENUM('inclusion', 'exclusion','priority'),
-  `rule_repeat` ENUM('adhoc', 'repeat'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
 
   -- validity date fields
-  valid_from DATE NOT NULL,
-  valid_to   DATE NOT NULL,
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
   
   -- repeat rules fields  
   `repeat_minute` VARCHAR(45) NOT NULL,
@@ -315,11 +429,11 @@ CREATE TABLE IF NOT EXISTS `audit_rules_repeat` (
   `rule_id` INT NOT NULL,
   `rule_name` VARCHAR(45) NOT NULL,
   `rule_type` ENUM('inclusion', 'exclusion','priority'),
-  `rule_repeat` ENUM('adhoc', 'repeat'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
 
   -- validity date fields
-  valid_from DATE NOT NULL,
-  valid_to   DATE NOT NULL,
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
   
   -- repeat rules fields  
   `repeat_minute` VARCHAR(45) NOT NULL,
@@ -347,11 +461,11 @@ CREATE TABLE IF NOT EXISTS `rules_adhoc` (
   `rule_id` INT NOT NULL AUTO_INCREMENT,
   `rule_name` VARCHAR(45) NOT NULL,
   `rule_type` ENUM('inclusion', 'exclusion','priority'),
-  `rule_repeat` ENUM('adhoc', 'repeat'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
 
    -- validity date fields
-  valid_from DATE NOT NULL,
-  valid_to   DATE NOT NULL,
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
   
   -- rule durations
   `rule_duration` INT  NULL COMMENT 'event duration of repeat rule',
@@ -381,11 +495,11 @@ CREATE TABLE IF NOT EXISTS `audit_rules_adhoc` (
   `rule_id` INT NOT NULL,
   `rule_name` VARCHAR(45) NOT NULL,
   `rule_type` ENUM('inclusion', 'exclusion','priority'),
-  `rule_repeat` ENUM('adhoc', 'repeat'),
+  `rule_repeat` ENUM('adhoc', 'repeat','runtime'),
 
    -- validity date fields
-  valid_from DATE NOT NULL,
-  valid_to   DATE NOT NULL,
+  `valid_from` DATE NOT NULL,
+  `valid_to`   DATE NOT NULL,
   
   -- rule durations
   `rule_duration` INT  NULL COMMENT 'smallest interval to use in rule_slots',

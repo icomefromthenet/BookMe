@@ -437,17 +437,8 @@ BEGIN
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));
-	END IF;	
-
-
-	IF @bm_debug = true THEN
-		CALL util_proc_log(concat('Inserted new rule slot operation at::',ifnull(LAST_INSERT_ID(),'NULL')));
-	END IF;	
-
-
-	IF @bm_debug = true THEN
+	
 		CALL util_proc_cleanup('finished procedure bm_rules_add_repeat_rule');
-	END IF;
-
+	END IF;	
 
 END$$

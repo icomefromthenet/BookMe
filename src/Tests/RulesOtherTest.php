@@ -1,0 +1,240 @@
+<?php
+namespace IComeFromTheNet\BookMe\Tests;
+
+use IComeFromTheNet\BookMe\BookMeService;
+use IComeFromTheNet\BookMe\Tests\BasicTest;
+use Doctrine\DBAL\DBALException;
+
+class RulesOtherPackageTest extends BasicTest
+{
+    
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage The duration before is not in valid range between 1 minute and 1 year
+    */ 
+    public function testNewPaddingRuleFailsOnBadBeforeDuration()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'padding1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $durationBefore = -10;
+        $durationAfter  = 0;
+        
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+    }
+    
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage The duration after is not in valid range between 1 minute and 1 year
+    */
+    public function testNewPaddingRuleFailsOnBadAfterDuration()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'padding1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $durationBefore = 0;
+        $durationAfter  = -1;
+        
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        
+    }
+    
+       
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage No padding time has been specified both durations are eq to 0
+    */
+    public function testNewPaddingRuleFailsWhenNoPaddingSpecified()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'padding1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $durationBefore = 0;
+        $durationAfter  = 0;
+        
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        
+    }
+    
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Validity period is and invalid range
+    */
+    public function testNewPaddingRuleFailsOnBadValidityRange()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'padding1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() - INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $durationBefore = 0;
+        $durationAfter  = 1;
+        
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        
+    }
+ 
+    
+    public function testNewPaddingRuleSuccess()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'padding1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $validToInternal   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK + INTERVAL 1 DAY) AS DATE)",array(),0);
+        $durationBefore = 0;
+        $durationAfter  = 10;
+        
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        
+        $newRuleID = $db->fetchColumn("SELECT @newRuleID",array(),0);
+        
+        $this->assertNotEmpty($newRuleID);
+        
+        # verify the values in common table
+        $map = array(
+             'rule_id'       => $newRuleID
+            ,'rule_name'     => $ruleName
+            ,'rule_type'     => 'padding'
+            ,'rule_repeat'   => 'runtime'
+            ,'valid_from'    => $validFrom
+            ,'valid_to'      => $validToInternal
+            ,'rule_duration' => 0
+        );
+        
+        $ruleSTH = $db->executeQuery('SELECT * FROM `rules` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        
+        foreach($ruleResult as $key => $value) {
+            $this->assertEquals($map[$key],$value);
+        }
+        
+        
+        # verify the values in concrete table
+        $map['before_duration'] = $durationBefore;
+        $map['after_duration']  = $durationAfter;
+        
+        $ruleSTH = $db->executeQuery('SELECT * FROM `rules_padding` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        
+        foreach($ruleResult as $key => $value) {
+            $this->assertEquals($map[$key],$value);
+        }
+        
+        
+        # verify the audit insert trigger has correct values
+        $map['changed_by'] = $db->fetchColumn('SELECT USER()',array(),0);
+        $map['action'] = 'I';
+        $map['change_time'] = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
+          
+        $ruleSTH = $db->executeQuery("SELECT * FROM `audit_rules_padding` WHERE `rule_id` = ? and action = 'I'",array($newRuleID),array());
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        
+        foreach($ruleResult as $key => $value) {
+            if($key !== 'change_seq') {
+                $this->assertEquals($map[$key],$value);
+            }
+        }
+        
+        # vefify the update trigger 
+        $newRuleName = 'paddingv2';
+        $map['rule_name'] = $newRuleName;
+        $map['action'] = 'U';
+        $db->executeQuery('UPDATE `rules_padding` SET rule_name = ? WHERE `rule_id` = ?',array($newRuleName,$newRuleID),array());
+        
+        
+        $ruleSTH = $db->executeQuery("SELECT * FROM `audit_rules_padding` 
+                                      WHERE `rule_id` = ? 
+                                      AND action = 'U' 
+                                      ORDER BY change_seq DESC 
+                                      LIMIT 1",array($newRuleID),array());
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        $this->assertEquals($newRuleName,$ruleResult['rule_name']);                              
+            
+        foreach($ruleResult as $key => $value) {
+            if($key !== 'change_seq') {
+                $this->assertEquals($map[$key],$value);
+            }
+        }                          
+        
+        #verify the delete trigger
+        $map['action'] = 'D';
+        $db->executeQuery('DELETE FROM `rules_padding` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleSTH = $db->executeQuery("SELECT valid_to FROM `audit_rules_padding` 
+                                      WHERE `rule_id` = ? 
+                                      AND action = 'D' 
+                                      ORDER BY change_seq DESC 
+                                      LIMIT 1",array($newRuleID),array());
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        foreach($ruleResult as $key => $value) {
+            if($key !== 'change_seq') {
+                $this->assertEquals($map[$key],$value);
+            }
+        } 
+        
+        return $newRuleID;
+    }
+    
+   
+    public function testDepreciatePaddingRule()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'padding1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $durationBefore = 0;
+        $durationAfter  = 10;
+        
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        
+        $newRuleID = $db->fetchColumn("SELECT @newRuleID",array(),0);
+    
+        
+        $newValidTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 3 DAY) AS DATE)",array(),0);
+        $newValidToInternal   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 4 DAY) AS DATE)",array(),0);
+        
+        
+        $db->executeQuery('CALL bm_rules_depreciate_rule(?,?)',array($newRuleID,$newValidTo),array());
+        
+        # vefiy the common table updated
+        $ruleSTH = $db->executeQuery('SELECT valid_to FROM `rules` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        $this->assertEquals($newValidToInternal,$ruleResult['valid_to']);
+        
+        
+        # verify the concrete table updated
+        $ruleSTH = $db->executeQuery('SELECT valid_to FROM `rules_padding` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        $this->assertEquals($newValidToInternal,$ruleResult['valid_to']);
+        
+        # verify the audit update update trigger correct
+        $ruleSTH = $db->executeQuery("SELECT valid_to FROM `audit_rules_padding` 
+                                      WHERE `rule_id` = ? 
+                                      AND action = 'U' 
+                                      ORDER BY change_seq DESC 
+                                      LIMIT 1",array($newRuleID),array());
+        
+        $ruleResult = $ruleSTH->fetch();
+        $this->assertNotEmpty($ruleResult);
+        $this->assertEquals($newValidToInternal,$ruleResult['valid_to']);
+        
+        
+    }
+    
+}
+/* End of File */

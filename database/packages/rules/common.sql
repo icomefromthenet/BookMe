@@ -16,18 +16,18 @@ BEGIN
 			-- Select all periods where there is a second (overlapping / start / finish) period
 			-- the unique key on table will stop 'equal periods' (same open and closing slot).
 			SELECT *
-			FROM rule_slots AS r1
+			FROM `rule_slots` r1
 			WHERE 1 < (
 				-- return a count 1
 				SELECT COUNT(*)
-				FROM rule_slots AS r2
-				WHERE r2.rule_id = r1.rule_id -- correlated subquery
+				FROM `rule_slots` r2
+				WHERE r2.`rule_id` = r1.`rule_id` -- correlated subquery
 				-- as the rule and slot table use closed:open interval format
 				-- we only need to use '<' comparison as the previous closing slot is always equal to the next opening slot.
-				AND r1.open_slot_id < r2.close_slot_id
-				AND r2.open_slot_id < r1.close_slot_id
+				AND r1.`open_slot_id` < r2.`close_slot_id`
+				AND r2.`open_slot_id` < r1.`close_slot_id`
 			)
-			AND r1.rule_id = ruleID);
+			AND r1.`rule_id` = ruleID);
 	
 	IF isDuplicateFound = 1 THEN
 		SET  duplciateFound = TRUE;
@@ -41,10 +41,11 @@ END$$
 -- -----------------------------------------------------
 DROP PROCEDURE IF EXISTS `bm_rules_depreciate_rule`$$
 
-CREATE PROCEDURE `bm_rules_depreciate_rule` (IN ruleID INT,IN validTo DATE)
+CREATE PROCEDURE `bm_rules_depreciate_rule` (IN ruleID INT ,IN validTo DATE)
 BEGIN
 	DECLARE validFrom DATE;
 	DECLARE ruleRepeat VARCHAR(25);
+	DECLARE ruleType VARCHAR(25);
 
 	-- Create the debug table
 	IF @bm_debug = true THEN
@@ -52,11 +53,9 @@ BEGIN
 		CALL util_proc_log(concat('Starting bm_rules_depreciate_rule'));
 	END IF;
 	
-	
-	SELECT `valid_from`,`rule_repeat` 
-	FROM `rules` 
-	WHERE `rule_id` = ruleID 
-	INTO validFrom, ruleRepeat;
+	SELECT `valid_from`,`rule_repeat`,`rule_type`
+	FROM `rules` WHERE `rule_id` = ruleID 
+	INTO validFrom, ruleRepeat, ruleType;
 	
 	IF @bm_debug = TRUE THEN
 		CALL util_proc_log(concat('validFrom from is set too ',valid_from , ' ruleRepeat is ',ruleRepeat));
@@ -80,10 +79,27 @@ BEGIN
 
 	-- do operation on concrete table
 	IF ruleRepeat = 'adhoc' THEN
+	
 		UPDATE `rules_adhoc` SET valid_to = validTo WHERE rule_id = ruleID;
-	ELSE 
+		
+	ELSEIF ruleRepeat = 'repeat' THEN
+		
 		UPDATE `rules_repeat` SET valid_to = validTo WHERE rule_id = ruleID;
+		
+	ELSEIF ruleRepeat = 'runtime' THEN
+		
+		IF ruleType = 'padding' THEN 
+			
+			UPDATE `rules_padding` SET valid_to = validTo WHERE rule_id = ruleID;
+			
+		ELSEIF ruleType = 'maxbook' THEN
+			
+			UPDATE `rules_maxbook` SET valid_to = validTo WHERE rule_id = ruleID;
+			
+		END IF;
+	
 	END IF;
+	
 	IF ROW_COUNT() = 0 THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Unable to set a depreciation date on a rule for concrete table';
@@ -407,4 +423,4 @@ BEGIN
 
 END$$
                                             
-                                            
+
