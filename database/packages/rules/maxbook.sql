@@ -44,6 +44,11 @@ BEGIN
 	    SET MESSAGE_TEXT = 'Max Booking Number must be gt 0';
 	END IF;
 	
+	IF bm_rules_is_valid_calendar_type(calendarType) = false THEN
+	    SIGNAL SQLSTATE '45000'
+	    SET MESSAGE_TEXT = 'Calendar Type must be one of the following::day,week,month,year';
+	END IF;
+	
 	
 	-- insert into common rules table
 	INSERT INTO `rules` (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`rule_duration`)
@@ -57,7 +62,10 @@ BEGIN
 	-- insert rule into concrete table
 	INSERT INTO `rules_maxbook` (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`max_bookings`,`calendar_period`)
 	VALUES (newRuleID,ruleName,'maxbook','runtime',validFrom,validTo,maxBookingNumber,calendarType);
-
+    IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to insert concrete maxbook rule';
+	END IF;
 
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));

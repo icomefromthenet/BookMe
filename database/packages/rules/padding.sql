@@ -68,6 +68,11 @@ BEGIN
 	-- insert rule into concrete table
 	INSERT INTO rules_padding (`rule_id`,`rule_name`,`rule_type`,`rule_repeat`,`valid_from`,`valid_to`,`before_duration`,`after_duration`)
 	VALUES (newRuleID,ruleName,'padding','runtime',validFrom,validTo,durationBefore,durationAfter);
+	IF ROW_COUNT() = 0 THEN
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Unable to insert concrete padding rule';
+	END IF;
+
 	
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Inserted new rule at:: *',ifnull(newRuleID,'NULL')));

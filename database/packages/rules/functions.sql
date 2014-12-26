@@ -293,5 +293,21 @@ RETURNS BOOLEAN DETERMINISTIC BEGIN
     RETURN isRule;
 END$$
 
+-- -----------------------------------------------------
+-- functions `bm_rules_is_valid_calendar_type` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_valid_calendar_type`$$
+
+CREATE FUNCTION `bm_rules_is_valid_calendar_type` (calValue VARCHAR(45))
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isValid BOOLEAN DEFAULT false;
+    
+    IF calValue IN ('day','week','month','year') THEN
+        SET isValid = true;
+    END IF;
+    
+    RETURN isValid;
+END$$
+
 
 
