@@ -111,6 +111,7 @@ UPDATE schedules SET `open_from` = (`open_from` - INTERVAL 4 DAY) WHERE `schedul
 CALL bm_schedule_add(@newScheduleGroupID1,@membershipID1,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 7 DAY) AS DATE),@schedule7);
 
 -- Demo Data schedules
+
     -- Day Schedules
 CALL bm_schedule_add(@newScheduleGroupID10,@membershipID7,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR) AS DATE),@scheduleNullID);
 CALL bm_schedule_add(@newScheduleGroupID10,@membershipID8,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR) AS DATE),@scheduleNullID);
@@ -177,6 +178,7 @@ CALL bm_rules_adhoc_add_rule('testdeprec','inclusion',CAST(NOW() AS DATE),CAST((
     CALL bm_rules_relate_group(@newRuleID5,@newScheduleGroupID10);
 
     -- Weekend Schedule Rules ----------------------
+
     CALL bm_rules_repeat_add_rule('weekendWorkday','inclusion'
                                  ,'0','9-14','0,6','*','*'
                                  ,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR)AS DATE)
@@ -195,8 +197,23 @@ CALL bm_rules_adhoc_add_rule('testdeprec','inclusion',CAST(NOW() AS DATE),CAST((
     CALL bm_rules_relate_group(@newRuleID7,@newScheduleGroupID11);
 
     
-    
     -- After Hours Schedule Rules ----------------------
+
+    CALL bm_rules_repeat_add_rule('afterHoursWorkday','inclusion'
+                                 ,'0','14-22','1-5','*','*'
+                                 ,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR)AS DATE)
+                                 ,60,@newRuleID8);
+    
+    CALL bm_rules_repeat_add_rule('afterHoursLunch','exclusion'
+                                 ,'30','18','1-5','*','*'
+                                 ,CAST(NOW() AS DATE),CAST((NOW() + INTERVAL 1 YEAR)AS DATE)
+                                 ,60,@newRuleID9);
+
+    CALL bm_rules_repeat_save_slots(@newRuleID8,@slotsAffetced);
+    CALL bm_rules_repeat_save_slots(@newRuleID9,@slotsAffetced);
+   
+    CALL bm_rules_relate_group(@newRuleID8,@newScheduleGroupID12);
+    CALL bm_rules_relate_group(@newRuleID9,@newScheduleGroupID12);
 
 
 -- -----------------------------------------------------

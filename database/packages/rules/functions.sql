@@ -260,6 +260,38 @@ RETURNS BOOLEAN DETERMINISTIC BEGIN
     RETURN isRule;
 END$$
 
+-- -----------------------------------------------------
+-- functions `bm_rules_is_maxbook` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_maxbook`$$
+
+CREATE FUNCTION `bm_rules_is_maxbook` (ruleType varchar(255))
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isRule BOOLEAN DEFAULT false;
+    
+    IF ruleType ='maxbook' THEN
+        SET isRule = true;
+    END IF;
+    
+    RETURN isRule;
+END$$
+
+
+-- -----------------------------------------------------
+-- functions `bm_rules_is_padding` 
+-- -----------------------------------------------------
+DROP function IF EXISTS `bm_rules_is_padding`$$
+
+CREATE FUNCTION `bm_rules_is_padding` (ruleType varchar(255))
+RETURNS BOOLEAN DETERMINISTIC BEGIN
+    DECLARE isRule BOOLEAN DEFAULT false;
+    
+    IF ruleType ='padding' THEN
+        SET isRule = true;
+    END IF;
+    
+    RETURN isRule;
+END$$
 
 -- -----------------------------------------------------
 -- functions `bm_rules_is_member` 

@@ -30,28 +30,35 @@ BEGIN
 	IF ruleType Is NOT NULL 
 	   AND bm_rules_is_exclusion(ruleType) = false
 	   AND bm_rules_is_inclusion(ruleType) = false 
-	   AND bm_rules_is_priority(ruleType)  = false THEN
+	   AND bm_rules_is_priority(ruleType)  = false 
+	   AND bm_rules_is_maxbook(ruleType)  = false 
+	   AND bm_rules_is_padding(ruleType)  = false THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Either a valid rule type or none must be supplied';
 	END IF;
 	
 	SELECT * 
-	FROM rules r
-	JOIN (SELECT `rl`.`rule_id` AS rule_id
-		FROM timeslot_slots ts
-		JOIN  timeslots t ON `t`.`timeslot_id` = `ts`.`timeslot_id`
-		JOIN slots s ON `s`.`slot_id` BETWEEN `ts`.`opening_slot_id` and `ts`.`closing_slot_id`
-		JOIN rule_slots rs ON `rs`.`slot_id` = `s`.`slot_id` 
-		JOIN  rules rl ON `rl`.`rule_id` = `rs`.`rule_id`
+	FROM rules rr
+	JOIN (SELECT `r`.`rule_id`
+		FROM `timeslot_slots` ts
+		-- as both table use closed:open interval format we need to match closing interval using 'lte' 
+		JOIN `rule_slots` rs ON `ts`.`opening_slot_id` >= `rs`.`open_slot_id` 
+								AND `ts`.`closing_slot_id` <= `rs`.`close_slot_id`
+		JOIN `rules` r on `r`.`rule_id` = `rs`.`rule_id`
 		WHERE `ts`.`timeslot_slot_id` = timeslotSlotID
-	    AND (memberID IS NULL OR `rl`.`membership_id` = memberID)
-		AND  (groupID IS NULL OR `rl`.`schedule_group_id` = groupID)
-		AND (ruleType IS NULL OR `rl`.`rule_type` = ruleType)
-		AND `rl`.`valid_from` <= CAST(NOW() AS DATE)
-		AND `rl`.`valid_to` >= CAST(NOW() AS DATE)
-		GROUP BY `rl`.`rule_id`
-		) fr ON `fr`.`rule_id` = `r`.`rule_id`
-	ORDER BY `r`.`valid_from`;
+		AND EXISTS (
+			SELECT 1
+			FROM `rules_relations` rl 
+			WHERE `r`.`rule_id` = `rl`.`rule_id`
+			AND (memberID IS NULL OR `rl`.`membership_id` = memberID)
+			AND (groupID IS NULL OR `rl`.`schedule_group_id` = groupID)
+		)
+		AND (ruleType IS NULL OR `r`.`rule_type` = ruleType)
+		AND `r`.`valid_from` <= CAST(NOW() AS DATE)
+		AND `r`.`valid_to` > CAST(NOW() AS DATE)
+		GROUP BY `r`.`rule_id`
+	) fr ON `fr`.`rule_id` = `rr`.`rule_id`
+	ORDER BY `rr`.`valid_from`;
 
 
 END$$

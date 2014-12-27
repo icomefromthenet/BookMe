@@ -81,12 +81,15 @@ BEGIN
     -- close:open    [1:6)
     --
     INSERT INTO timeslot_slots (timeslot_slot_id,opening_slot_id,closing_slot_id,timeslot_id)  
-		SELECT NULL
-              ,min(a.slot_id) as slot_open_id	
-              ,max(a.slot_id) as slot_close_id
-              ,timeslotID
-        FROM slots a
-		GROUP BY ceil(a.slot_id/timeslotLength);
+	SELECT NULL
+          ,min(`a`.`slot_id`) as slot_open_id	
+          ,max(`a`.`slot_id`) +1 as slot_close_id 
+          ,timeslotID
+    FROM `slots` a
+    -- as where using closed:open we can not use the last row in slot table
+    -- this would cause a FK key constrain we stop at the last slot in the table. 
+    WHERE `a`.`slot_id` < (select max(`b`.`slot_id`) FROM `slots` b)
+	GROUP BY ceil(`a`.`slot_id`/timeslotLength);
 		
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('For timeslot at:: ',timeslotID,' Inserted ',ROW_COUNT(),' into timeslot_slots'));
