@@ -28,6 +28,53 @@ CREATE TABLE IF NOT EXISTS `calendar` (
 ENGINE = InnoDB
 COMMENT = 'Calender table that store the next 10 years of dates';
 
+-- -----------------------------------------------------
+-- Table `calendar_months`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `calendar_months`;
+
+CREATE TABLE IF NOT EXISTS `calendar_months` (
+ `y` SMALLINT NULL COMMENT 'year where date occurs',
+ `m` TINYINT NULL COMMENT 'month of the year',
+ `month_name` VARCHAR(9) NULL COMMENT 'text name of the month',
+ `m_sweek` TINYINT NULL COMMENT 'week number in the year',
+ `m_eweek` TINYINT NULL COMMENT 'week number in the year',
+ 
+ PRIMARY KEY(`y`,`m`)
+ 
+)ENGINE = InnoDB
+COMMENT = 'Calender table that store the next x years in month aggerates';
+
+-- -----------------------------------------------------
+-- Table `calendar_quarters`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `calendar_quarters`;
+
+CREATE TABLE IF NOT EXISTS `calendar_quarters` (
+ `y` SMALLINT NULL COMMENT 'year where date occurs',
+ `q` TINYINT NULL COMMENT 'quarter of the year date belongs',
+ `m_start` DATE NULL COMMENT 'starting month',
+ `m_end` DATE NULL COMMENT 'ending_months',
+ 
+ PRIMARY KEY(`y`,`q`)
+ 
+)ENGINE = InnoDB
+COMMENT = 'Calender table that store the next x years in month quarter aggerates';
+
+-- -----------------------------------------------------
+-- Table `calendar_years`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `calendar_years`;
+
+CREATE TABLE IF NOT EXISTS `calendar_years` (
+ `y` SMALLINT NULL COMMENT 'year where date occurs',
+ `y_start` DATETIME NOT NULL,
+ `y_end` DATETIME NOT NULL,
+ 
+ PRIMARY KEY(`y`)
+ 
+)ENGINE = InnoDB
+COMMENT = 'Calender table that store the next x years';
 
 -- -----------------------------------------------------
 -- Table `slots`
@@ -642,7 +689,7 @@ DROP TABLE IF EXISTS `bookings_agg_mv` ;
 CREATE TABLE IF NOT EXISTS `bookings_agg_mv` (
   schedule_id INT NOT NULL,
   
-  cal_week DATE NOT NULL,
+  cal_week INT NOT NULL,
   cal_month INT NOT NULL,
   cal_year  INT NOT NULL,
   cal_sun INT DEFAULT 0, 
@@ -660,6 +707,37 @@ CREATE TABLE IF NOT EXISTS `bookings_agg_mv` (
 ) ENGINE = InnoDB 
 COMMENT= 'Materialised view for booking count agg divided into calender periods';
 
+
+-- -----------------------------------------------------
+-- Table `bookings_monthly_agg_vw`
+-- -----------------------------------------------------
+
+DROP VIEW IF EXISTS `bookings_monthly_agg_vw`;
+CREATE VIEW `bookings_monthly_agg_vw` AS
+SELECT `cal`.`y` as year,`cal`.`m` as month, `b`.`schedule_id`
+    ,sum(ifnull(`b`.`cal_sun`,0)) AS cal_sun ,sum(ifnull(`b`.`cal_mon`,0)) AS cal_mon ,sum(ifnull(`b`.`cal_tue`,0)) AS cal_tue
+	  ,sum(ifnull(`b`.`cal_wed`,0)) AS cal_wed ,sum(ifnull(`b`.`cal_thu`,0)) AS cal_thu ,sum(ifnull(`b`.`cal_fri`,0)) AS cal_fri
+	  ,sum(ifnull(`b`.`cal_sat`,0)) AS cal_sat
+FROM calendar_months cal
+LEFT JOIN `bookings_agg_mv` b ON `b`.`cal_year` = `cal`.`y` 
+AND `b`.`cal_week` >= `cal`.`m_sweek` 
+AND `b`.`cal_week` <= `cal`.`m_eweek`
+GROUP BY `cal`.`y`, `cal`.`m`, `b`.`schedule_id`;
+
+-- -----------------------------------------------------
+-- Table `bookings_yearly_agg_vw`
+-- -----------------------------------------------------
+
+DROP VIEW IF EXISTS `bookings_yearly_agg_vw`;
+
+CREATE VIEW `bookings_yearly_agg_vw` AS
+SELECT `cal`.`y` as year, `b`.`schedule_id`
+    ,sum(ifnull(`b`.`cal_sun`,0)) AS cal_sun ,sum(ifnull(`b`.`cal_mon`,0)) AS cal_mon ,sum(ifnull(`b`.`cal_tue`,0)) AS cal_tue
+	  ,sum(ifnull(`b`.`cal_wed`,0)) AS cal_wed ,sum(ifnull(`b`.`cal_thu`,0)) AS cal_thu ,sum(ifnull(`b`.`cal_fri`,0)) AS cal_fri
+	  ,sum(ifnull(`b`.`cal_sat`,0)) AS cal_sat
+FROM calendar_years cal
+LEFT JOIN `bookings_agg_mv` b ON `b`.`cal_year` = `cal`.`y` 
+GROUP BY `cal`.`y`, `b`.`schedule_id`;
 
 -- -----------------------------------------------------
 -- Table `app_activity_log`

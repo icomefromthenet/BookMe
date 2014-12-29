@@ -161,4 +161,27 @@ BEGIN
 		CALL util_proc_log(concat('Build calendar for ',x,' years'));
 	END IF;
 	
+	-- create months table
+	
+	INSERT INTO `calendar_months` (`y`,`m`,`month_name`,`m_sweek`,`m_eweek`)
+	SELECT `c`.`y`, `c`.`m`, max(`c`.`month_name`) as month_name
+	       ,min(`c`.`w`) AS a, max(`c`.`w`) AS b 
+	FROM `calendar` c
+	GROUP BY `c`.`y`,`c`.`m`;
+	
+	-- create quaters table
+	
+	INSERT INTO `calendar_quarters` (`y`,`q`,`m_start`,`m_end`)
+	SELECT `c`.`y`,`c`.`q`
+			,min(`c`.`calendar_date`)
+			,max(`c`.`calendar_date`)
+	FROM `calendar` c
+	GROUP BY `c`.`y`,`c`.`q`;
+
+	-- create years table
+	INSERT INTO `calendar_years` (`y`,`y_start`,`y_end`)
+	SELECT `c`.`y`,min(`c`.`calendar_date`),max(`c`.`calendar_date`)
+	FROM `calendar` c
+	GROUP BY `c`.`y`;
+	
 END
