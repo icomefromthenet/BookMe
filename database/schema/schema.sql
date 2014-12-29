@@ -599,17 +599,66 @@ DROP TABLE IF EXISTS `bookings` ;
 
 CREATE TABLE IF NOT EXISTS `bookings` (
   `booking_id` INT NOT NULL,
-  `start_slot_id` INT NOT NULL,
-  `end_slot_id` INT NOT NULL,
   `schedule_id` INT NOT NULL,
+  
+  `open_slot_id` INT NOT NULL,
+  `close_slot_id` INT NOT NULL,
+  
+  -- helpful de-normalisation to avoid a join back on slots table to fetch cal date  
+  `starting_date` DATE NOT NULL,
+  `closing_date` DATE NOt NULL,
+  
   PRIMARY KEY (`booking_id`),
+  
   INDEX `fk_bookings_1_idx` (`schedule_id` ASC),
+  INDEX `fk_bookings_2_idx` (`open_slot_id` ASC,`close_slot_id` ASC),
+  
   CONSTRAINT `fk_bookings_1`
     FOREIGN KEY (`schedule_id`)
     REFERENCES `schedules` (`schedule_id`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    ON UPDATE NO ACTION,
+  
+  CONSTRAINT `fk_bookings_open_slot`
+    FOREIGN KEY (`open_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  
+  CONSTRAINT `fk_bookings_close_slot`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+    
+) ENGINE = InnoDB
+COMMENT = 'Table to record bookings';
+
+-- -----------------------------------------------------
+-- Table `bookings_agg_mv`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `bookings_agg_mv` ;
+
+CREATE TABLE IF NOT EXISTS `bookings_agg_mv` (
+  schedule_id INT NOT NULL,
+  
+  cal_week DATE NOT NULL,
+  cal_month INT NOT NULL,
+  cal_year  INT NOT NULL,
+  cal_sun INT DEFAULT 0, 
+  cal_mon INT DEFAULT 0, 
+  cal_tue INT DEFAULT 0, 
+  cal_wed INT DEFAULT 0,
+  cal_thu INT DEFAULT 0,
+  cal_fri INT DEFAULT 0,
+  cal_sat INT DEFAULT 0,
+  
+  interval_start DATE  NOT NULL,
+  interval_finish DATE NOT NULL,
+  
+  PRIMARY KEY (schedule_id,cal_week,cal_year)
+) ENGINE = InnoDB 
+COMMENT= 'Materialised view for booking count agg divided into calender periods';
 
 
 -- -----------------------------------------------------

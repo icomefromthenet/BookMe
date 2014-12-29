@@ -75,3 +75,68 @@ BEGIN
 
 
 END$$
+
+
+-- -----------------------------------------------------
+-- procedure bm_rules_maxbook_create_tmp_table
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_maxbook_create_tmp_table`$$
+
+CREATE PROCEDURE `bm_rules_maxbook_create_tmp_table`()
+BEGIN
+
+	DROP TEMPORARY TABLE IF EXISTS `schedule_maxbool_slots`;
+	CREATE TEMPORARY TABLE `schedule_maxbool_slots` (
+		timeslot_slot_id INT NOT NULL PRIMARY KEY,
+		has_maxed INT DEFAULT 0
+	) ENGINE=MEMORY;
+	
+
+END$$
+
+
+-- -----------------------------------------------------
+-- procedure bm_rules_maxbook_cal_day
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_maxbook_cal_day`$$
+
+CREATE PROCEDURE `bm_rules_maxbook_cal_day`()
+BEGIN
+
+END$$
+
+
+-- -----------------------------------------------------
+-- procedure bm_rules_maxbook_cal_week
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_maxbook_cal_week`$$
+
+CREATE PROCEDURE `bm_rules_maxbook_cal_week`()
+BEGIN
+
+
+END$$
+
+
+-- -----------------------------------------------------
+-- procedure bm_rules_maxbook_cal_month
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_maxbook_cal_month`$$
+
+CREATE PROCEDURE `bm_rules_maxbook_cal_month`()
+BEGIN
+
+
+END$$
+
+
+-- -----------------------------------------------------
+-- procedure bm_rules_maxbook_cal_year
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_rules_maxbook_cal_year`$$
+
+CREATE PROCEDURE `bm_rules_maxbook_cal_year`()
+BEGIN
+
+
+END$$

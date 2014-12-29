@@ -5,96 +5,79 @@ use IComeFromTheNet\BookMe\BookMeService;
 use IComeFromTheNet\BookMe\Tests\BasicTest;
 use Doctrine\DBAL\DBALException;
 
-class RulesOtherPackageTest extends BasicTest
+class RulesMaxBookPackageTest extends BasicTest
 {
-    
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage The duration before is not in valid range between 1 minute and 1 year
-    */ 
-    public function testNewPaddingRuleFailsOnBadBeforeDuration()
-    {
-        $db = $this->getDoctrineConnection();
-        
-        $ruleName = 'padding1';
-        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
-        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = -10;
-        $durationAfter  = 0;
-        
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
-    }
-    
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage The duration after is not in valid range between 1 minute and 1 year
-    */
-    public function testNewPaddingRuleFailsOnBadAfterDuration()
-    {
-        $db = $this->getDoctrineConnection();
-        
-        $ruleName = 'padding1';
-        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
-        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = -1;
-        
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
-        
-    }
-    
-       
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage No padding time has been specified both durations are eq to 0
-    */
-    public function testNewPaddingRuleFailsWhenNoPaddingSpecified()
-    {
-        $db = $this->getDoctrineConnection();
-        
-        $ruleName = 'padding1';
-        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
-        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 0;
-        
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
-        
-    }
     
     /**
      * @expectedException \Doctrine\DBAL\DBALException
      * @expectedExceptionMessage Validity period is and invalid range
     */
-    public function testNewPaddingRuleFailsOnBadValidityRange()
+    public function testNewMaxBookingRuleFailsBadValidityRange()
     {
+        
         $db = $this->getDoctrineConnection();
         
-        $ruleName = 'padding1';
+        $ruleName = 'maxbook1';
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
         $validTo   = $db->fetchColumn("SELECT CAST((NOW() - INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 1;
+        $calenderType = 'day';
+        $maxBookNumber  = 5;
         
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        $db->executeQuery('CALL bm_rules_maxbook_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$calenderType,$maxBookNumber)); 
         
     }
- 
     
-    public function testNewPaddingRuleSuccess()
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Calendar Type must be one of the following::day,week,month,year
+    */
+    public function testNewMaxBookingRuleFailsBadCalendarType()
     {
         $db = $this->getDoctrineConnection();
         
-        $ruleName = 'padding1';
+        $ruleName = 'maxbook1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $calenderType = 'dddday';
+        $maxBookNumber  = 5;
+        
+        $db->executeQuery('CALL bm_rules_maxbook_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$calenderType,$maxBookNumber)); 
+       
+    }
+    
+    /**
+     * @expectedException \Doctrine\DBAL\DBALException
+     * @expectedExceptionMessage Max Booking Number must be gt 0
+    */
+    public function testNewMaxBookingRuleFailsInvalidMax()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'maxbook1';
+        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
+        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
+        $calenderType = 'day';
+        $maxBookNumber  = 0;
+        
+        $db->executeQuery('CALL bm_rules_maxbook_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$calenderType,$maxBookNumber)); 
+       
+    }
+    
+    public function testNewMaxBookSuccess()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $ruleName = 'maxbook1';
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
         $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
         $validToInternal   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK + INTERVAL 1 DAY) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 10;
+        $calenderType = 'day';
+        $maxBookNumber  = 5;
         $changeTime = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
+     
         
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
-        
+        $db->executeQuery('CALL bm_rules_maxbook_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$calenderType,$maxBookNumber)); 
+      
         $newRuleID = $db->fetchColumn("SELECT @newRuleID",array(),0);
         
         $this->assertNotEmpty($newRuleID);
@@ -103,7 +86,7 @@ class RulesOtherPackageTest extends BasicTest
         $map = array(
              'rule_id'       => $newRuleID
             ,'rule_name'     => $ruleName
-            ,'rule_type'     => 'padding'
+            ,'rule_type'     => 'maxbook'
             ,'rule_repeat'   => 'runtime'
             ,'valid_from'    => $validFrom
             ,'valid_to'      => $validToInternal
@@ -120,10 +103,10 @@ class RulesOtherPackageTest extends BasicTest
         
         
         # verify the values in concrete table
-        $map['before_duration'] = $durationBefore;
-        $map['after_duration']  = $durationAfter;
+        $map['calendar_period'] = $calenderType;
+        $map['max_bookings']  = $maxBookNumber;
         
-        $ruleSTH = $db->executeQuery('SELECT * FROM `rules_padding` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleSTH = $db->executeQuery('SELECT * FROM `rules_maxbook` WHERE `rule_id` = ?',array($newRuleID),array());
         $ruleResult = $ruleSTH->fetch();
         $this->assertNotEmpty($ruleResult);
         
@@ -137,7 +120,7 @@ class RulesOtherPackageTest extends BasicTest
         $map['action'] = 'I';
         $map['change_time'] = $changeTime;
           
-        $ruleSTH = $db->executeQuery("SELECT * FROM `audit_rules_padding` WHERE `rule_id` = ? and action = 'I'",array($newRuleID),array());
+        $ruleSTH = $db->executeQuery("SELECT * FROM `audit_rules_maxbook` WHERE `rule_id` = ? and action = 'I'",array($newRuleID),array());
         $ruleResult = $ruleSTH->fetch();
         $this->assertNotEmpty($ruleResult);
         
@@ -148,13 +131,13 @@ class RulesOtherPackageTest extends BasicTest
         }
         
         # vefify the update trigger 
-        $newRuleName = 'paddingv2';
+        $newRuleName = 'bookv2';
         $map['rule_name'] = $newRuleName;
         $map['action'] = 'U';
-        $db->executeQuery('UPDATE `rules_padding` SET rule_name = ? WHERE `rule_id` = ?',array($newRuleName,$newRuleID),array());
+        $db->executeQuery('UPDATE `rules_maxbook` SET rule_name = ? WHERE `rule_id` = ?',array($newRuleName,$newRuleID),array());
         
         
-        $ruleSTH = $db->executeQuery("SELECT * FROM `audit_rules_padding` 
+        $ruleSTH = $db->executeQuery("SELECT * FROM `audit_rules_maxbook` 
                                       WHERE `rule_id` = ? 
                                       AND action = 'U' 
                                       ORDER BY change_seq DESC 
@@ -171,8 +154,8 @@ class RulesOtherPackageTest extends BasicTest
         
         #verify the delete trigger
         $map['action'] = 'D';
-        $db->executeQuery('DELETE FROM `rules_padding` WHERE `rule_id` = ?',array($newRuleID),array());
-        $ruleSTH = $db->executeQuery("SELECT valid_to FROM `audit_rules_padding` 
+        $db->executeQuery('DELETE FROM `rules_maxbook` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleSTH = $db->executeQuery("SELECT valid_to FROM `audit_rules_maxbook` 
                                       WHERE `rule_id` = ? 
                                       AND action = 'D' 
                                       ORDER BY change_seq DESC 
@@ -184,25 +167,26 @@ class RulesOtherPackageTest extends BasicTest
                 $this->assertEquals($map[$key],$value);
             }
         } 
-    
+        
     }
     
-   
-    public function testDepreciatePaddingRule()
+    public function testDepreciateMaxbookRule()
     {
         $db = $this->getDoctrineConnection();
         
-        $ruleName = 'padding1';
+        $ruleName = 'maxbook1';
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
         $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 10;
-        
+        $validToInternal   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK + INTERVAL 1 DAY) AS DATE)",array(),0);
+        $calenderType = 'day';
+        $maxBookNumber  = 5;
+        $changeTime = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
      
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
         
+        $db->executeQuery('CALL bm_rules_maxbook_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$calenderType,$maxBookNumber)); 
+      
         $newRuleID = $db->fetchColumn("SELECT @newRuleID",array(),0);
-    
+     
         
         $newValidTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 3 DAY) AS DATE)",array(),0);
         $newValidToInternal   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 4 DAY) AS DATE)",array(),0);
@@ -218,13 +202,13 @@ class RulesOtherPackageTest extends BasicTest
         
         
         # verify the concrete table updated
-        $ruleSTH = $db->executeQuery('SELECT valid_to FROM `rules_padding` WHERE `rule_id` = ?',array($newRuleID),array());
+        $ruleSTH = $db->executeQuery('SELECT valid_to FROM `rules_maxbook` WHERE `rule_id` = ?',array($newRuleID),array());
         $ruleResult = $ruleSTH->fetch();
         $this->assertNotEmpty($ruleResult);
         $this->assertEquals($newValidToInternal,$ruleResult['valid_to']);
         
         # verify the audit update update trigger correct
-        $ruleSTH = $db->executeQuery("SELECT valid_to FROM `audit_rules_padding` 
+        $ruleSTH = $db->executeQuery("SELECT valid_to FROM `audit_rules_maxbook` 
                                       WHERE `rule_id` = ? 
                                       AND action = 'U' 
                                       ORDER BY change_seq DESC 
@@ -237,6 +221,18 @@ class RulesOtherPackageTest extends BasicTest
         
     }
     
-   
+    
+    public function testMaxBookCreateScheduleTableQuery()
+    {
+        $db = $this->getDoctrineConnection();
+        
+        $db->executeQuery(' CALL bm_rules_maxbook_create_tmp_table()');
+        
+        $this->assertTrue(true);
+        
+    }
+    
+    
+    
 }
 /* End of File */

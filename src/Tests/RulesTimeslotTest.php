@@ -80,5 +80,35 @@ class RulesTimeslotTest extends BasicTest
         
         $this->assertEmpty(array_diff($foundRules,$rules));
     }
+    
+    
+    public function testTimeslotRuleSummaryQuery()
+    {
+        $db         = $this->getDoctrineConnection();
+        
+        $openingTimeSlotID  = 246786;
+        $closingTimeSlotID  = 246786;
+        $timeslotID         = 4; // hour slot
+        $results            = array();
+        
+        $resultSTH = $db->executeQuery('CALL bm_rules_timeslot_summary(?,?,?,NULL,NULL)',array($openingTimeSlotID,$closingTimeSlotID,$timeslotID));
+        
+        $result = $resultSTH->fetch();
+        
+        # have expected result set
+        $this->assertEquals("1",$result['has_rule']);
+        $this->assertEquals("1",$result['has_exclusion']);
+        $this->assertEquals("1",$result['has_inclusion']);
+        $this->assertEquals("0",$result['has_priority']);
+        $this->assertEquals("4",$result['timeslot_id']);
+        $this->assertEquals("246786",$result['timeslot_slot_id']);
+        
+        # only got single slot with the above range
+        $result = $resultSTH->fetch();
+        $this->assertEmpty($result);
+        
+    }
+    
+    
 }
 /* End of class */

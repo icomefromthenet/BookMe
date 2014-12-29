@@ -18,6 +18,7 @@ class InstallTest extends BasicTest
         
     }
     
+    
     /*
     public function testAddTimeslot()
     {
@@ -85,6 +86,14 @@ class InstallTest extends BasicTest
     }
     
     
+    public function testGetTimeSlot()
+    {
+        $db = $this->getDoctrineConnection();
+        $dte = $db->fetchColumn("SELECT DATE_FORMAT(NOW(),'%Y-01-01')",array(1),0);
+        $value = $db->fetchColumn('SELECT CAST(bm_cal_get_slot_date(?) AS DATE)',array(1),0);
+    
+        $this->assertEquals($dte,$value);
+    }
     
     
 }

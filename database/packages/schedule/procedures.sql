@@ -178,7 +178,8 @@ BEGIN
 		CALL util_proc_log(concat('Inserted new schedule at::',scheduleID,' for member::',memberID));
 	END IF;	
 
-END$$
+END;
+$$
 
 -- -----------------------------------------------------
 -- procedure bm_schedule_retire
@@ -210,4 +211,206 @@ BEGIN
 		CALL util_proc_log(concat('Retired a schedule at::',groupID));
 	END IF;	
 	
-END$$
+END;
+$$
+
+
+-- -----------------------------------------------------
+-- procedure bm_schedule_add_booking
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_schedule_add_booking`$$
+
+CREATE PROCEDURE `bm_schedule_add_booking` (IN scheduleID INT)
+BEGIN
+
+
+END;
+$$
+
+-- -----------------------------------------------------
+-- procedure bm_schedule_remove_booking
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_schedule_remove_booking`$$
+
+CREATE PROCEDURE `bm_schedule_remove_booking` (IN scheduleID INT)
+BEGIN
+
+
+END;
+$$
+
+-- -----------------------------------------------------
+-- procedure bm_schedule_change_booking
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_schedule_change_booking`$$
+
+CREATE PROCEDURE `bm_schedule_change_booking` (IN scheduleID INT)
+BEGIN
+
+
+END;
+$$
+
+
+
+-- -----------------------------------------------------
+-- procedure bm_schedule_add_booking_mv
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_schedule_add_booking_mv`$$
+
+CREATE PROCEDURE `bm_schedule_add_booking_mv` (IN scheduleID INT, IN startingDate DATE, IN endingDate DATE)
+BEGIN
+ /*
+  This procedure will saving agg booking counts over calendar week series.
+  
+  There are two general usecases 
+  	1. Multi day length bookings
+  	2. Short term bookingss contained within single day.
+ 
+  In the case of short term booking the start and end date be same (closed:closed) interval format
+  so the agg will be added to that cal day in the cal week.
+  
+  With multi day bookings each day during that appointment will have a booking counting. 
+  For example if this being used for short term rentals (each resource own schedule) this view is can
+  be used to display which resources are in use over a calender period as each day the booking extends over 
+  will be shown.
+  
+ */
+ DECLARE calDate DATE;
+ DECLARE calDay INT;
+ DECLARE calWeek INT;
+ DECLARE calMonth INT;
+ DECLARE calYear INT;
+ DECLARE dateDiff INT DEFAULT 0;
+ DECLARE calSun INT DEFAULT 0;
+ DECLARE calMon INT DEFAULT 0;
+ DECLARE calTue INT DEFAULT 0;
+ DECLARE calWed INT DEFAULT 0;
+ DECLARE calThu INT DEFAULT 0;
+ DECLARE calFri INT DEFAULT 0;
+ DECLARE calSat INT DEFAULT 0;
+ 
+ -- extract the date information
+ IF startingDate > endingDate THEN
+ 		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Start date must come before end date';
+ END IF;
+ 
+ 
+ SET dateDiff = DATEDIFF(endingDate,startingDate) +1;
+ 
+ counter: WHILE dateDiff > 0 DO
+	 	
+	 	SET calDate = startingDate + INTERVAL (dateDiff-1) DAY;
+		 
+		-- increment the correct day value
+		SET calDay   = WEEKDAY(calDate);
+		SET calWeek  = EXTRACT(WEEK  FROM calDate);
+		SET calMonth = EXTRACT(MONTH FROM calDate);
+		SET calYear  = EXTRACT(YEAR  FROM calDate);
+		 	
+		CASE calDay
+			WHEN 1 THEN SET calSun = 1; 
+			WHEN 2 THEN SET calMon = 1;
+			WHEN 3 THEN SET calTue = 1;
+			WHEN 4 THEN SET calWed = 1;
+			WHEN 5 THEN SET calThu = 1;
+			WHEN 6 THEN SET calFri = 1;
+			WHEN 7 THEN SET calSat = 1;
+		END CASE;
+		
+		-- insert row in the Materialized View. 
+			 
+		INSERT INTO `bookings_agg_mv` (schedule_id,cal_week,cal_month,cal_year,cal_sun,cal_mon,cal_tue,cal_wed,cal_thu,cal_fri,cal_sat,interval_start,interval_finish) 
+		VALUES (scheduleID,calWeek,calMonth
+				,calYear,calSun,calMon
+				,calTue,calWed,calThu,calFri,calSat
+				,DATE_ADD(calDate, INTERVAL (MOD(calDay-1, 7)*-1) DAY)
+				,DATE_ADD(calDate, INTERVAL ((MOD(calDay-1, 7)*-1)+6) DAY)
+		)
+		ON DUPLICATE KEY
+		UPDATE cal_sun = cal_sun + calSun,
+			   cal_mon = cal_mon + calMon,
+			   cal_tue = cal_tue + calTue,
+			   cal_wed = cal_wed + calWed,
+			   cal_thu = cal_thu + calThu,
+			   cal_fri = cal_fri + calFri,
+			   cal_sat = cal_sat + calSat;
+			        
+	
+	SET dateDiff = dateDiff -1;
+	END WHILE counter;
+
+END;
+$$
+
+-- -----------------------------------------------------
+-- procedure bm_schedule_remove_booking_mv
+-- -----------------------------------------------------
+DROP procedure IF EXISTS `bm_schedule_remove_booking_mv`$$
+
+CREATE PROCEDURE `bm_schedule_remove_booking_mv` (IN scheduleID INT, IN startingDate DATE, IN endingDate DATE)
+BEGIN
+
+ DECLARE calDate DATE;
+ DECLARE calDay INT;
+ DECLARE calWeek INT;
+ DECLARE calMonth INT;
+ DECLARE calYear INT;
+ DECLARE dateDiff INT DEFAULT 0;
+ DECLARE calSun INT DEFAULT 0;
+ DECLARE calMon INT DEFAULT 0;
+ DECLARE calTue INT DEFAULT 0;
+ DECLARE calWed INT DEFAULT 0;
+ DECLARE calThu INT DEFAULT 0;
+ DECLARE calFri INT DEFAULT 0;
+ DECLARE calSat INT DEFAULT 0;
+ 
+ -- extract the date information
+ IF startingDate > endingDate THEN
+ 		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Start date must come before end date';
+ END IF;
+ 
+ 
+ SET dateDiff = DATEDIFF(endingDate,startingDate) +1;
+ 
+ counter: WHILE dateDiff > 0 DO
+	 	
+	 	SET calDate = startingDate + INTERVAL (dateDiff-1) DAY;
+		 
+		-- increment the correct day value
+		SET calDay   = WEEKDAY(calDate);
+		SET calWeek  = EXTRACT(WEEK  FROM calDate);
+		SET calMonth = EXTRACT(MONTH FROM calDate);
+		SET calYear  = EXTRACT(YEAR  FROM calDate);
+		 	
+		CASE calDay
+			WHEN 1 THEN SET calSun = -1; 
+			WHEN 2 THEN SET calMon = -1;
+			WHEN 3 THEN SET calTue = -1;
+			WHEN 4 THEN SET calWed = -1;
+			WHEN 5 THEN SET calThu = -1;
+			WHEN 6 THEN SET calFri = -1;
+			WHEN 7 THEN SET calSat = -1;
+		END CASE;
+		
+		-- insert row in the Materialized View. 
+			 
+		UPDATE `bookings_agg_mv` 
+		SET  cal_sun = if(cal_sun=0,0,(cal_sun + calSun))
+		    ,cal_mon = if(cal_mon=0,0,(cal_mon + calMon))
+		    ,cal_tue = if(cal_tue=0,0,(cal_tue + calTue))
+			,cal_wed = if(cal_wed=0,0,(cal_wed + calWed))
+			,cal_thu = if(cal_thu=0,0,(cal_thu + calThu))
+			,cal_fri = if(cal_fri=0,0,(cal_fri + calFri))
+			,cal_sat = if(cal_sat=0,0,(cal_sat + calSat))
+		WHERE schedule_id 	= scheduleID 
+		AND   cal_week 		= calWeek 
+		AND   cal_year 		= calYear;
+	
+	SET dateDiff = dateDiff -1;
+	END WHILE counter;
+
+END;
+$$
