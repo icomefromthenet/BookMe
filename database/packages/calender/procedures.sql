@@ -113,9 +113,93 @@ BEGIN
 		SELECT NULL
               ,calendar_date 
 			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i MINUTE as slot_open
-			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i + 1 MINUTE as slot_closed FROM calendar
+			  ,calendar_date + INTERVAL d.i *1000 + c.i *100 + b.i*10 + a.i + 1 MINUTE as slot_closed 
+		FROM calendar
 		JOIN ints a JOIN ints b JOIN ints c JOIN ints d
 		WHERE d.i*1000 + c.i *100 + b.i*10 + a.i < 1440;
+
+    -- add the extra slot at the end to allow for even years when using closed:open interval format
+	INSERT INTO slots (slot_id,cal_date,slot_open,slot_close) 
+		SELECT s.slot_id +1
+			  ,(s.cal_date + INTERVAL 1 DAY)
+			  ,s.slot_close
+			  ,(s.slot_close + INTERVAL 1 MINUTE) 
+		FROM slots s
+		ORDER BY s.slot_id DESC
+		LIMIT 1;
+		
+
+	-- add slots to the calender table (day boundaries)
+	UPDATE calendar cd 
+	set cd.open_slot_id = (
+		select min(s.slot_id)
+		from slots s
+		where cd.calendar_date = s.cal_date
+		group by extract(year from s.cal_date), extract(month from s.cal_date), extract(day from s.cal_date)
+	)
+	, cd.close_slot_id = (
+		select max(s.slot_id)
+		from slots s
+		where cd.calendar_date = s.cal_date
+		group by extract(year from s.cal_date), extract(month from s.cal_date), extract(day from s.cal_date)
+	) +1;
+	
+	
+	-- add slots to months table (mounth boundaries)
+	
+	update calendar_months cd 
+	set cd.open_slot_id = (
+		select min(s.open_slot_id)
+		from calendar s
+		where cd.y = s.y
+		and   cd.m =  s.m
+		group by s.y,s.m
+	)
+	, cd.close_slot_id = (
+		select max(s.close_slot_id)
+		from calendar s
+		where cd.y = s.y
+		and   cd.m =  s.m
+		group by s.y,s.m
+	);
+	
+	
+	
+	
+	-- add slots to quarter table (mounth boundaries)
+	update calendar_quarters cd 
+	set cd.open_slot_id = (
+		select min(s.open_slot_id)
+		from calendar s
+		where cd.y = s.y
+		and   cd.q =  s.q
+		group by s.y,s.q
+	)
+	, cd.close_slot_id = (
+		select max(s.close_slot_id)
+		from calendar s
+		where cd.y = s.y
+		and   cd.q =  s.q
+		group by s.y,s.q
+	);
+	
+	
+	-- add slots to years table (mounth boundaries)
+	update calendar_years cd 
+	set cd.open_slot_id = (
+		select min(s.open_slot_id)
+		from calendar s
+		where cd.y = s.y
+		group by s.y
+	)
+	, cd.close_slot_id = (
+		select max(s.close_slot_id)
+		from calendar s
+		where cd.y = s.y
+		group by s.y
+	);
+
+
 
 	IF @bm_debug = true THEN
 		CALL util_proc_log('Setup slots for our calender');

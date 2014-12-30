@@ -9,6 +9,22 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 DROP TABLE IF EXISTS `proclog`;
 
 -- -----------------------------------------------------
+-- Table `slots`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `slots` ;
+
+CREATE TABLE IF NOT EXISTS `slots` (
+  -- uses a closed:closed interval format due to  slots only have 1 minute length
+  `slot_id` INT NOT NULL AUTO_INCREMENT COMMENT 'Table primary key',
+  `cal_date` DATE NOT NULL COMMENT 'Date this slot occurs on used to join date time',
+  `slot_open` DATETIME NOT NULL COMMENT 'Opending Interval of this slot',
+  `slot_close` DATETIME NOT NULL COMMENT 'closing internal of slot',
+  PRIMARY KEY (`slot_id`),
+  INDEX `fk_slots_1_idx` (`cal_date` ASC)
+)ENGINE = InnoDB
+ COMMENT = 'The common slots table, each slot is the minium slot duratio /* comment truncated */ /*n of 1 minute. */';
+
+-- -----------------------------------------------------
 -- Table `calendar`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `calendar` ;
@@ -24,8 +40,23 @@ CREATE TABLE IF NOT EXISTS `calendar` (
   `day_name` VARCHAR(9) NULL COMMENT 'text name of the day\n',
   `w` TINYINT NULL COMMENT 'week number in the year',
   `is_week_day` TINYINT NULL COMMENT 'true value if current date falls between monday-friday\n',
-  PRIMARY KEY (`calendar_date`))
-ENGINE = InnoDB
+  `open_slot_id` INT NULL COMMENT 'The slot bounderies for the  start of the day',
+  `close_slot_id` INT NULL COMMENT 'The slot bounderies for the end of the day',
+  
+  PRIMARY KEY (`calendar_date`),
+  
+  CONSTRAINT `fk_cal_slots_1`
+    FOREIGN KEY (`open_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_cal_slots_2`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION 
+    
+)ENGINE = InnoDB
 COMMENT = 'Calender table that store the next 10 years of dates';
 
 -- -----------------------------------------------------
@@ -39,8 +70,20 @@ CREATE TABLE IF NOT EXISTS `calendar_months` (
  `month_name` VARCHAR(9) NULL COMMENT 'text name of the month',
  `m_sweek` TINYINT NULL COMMENT 'week number in the year',
  `m_eweek` TINYINT NULL COMMENT 'week number in the year',
+ `open_slot_id` INT NULL COMMENT 'The slot bounderies for the  start of the month',
+ `close_slot_id` INT NULL COMMENT 'The slot bounderies for the end of the month',
  
- PRIMARY KEY(`y`,`m`)
+ PRIMARY KEY(`y`,`m`),
+ CONSTRAINT `fk_cal_months_slots_1`
+    FOREIGN KEY (`open_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+ CONSTRAINT `fk_cal_months_slots_2`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
  
 )ENGINE = InnoDB
 COMMENT = 'Calender table that store the next x years in month aggerates';
@@ -55,8 +98,20 @@ CREATE TABLE IF NOT EXISTS `calendar_quarters` (
  `q` TINYINT NULL COMMENT 'quarter of the year date belongs',
  `m_start` DATE NULL COMMENT 'starting month',
  `m_end` DATE NULL COMMENT 'ending_months',
+ `open_slot_id` INT NULL COMMENT 'The slot bounderies for the  start of the quarter',
+ `close_slot_id` INT NULL COMMENT 'The slot bounderies for the end of the quarter',
  
- PRIMARY KEY(`y`,`q`)
+ PRIMARY KEY(`y`,`q`),
+ CONSTRAINT `fk_cal_quarters_slots_1`
+    FOREIGN KEY (`open_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+ CONSTRAINT `fk_cal_quarters_slots_2`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
  
 )ENGINE = InnoDB
 COMMENT = 'Calender table that store the next x years in month quarter aggerates';
@@ -70,33 +125,24 @@ CREATE TABLE IF NOT EXISTS `calendar_years` (
  `y` SMALLINT NULL COMMENT 'year where date occurs',
  `y_start` DATETIME NOT NULL,
  `y_end` DATETIME NOT NULL,
+ `open_slot_id` INT NULL COMMENT 'The slot bounderies for the  start of the year',
+ `close_slot_id` INT NULL COMMENT 'The slot bounderies for the end of the year',
  
- PRIMARY KEY(`y`)
- 
+ PRIMARY KEY(`y`),
+ CONSTRAINT `fk_cal_years_slots_1`
+    FOREIGN KEY (`open_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+ CONSTRAINT `fk_cal_years_slots_2`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )ENGINE = InnoDB
 COMMENT = 'Calender table that store the next x years';
 
--- -----------------------------------------------------
--- Table `slots`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `slots` ;
 
-CREATE TABLE IF NOT EXISTS `slots` (
-  -- uses a closed:closed interval format due to  slots only have 1 minute length
-
-  `slot_id` INT NOT NULL AUTO_INCREMENT COMMENT 'Table primary key',
-  `cal_date` DATE NOT NULL COMMENT 'Date this slot occurs on used to join date time',
-  `slot_open` DATETIME NOT NULL COMMENT 'Opending Interval of this slot',
-  `slot_close` DATETIME NOT NULL COMMENT 'closing internal of slot',
-  PRIMARY KEY (`slot_id`),
-  INDEX `fk_slots_1_idx` (`cal_date` ASC),
-  CONSTRAINT `fk_slots_1`
-    FOREIGN KEY (`cal_date`)
-    REFERENCES `calendar` (`calendar_date`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB
-COMMENT = 'The common slots table, each slot is the minium slot duratio /* comment truncated */ /*n of 1 minute. */';
 
 
 -- -----------------------------------------------------
