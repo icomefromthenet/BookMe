@@ -16,6 +16,11 @@ BEGIN
 		SET MESSAGE_TEXT = 'Slot must be between 1 minutes and 1440 (day) in length';
 	END IF;
 	
+	IF MOD((60*24),slotLength) > 0 THEN 
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = 'Slot length must be divide day evenly';
+	END IF;
+	
 	-- unique index on length column stop duplicates
     -- trigger should fire that record this addition onto audit table
 	INSERT INTO timeslots (timeslot_id,timeslot_length) values (NULL,slotLength);
@@ -144,6 +149,23 @@ BEGIN
 		group by extract(year from s.cal_date), extract(month from s.cal_date), extract(day from s.cal_date)
 	) +1;
 	
+	-- add slots to weeks table (weeks boundaries)
+	
+	update calendar_weeks cd 
+	set cd.open_slot_id = (
+		select min(s.open_slot_id)
+		from calendar s
+		where cd.y = s.y
+		and   cd.m =  s.w
+		group by s.y,s.w
+	)
+	, cd.close_slot_id = (
+		select max(s.close_slot_id)
+		from calendar s
+		where cd.y = s.y
+		and   cd.m =  s.w
+		group by s.y,s.w
+	);
 	
 	-- add slots to months table (mounth boundaries)
 	
@@ -244,6 +266,12 @@ BEGIN
 	IF @bm_debug = true THEN
 		CALL util_proc_log(concat('Build calendar for ',x,' years'));
 	END IF;
+	
+	-- weeks table
+	INSERT INTO `calendar_weeks` (`y`,`m`,`w`)
+	SELECT `c`.`y`, `c`.`m`, `c`.`w`
+	FROM `calendar` c
+	GROUP BY `c`.`y`,`c`.`w`;
 	
 	-- create months table
 	

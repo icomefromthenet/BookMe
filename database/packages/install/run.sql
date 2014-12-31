@@ -51,6 +51,11 @@ BEGIN
 			CALL util_proc_log(concat('build timeslots for ',ifnull(timeslotID,'null'),' for length ',ifnull(timeslotLength,'null')));
 		END IF;
 		
+		IF MOD((60*24),timeslotLength) > 0 THEN 
+			SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Slot length must be divide day evenly';
+		END IF;
+		
 		CALL bm_calendar_build_timeslot_slots(timeslotID,timeslotLength);
 
 		END LOOP cursor_loop;

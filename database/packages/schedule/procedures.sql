@@ -321,12 +321,17 @@ BEGIN
 		
 		-- insert row in the Materialized View. 
 			 
-		INSERT INTO `bookings_agg_mv` (schedule_id,cal_week,cal_month,cal_year,cal_sun,cal_mon,cal_tue,cal_wed,cal_thu,cal_fri,cal_sat,interval_start,interval_finish) 
+		INSERT INTO `bookings_agg_mv` (schedule_id,cal_week,cal_month,cal_year,cal_sun
+		,cal_mon,cal_tue,cal_wed,cal_thu,cal_fri,cal_sat,open_slot_id,close_slot_id) 
 		VALUES (scheduleID,calWeek,calMonth
 				,calYear,calSun,calMon
 				,calTue,calWed,calThu,calFri,calSat
-				,DATE_ADD(calDate, INTERVAL (MOD(calDay-1, 7)*-1) DAY)
-				,DATE_ADD(calDate, INTERVAL ((MOD(calDay-1, 7)*-1)+6) DAY)
+				,(SELECT `cw`.`open_slot_id` 
+				  FROM calendar_weeks cw 
+				  WHERE `cw`.`w` = calWeek AND `cw`.`y` = calYear)
+				,(SELECT `cw`.`close_slot_id` 
+				  FROM calendar_weeks cw 
+				  WHERE `cw`.`w` = calWeek AND `cw`.`y` = calYear)
 		)
 		ON DUPLICATE KEY
 		UPDATE cal_sun = cal_sun + calSun,

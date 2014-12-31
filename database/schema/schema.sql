@@ -60,6 +60,33 @@ CREATE TABLE IF NOT EXISTS `calendar` (
 COMMENT = 'Calender table that store the next 10 years of dates';
 
 -- -----------------------------------------------------
+-- Table `calendar_weeks`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `calendar_weeks`;
+
+CREATE TABLE IF NOT EXISTS `calendar_weeks` (
+ `y` SMALLINT NULL COMMENT 'year where date occurs',
+ `m` TINYINT NULL COMMENT 'month of the year',
+ `w` TINYINT NULL COMMENT 'week in the year',
+ `open_slot_id` INT NULL COMMENT 'The slot bounderies for the  start of the week',
+ `close_slot_id` INT NULL COMMENT 'The slot bounderies for the end of the week',
+ 
+ PRIMARY KEY(`y`,`w`),
+ CONSTRAINT `fk_cal_weeks_slots_1`
+    FOREIGN KEY (`open_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+ CONSTRAINT `fk_cal_weeks_slots_2`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+ 
+)ENGINE = InnoDB
+COMMENT = 'Calender table that store the next x years in week aggerates';
+
+-- -----------------------------------------------------
 -- Table `calendar_months`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `calendar_months`;
@@ -746,10 +773,21 @@ CREATE TABLE IF NOT EXISTS `bookings_agg_mv` (
   cal_fri INT DEFAULT 0,
   cal_sat INT DEFAULT 0,
   
-  interval_start DATE  NOT NULL,
-  interval_finish DATE NOT NULL,
+  open_slot_id INT NOT NULL,
+  close_slot_id INT NOT NULL,
   
-  PRIMARY KEY (schedule_id,cal_week,cal_year)
+  PRIMARY KEY (schedule_id,cal_week,cal_year),
+  CONSTRAINT `fk_bookings_agg_open_slot`
+    FOREIGN KEY (`open_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  
+  CONSTRAINT `fk_bookings_agg_close_slot`
+    FOREIGN KEY (`close_slot_id`)
+    REFERENCES `slots` (`slot_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 ) ENGINE = InnoDB 
 COMMENT= 'Materialised view for booking count agg divided into calender periods';
 
@@ -784,6 +822,22 @@ SELECT `cal`.`y` as year, `b`.`schedule_id`
 FROM calendar_years cal
 LEFT JOIN `bookings_agg_mv` b ON `b`.`cal_year` = `cal`.`y` 
 GROUP BY `cal`.`y`, `b`.`schedule_id`;
+
+-- -----------------------------------------------------
+-- Table `schedules_rules_vw`
+-- -----------------------------------------------------
+
+DROP VIEW IF EXISTS `schedules_rules_vw`;
+
+CREATE VIEW `schedules_rules_vw` AS
+SELECT `s`.`schedule_id`, `r`.`rule_id`, `r`.`rule_type`, `r`.`rule_repeat`, `r`.`rule_name`, `r`.`rule_duration`
+      ,`s`.`schedule_group_id`, `s`.`membership_id`
+FROM `schedules` s 
+JOIN `rules_relations` rs on (`rs`.`schedule_group_id` = `s`.`schedule_group_id` OR `rs`.`membership_id` = `s`.`membership_id`)
+JOIN `rules` r ON `r`.`rule_id` = `rs`.`rule_id`	
+WHERE `s`.`open_from` <= CAST(NOW() AS DATE) AND `s`.`closed_on` > CAST(NOW() AS DATE)
+AND `r`.`valid_from` <= CAST(NOW() AS DATE) AND `r`.`valid_to`> CAST(NOW() AS DATE);
+	
 
 -- -----------------------------------------------------
 -- Table `app_activity_log`
