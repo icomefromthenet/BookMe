@@ -153,9 +153,9 @@ DROP TRIGGER IF EXISTS `bm_rules_padding_audit_insert`$$
 CREATE TRIGGER `bm_rules_padding_audit_insert` AFTER INSERT ON `rules_padding`
 FOR EACH ROW
  INSERT INTO `audit_rules_padding` (`change_seq`,`rule_id`,`rule_name`,`rule_type`
-                                    ,`rule_repeat`,`changed_by`,`action`,`change_time`,`valid_from`,`valid_to`,`before_duration`,`after_duration`) 
+                                    ,`rule_repeat`,`changed_by`,`action`,`change_time`,`valid_from`,`valid_to`,`after_slots`) 
  VALUES (NULL, NEW.`rule_id`, NEW.`rule_name`, NEW.`rule_type`
-        , NEW.`rule_repeat`, USER(), 'I', NOW(),NEW.`valid_from`,NEW.`valid_to`,NEW.`before_duration`,NEW.`after_duration`);
+        , NEW.`rule_repeat`, USER(), 'I', NOW(),NEW.`valid_from`,NEW.`valid_to`,NEW.`after_slots`);
 $$
 
 
@@ -167,9 +167,9 @@ DROP TRIGGER IF EXISTS `bm_rules_padding_audit_update`$$
 CREATE TRIGGER `bm_rules_padding_audit_update` AFTER UPDATE ON `rules_padding`
 FOR EACH ROW
  INSERT INTO `audit_rules_padding` (`change_seq`,`rule_id`,`rule_name`,`rule_type`,`rule_repeat`
-                                    ,`changed_by`,`action`,`change_time`,`valid_from`,`valid_to`,`before_duration`,`after_duration`) 
+                                    ,`changed_by`,`action`,`change_time`,`valid_from`,`valid_to`,`after_slots`) 
  VALUES (NULL, NEW.`rule_id`, NEW.`rule_name`, NEW.`rule_type`
-        , NEW.`rule_repeat`, USER(), 'U', NOW(),NEW.`valid_from`,NEW.`valid_to`,NEW.`before_duration`,NEW.`after_duration`);
+        , NEW.`rule_repeat`, USER(), 'U', NOW(),NEW.`valid_from`,NEW.`valid_to`,NEW.`after_slots`);
 $$
 
 -- -----------------------------------------------------
@@ -180,7 +180,7 @@ DROP TRIGGER IF EXISTS `bm_rules_padding_audit_delete`$$
 CREATE TRIGGER `bm_rules_padding_audit_delete` AFTER DELETE ON `rules_padding`
 FOR EACH ROW
  INSERT INTO `audit_rules_padding` (`change_seq`,`rule_id`,`rule_name`,`rule_type`,`rule_repeat`
-                                    ,`changed_by`,`action`,`change_time`,`valid_from`,`valid_to`,`before_duration`,`after_duration`) 
+                                    ,`changed_by`,`action`,`change_time`,`valid_from`,`valid_to`,`after_slots`) 
  VALUES (NULL, OLD.`rule_id`, OLD.`rule_name`, OLD.`rule_type`, OLD.`rule_repeat`,
-        USER(), 'D', NOW(),OLD.`valid_from`,OLD.`valid_to`,OLD.`before_duration`,OLD.`after_duration`);
-$$
+        USER(), 'D', NOW(),OLD.`valid_from`,OLD.`valid_to`,OLD.`after_slots`);
+$$ 

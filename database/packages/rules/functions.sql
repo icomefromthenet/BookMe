@@ -343,3 +343,23 @@ END$$
 
 
 
+-- -----------------------------------------------------
+-- functions bm_rules_padding_max_for_schedule
+-- -----------------------------------------------------
+DROP FUNCTION IF EXISTS `bm_rules_padding_max_for_schedule`$$
+
+CREATE FUNCTION `bm_rules_padding_max_for_schedule`(scheduleID INT)
+RETURNS INTEGER BEGIN
+	DECLARE maxPadding INT DEFAULT 0;
+	
+	-- find the max padding for this schedule
+	SELECT IFNULL(MAX(`mb`.`after_slots`),0)
+	FROM `schedules_rules_vw` vw
+	JOIN `rules_padding` mb ON `mb`.`rule_id` = `vw`.`rule_id`
+	AND `vw`.`schedule_id` = scheduleID
+	INTO maxPadding;
+
+	RETURN maxPadding;
+	
+END;
+$$

@@ -92,7 +92,7 @@ BEGIN
 	DECLARE calPeriod VARCHAR(45);
 	
 	DECLARE l_last_row_fetched INT DEFAULT 0;
-	-- timeslot loop vars
+	
 	DECLARE rulesCursor CURSOR FOR 
 		SELECT `vw`.`rule_id`, `mb`.`max_bookings`, `mb`.`calendar_period`
 		FROM `schedules_rules_vw` vw
@@ -105,6 +105,7 @@ BEGIN
 	-- create the result table
 	CALL bm_rules_maxbook_create_tmp_table(openTimeslotSlotID,closetimeslotSlotID);
 
+	
 	IF @bm_debug = true THEN
 		CALL util_proc_setup();
 		CALL util_proc_log('bm_rules_maxbook');
@@ -141,7 +142,6 @@ BEGIN
 	SET l_last_row_fetched=0;
 	
 	
-	
 	IF @bm_debug = true THEN
 		CALL util_proc_cleanup('bm_rules_maxbook');
 	END IF;
@@ -172,7 +172,7 @@ BEGIN
 		`y` SMALLINT NULL COMMENT 'year where date occurs',
 		`w` TINYINT NULL COMMENT 'week number in the year',
 		
-		`has_maxed` INT DEFAULT 0,
+		`has_maxed` TINYINT DEFAULT 0,
 		
 		CONSTRAINT `fk_maxbook_slots_1`
     	FOREIGN KEY (`timeslot_slot_id`)
@@ -254,8 +254,7 @@ BEGIN
 			
 			UPDATE `schedule_maxbool_slots` SET has_maxed = 1
 			WHERE `d` = dayValue 
-			AND `m` = monthValue
-			AND `y` = yearValue;
+			AND   `m` = monthValue AND   `y` = yearValue AND    has_maxed != 1;
 			
 			IF @bm_debug = true THEN	
 				CALL util_proc_log(concat('Updated ',ROW_COUNT(),' number of timeslots in schedule_maxbool_slots table'));
@@ -284,7 +283,73 @@ DROP procedure IF EXISTS `bm_rules_maxbook_cal_week`$$
 
 CREATE PROCEDURE `bm_rules_maxbook_cal_week`()
 BEGIN
+	DECLARE weekValue INT DEFAULT 0;
+	DECLARE yearValue INT DEFAULT 0;
+	DECLARE numberBooked INT DEFAULT 0;
+	DECLARE l_last_row_fetched INT DEFAULT 0;
+	-- timeslot loop vars
+	DECLARE timeslots_cursor CURSOR FOR 
+		SELECT `w`,`y` 
+		FROM schedule_maxbool_slots 
+		GROUP BY `w`,`y`;
+	
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET l_last_row_fetched=1;
 
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log('bm_rules_maxbook_cal_week');
+	END IF;
+ 
+	-- iterate over day in tmp table and check if maxed the bookings	
+	SET l_last_row_fetched=0;
+	OPEN timeslots_cursor;
+		cursor_loop:LOOP
+
+		FETCH timeslots_cursor INTO weekValue,yearValue;
+		
+		IF l_last_row_fetched=1 THEN
+			LEAVE cursor_loop;
+		END IF;
+		
+		IF @bm_debug = true THEN	
+				CALL util_proc_log(concat('Looking for bookings on week ',weekValue,'/',yearValue));
+		END IF;
+		
+		-- count the number of bookings for this date
+		SET numberBooked = (SELECT (ifnull(sum(`c`.`cal_sun`),0) 
+									   + ifnull(sum(`c`.`cal_mon`),0) 
+								       + ifnull(sum(`c`.`cal_tue`),0)
+								       + ifnull(sum(`c`.`cal_wed`),0) 
+									   + ifnull(sum(`c`.`cal_thu`),0) 
+								       + ifnull(sum(`c`.`cal_fri`),0)
+								       + ifnull(sum(`c`.`cal_sat`),0)
+								) as bcount
+							FROM  bookings_agg_mv c 
+							WHERE `c`.`cal_year` = yearValue
+							AND `c`.`cal_week` = weekValue
+							AND `c`.`schedule_id` = schedule_id);
+		
+		-- do bulk update of all slots for this day
+		IF numberBooked > maxBookNum THEN
+			
+			UPDATE `schedule_maxbool_slots` SET has_maxed = 1
+			WHERE  `w` = weekValue
+			AND    `y` = yearValue AND    `has_maxed` != 1;
+			
+			IF @bm_debug = true THEN	
+				CALL util_proc_log(concat('Updated ',ROW_COUNT(),' number of timeslots in schedule_maxbool_slots table'));
+			END IF;
+			
+		END IF;
+
+		END LOOP cursor_loop;
+	CLOSE timeslots_cursor;
+	SET l_last_row_fetched=0;
+
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_maxbook_cal_week');
+	END IF;
 
 END;
 $$
@@ -330,23 +395,25 @@ BEGIN
 		END IF;
 		
 		-- count the number of bookings for this date
-		SET numberBooked = (SELECT count(`b`.`booking_id`)
-							FROM  calendar c 
-							-- join all bookings that are encompased by this days slots for schedule x
-							LEFT JOIN bookings b ON  `b`.`open_slot_id`  >= `c`.`open_slot_id`
-												 AND `b`.`close_slot_id` <= `c`.`close_slot_id`
-												 AND `b`.`schedule_id`    = scheduleID
-							-- limit to a single calendar day
+		SET numberBooked = (SELECT (ifnull(sum(`c`.`cal_sun`),0) 
+									   + ifnull(sum(`c`.`cal_mon`),0) 
+								       + ifnull(sum(`c`.`cal_tue`),0)
+								       + ifnull(sum(`c`.`cal_wed`),0) 
+									   + ifnull(sum(`c`.`cal_thu`),0) 
+								       + ifnull(sum(`c`.`cal_fri`),0)
+								       + ifnull(sum(`c`.`cal_sat`),0)
+								) as bcount
+							FROM  bookings_monthly_agg_vw c 
 							WHERE `c`.`y` = yearValue
 							AND `c`.`m` = monthValue
-							GROUP BY `c`.`m`,`c`.`y`);
+							AND `c`.`schedule_id` = schedule_id);
 		
 		-- do bulk update of all slots for this day
 		IF numberBooked > maxBookNum THEN
 			
 			UPDATE `schedule_maxbool_slots` SET has_maxed = 1
 			WHERE  `m` = monthValue
-			AND   `y` = yearValue;
+			AND    `y` = yearValue AND `has_maxed` != 1;
 			
 			IF @bm_debug = true THEN	
 				CALL util_proc_log(concat('Updated ',ROW_COUNT(),' number of timeslots in schedule_maxbool_slots table'));
@@ -374,7 +441,71 @@ DROP procedure IF EXISTS `bm_rules_maxbook_cal_year`$$
 
 CREATE PROCEDURE `bm_rules_maxbook_cal_year`()
 BEGIN
+	DECLARE yearValue INT DEFAULT 0;
+	DECLARE numberBooked INT DEFAULT 0;
+	DECLARE l_last_row_fetched INT DEFAULT 0;
+	-- timeslot loop vars
+	DECLARE timeslots_cursor CURSOR FOR 
+		SELECT `y` 
+		FROM schedule_maxbool_slots 
+		GROUP BY `y`;
+	
+	DECLARE CONTINUE HANDLER FOR NOT FOUND SET l_last_row_fetched=1;
 
+	IF @bm_debug = true THEN
+		CALL util_proc_setup();
+		CALL util_proc_log('bm_rules_maxbook_cal_year');
+	END IF;
+ 
+	-- iterate over day in tmp table and check if maxed the bookings	
+	SET l_last_row_fetched=0;
+	OPEN timeslots_cursor;
+		cursor_loop:LOOP
+
+		FETCH timeslots_cursor INTO yearValue;
+		
+		IF l_last_row_fetched=1 THEN
+			LEAVE cursor_loop;
+		END IF;
+		
+		IF @bm_debug = true THEN	
+				CALL util_proc_log(concat('Looking for bookings on year ',yearValue));
+		END IF;
+		
+		-- count the number of bookings for this date
+		SET numberBooked = (SELECT (ifnull(sum(`c`.`cal_sun`),0) 
+									   + ifnull(sum(`c`.`cal_mon`),0) 
+								       + ifnull(sum(`c`.`cal_tue`),0)
+								       + ifnull(sum(`c`.`cal_wed`),0) 
+									   + ifnull(sum(`c`.`cal_thu`),0) 
+								       + ifnull(sum(`c`.`cal_fri`),0)
+								       + ifnull(sum(`c`.`cal_sat`),0)
+								) as bcount
+							FROM  bookings_yearly_agg_vw c 
+							-- join all bookings that are encompased by this days slots for schedule x
+							WHERE `c`.`y` = yearValue
+							AND `c`.`schedule_id` = schedule_id);
+		
+		-- do bulk update of all slots for this day
+		IF numberBooked > maxBookNum THEN
+			
+			UPDATE `schedule_maxbool_slots` SET has_maxed = 1
+			WHERE  `y` = yearValue AND  `has_maxed` != 1;
+			
+			IF @bm_debug = true THEN	
+				CALL util_proc_log(concat('Updated ',ROW_COUNT(),' number of timeslots in schedule_maxbool_slots table'));
+			END IF;
+			
+		END IF;
+
+		END LOOP cursor_loop;
+	CLOSE timeslots_cursor;
+	SET l_last_row_fetched=0;
+
+	
+	IF @bm_debug = true THEN
+		CALL util_proc_cleanup('finished procedure bm_rules_maxbook_cal_year');
+	END IF;
 
 END;
 $$

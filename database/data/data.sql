@@ -216,6 +216,37 @@ CALL bm_rules_adhoc_add_rule('testdeprec','inclusion',CAST(NOW() AS DATE),CAST((
     CALL bm_rules_relate_group(@newRuleID9,@newScheduleGroupID12);
 
 
+-- Padding Rules
+
+    CALL bm_rules_padding_add_rule('NormalPadding',NOW(),DATE('3000-01-01'),2,@newPaddingRuleA);
+    CALL bm_rules_padding_add_rule('LongPadding',NOW(),DATE('3000-01-01'),4,@newPaddingRuleB);
+
+    -- give day group the longer padding
+    CALL bm_rules_relate_group(@newPaddingRuleB,@newScheduleGroupID10);
+    
+    -- give weekend shorter longer padding
+    CALL bm_rules_relate_group(@newPaddingRuleA,@newScheduleGroupID11);
+    
+    -- afterhour group have no padding
+    
+-- Max Book Rules    
+    CALL bm_rules_maxbook_add_rule('AfterHoursMaxBook',NOW(),DATE('3000-01-01'),'month',100,@newMaxBookRuleA);
+    CALL bm_rules_maxbook_add_rule('WeekendMaxBook',NOW(),DATE('3000-01-01'),'day',5,@newMaxBookRuleB);
+    
+    -- give after hours the correct rule
+    CALL bm_rules_relate_group(@newMaxBookRuleA,@newScheduleGroupID12);
+    
+    -- give weekend schedule group the correct rule
+    CALL bm_rules_relate_group(@newMaxBookRuleB,@newScheduleGroupID11);
+    
+    -- no max bookings on day schedule groups
+
+
+-- -----------------------------------------------------
+-- Add Some bookings.
+-- -----------------------------------------------------
+
+
 -- -----------------------------------------------------
 -- Cleanup
 -- -----------------------------------------------------

@@ -7,46 +7,10 @@ use Doctrine\DBAL\DBALException;
 
 class RulesOtherPackageTest extends BasicTest
 {
-    
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage The duration before is not in valid range between 1 minute and 1 year
-    */ 
-    public function testNewPaddingRuleFailsOnBadBeforeDuration()
-    {
-        $db = $this->getDoctrineConnection();
-        
-        $ruleName = 'padding1';
-        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
-        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = -10;
-        $durationAfter  = 0;
-        
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
-    }
-    
-    /**
-     * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage The duration after is not in valid range between 1 minute and 1 year
-    */
-    public function testNewPaddingRuleFailsOnBadAfterDuration()
-    {
-        $db = $this->getDoctrineConnection();
-        
-        $ruleName = 'padding1';
-        $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
-        $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = -1;
-        
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
-        
-    }
-    
        
     /**
      * @expectedException \Doctrine\DBAL\DBALException
-     * @expectedExceptionMessage No padding time has been specified both durations are eq to 0
+     * @expectedExceptionMessage The number of padding slots must be gt 0
     */
     public function testNewPaddingRuleFailsWhenNoPaddingSpecified()
     {
@@ -55,10 +19,9 @@ class RulesOtherPackageTest extends BasicTest
         $ruleName = 'padding1';
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
         $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 0;
+        $afterSlots = 0;
         
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$afterSlots)); 
         
     }
     
@@ -73,10 +36,10 @@ class RulesOtherPackageTest extends BasicTest
         $ruleName = 'padding1';
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
         $validTo   = $db->fetchColumn("SELECT CAST((NOW() - INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 1;
+        $afterSlots = 1;
         
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$afterSlots)); 
         
     }
  
@@ -89,11 +52,10 @@ class RulesOtherPackageTest extends BasicTest
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
         $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
         $validToInternal   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK + INTERVAL 1 DAY) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 10;
+        $afterSlots  = 10;
         $changeTime = $db->fetchColumn('SELECT CAST(NOW() AS DATETIME)',array(),0);
         
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$afterSlots)); 
         
         $newRuleID = $db->fetchColumn("SELECT @newRuleID",array(),0);
         
@@ -120,8 +82,7 @@ class RulesOtherPackageTest extends BasicTest
         
         
         # verify the values in concrete table
-        $map['before_duration'] = $durationBefore;
-        $map['after_duration']  = $durationAfter;
+        $map['after_slots'] = $afterSlots;
         
         $ruleSTH = $db->executeQuery('SELECT * FROM `rules_padding` WHERE `rule_id` = ?',array($newRuleID),array());
         $ruleResult = $ruleSTH->fetch();
@@ -195,11 +156,10 @@ class RulesOtherPackageTest extends BasicTest
         $ruleName = 'padding1';
         $validFrom = $db->fetchColumn("SELECT CAST(NOW() AS DATE)",array(),0);
         $validTo   = $db->fetchColumn("SELECT CAST((NOW() + INTERVAL 1 WEEK) AS DATE)",array(),0);
-        $durationBefore = 0;
-        $durationAfter  = 10;
+        $afterSlots  = 10;
         
      
-        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$durationBefore,$durationAfter)); 
+        $db->executeQuery('CALL bm_rules_padding_add_rule(?,?,?,?,@newRuleID)',array($ruleName,$validFrom,$validTo,$afterSlots)); 
         
         $newRuleID = $db->fetchColumn("SELECT @newRuleID",array(),0);
     

@@ -25,10 +25,7 @@ END$$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_schedule_add_group`$$
 
-CREATE PROCEDURE `bm_schedule_add_group` (IN groupName VARCHAR(100)
-											, IN validFrom DATE
-											, IN validTo DATE
-											, OUT groupID INT)
+CREATE PROCEDURE `bm_schedule_add_group` (IN groupName VARCHAR(100), IN validFrom DATE, IN validTo DATE, OUT groupID INT)
 BEGIN
 
 	-- table uses closed:open interval format
@@ -186,8 +183,7 @@ $$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_schedule_retire`$$
 
-CREATE PROCEDURE `bm_schedule_retire` (IN scheduleID INT
-                                   	 , IN validTo DATE)
+CREATE PROCEDURE `bm_schedule_retire` (IN scheduleID INT , IN validTo DATE)
 BEGIN
 
 	-- table uses closed:open interval period
@@ -220,8 +216,16 @@ $$
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_schedule_add_booking`$$
 
-CREATE PROCEDURE `bm_schedule_add_booking` (IN scheduleID INT)
+CREATE PROCEDURE `bm_schedule_add_booking` (IN scheduleID INT
+                                            ,IN openTimeslotSlotID INT
+                                            ,IN closeTimeslotSlotID INT
+                                           	,IN priorityRuleID INT
+                                           	,
+                                           )
 BEGIN
+
+	
+
 
 
 END;
