@@ -14,7 +14,7 @@
         <var name="DB_USER" value="root" />
         <var name="DB_PASSWD" value="devboxpwis?" />
         <var name="DB_DBNAME" value="bookme" />
-        <var name="CAL_LENGTH" value="2" />
+        <var name="CAL_LENGTH" value="10" />
     </php>
     <testsuites>
         <testsuite name="default">

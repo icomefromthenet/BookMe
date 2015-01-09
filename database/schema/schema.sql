@@ -271,16 +271,25 @@ DROP TABLE IF EXISTS `timeslot_slots` ;
 
 CREATE TABLE IF NOT EXISTS `timeslot_slots` (
   -- uses a closed:open interval format
+  -- RI Tree
 
   `timeslot_slot_id` INT NOT NULL AUTO_INCREMENT,
   `opening_slot_id` INT NOT NULL,
   `closing_slot_id` INT NOT NULL,
   `timeslot_id` INT NOT NULL,
+  
+  -- Value of the fork node, used to part of the RI Tree
+  `node` INT NOT NULL,
+  
+  -- Constraints and indexes
   PRIMARY KEY (`timeslot_slot_id`),
-  INDEX `fk_timeslot_slots_1_idx` (`timeslot_id` ASC),
-  INDEX `fk_timeslot_slots_2_idx` (`opening_slot_id` ASC),
-  INDEX `fk_timeslot_slots_3_idx` (`closing_slot_id` ASC),
-  UNIQUE INDEX `timeslot_slots_uk1` (`opening_slot_id` ASC, `closing_slot_id` ASC, `timeslot_id` ASC),
+  
+  -- RI Indexes
+  INDEX `idx_timeslot_slots_ri_lower` (`timeslot_id`,`node`,`opening_slot_id`),
+  INDEX `idx_timeslot_slots_ri_upper` (`timeslot_id`,`node`,`closing_slot_id`),
+  
+  -- Normal Constraints
+  UNIQUE INDEX `timeslot_slots_uk1` (`timeslot_id` ASC,`opening_slot_id` ASC, `closing_slot_id` ASC),
   CONSTRAINT `fk_timeslot_slots_1`
     FOREIGN KEY (`timeslot_id`)
     REFERENCES `timeslots` (`timeslot_id`)

@@ -5,6 +5,100 @@ DELIMITER $$
 
 
 -- -----------------------------------------------------
+-- RI Tree Left/Right node finders.
+-- -----------------------------------------------------
+DROP PROCEDURE IF EXISTS `bm_rules_timeslot_left_nodes`$$
+
+CREATE PROCEDURE `bm_rules_timeslot_left_nodes`(lower INT, upper INT)
+BEGIN
+
+  	DECLARE treeHeight INT DEFAULT 0;
+	DECLARE treeRoot INT DEFAULT 0; 
+	DECLARE treeNode INT DEFAULT 0; 
+	DECLARE searchStep INT DEFAULT 0;
+	DECLARE tmpTable VARCHAR(30)  DEFAULT 'timeslot_left_nodes_result';
+	
+	SET treeHeight  = ceil(LOG2((SELECT MAX(`slot_id`) FROM `slots`)+1));
+	SET treeRoot    = power(2,(treeHeight-1)); 
+	SET treeNode    = treeRoot;
+	SET searchStep  =  treeNode / 2;
+
+    -- holds a colletion of forkNodes 
+   	DROP TEMPORARY TABLE IF EXISTS `timeslot_left_nodes_result`;
+    CREATE TEMPORARY TABLE `timeslot_left_nodes_result` (`node` INT NOT NULL PRIMARY KEY)ENGINE=MEMORY; 
+    
+    
+   -- descend from root node to lower
+   myloop:WHILE searchStep >= 1 DO
+  
+    -- right node
+    IF lower < treeNode THEN
+      SET treeNode = treeNode - searchStep;
+  
+    -- left node
+    ELSEIF lower > treeNode THEN
+  
+      INSERT INTO `timeslot_left_nodes_result`(node) VALUES(treeNode);
+      SET treeNode = treeNode + searchStep;
+  
+    -- lower
+    ELSE LEAVE myloop;
+    END IF;  
+
+    SET searchStep = searchStep / 2;
+  
+  END WHILE myloop;
+
+END;
+$$
+
+
+DROP PROCEDURE IF EXISTS `bm_rules_timeslot_right_nodes`$$
+
+CREATE PROCEDURE `bm_rules_timeslot_right_nodes`(lower INT, upper INT)
+BEGIN
+
+  	DECLARE treeHeight INT DEFAULT 0;
+	DECLARE treeRoot INT DEFAULT 0; 
+	DECLARE treeNode INT DEFAULT 0; 
+	DECLARE searchStep INT DEFAULT 0;
+	DECLARE tmpTable VARCHAR(30)  DEFAULT 'timeslot_left_nodes_result';
+	
+	SET treeHeight  = ceil(LOG2((SELECT MAX(`slot_id`) FROM `slots`)+1));
+	SET treeRoot    = power(2,(treeHeight-1)); 
+	SET treeNode    = treeRoot;
+	SET searchStep  =  treeNode / 2;
+
+    -- holds a colletion of forkNodes 
+   	DROP TEMPORARY TABLE IF EXISTS `timeslot_right_nodes_result`;
+    CREATE TEMPORARY TABLE `timeslot_right_nodes_result` (`node` INT NOT NULL PRIMARY KEY)ENGINE=MEMORY; 
+    
+    
+   -- descend from root node to lower
+   myloop:WHILE searchStep >= 1 DO
+  
+    -- right node
+    IF upper > treeNode THEN
+      SET treeNode = treeNode + searchStep;
+  
+    -- left node
+    ELSEIF upper < treeNode THEN
+  
+      INSERT INTO `timeslot_right_nodes_result`(node) VALUES(treeNode);
+      SET treeNode = treeNode - searchStep;
+  
+    -- lower
+    ELSE LEAVE myloop;
+    END IF;  
+
+    SET searchStep = searchStep / 2;
+  
+  END WHILE myloop;
+
+END;
+$$
+
+-- -----------------------------------------------------
 -- procedure bm_rules_timeslot_details
 -- -----------------------------------------------------
 DROP procedure IF EXISTS `bm_rules_timeslot_details`$$
@@ -222,10 +316,10 @@ BEGIN
 	
 	DECLARE rulesCursor CURSOR FOR 
 		SELECT    `vw`.`rule_id`
-				, bm_rules_is_member(`vw`.`membership_id`,`vw`.`schedule_group_id`) AS is_member, 
-				, bm_rules_is_schedule_group(`vw`.`membership_id`,`vw`.`schedule_group_id`) AS is_schedule_group,
-				, bm_rules_is_inclusion(`vw`.`rule_type`) AS is_inclusion,
-				, bm_rules_is_exclusion(`vw`.`rule_type`) AS is_exclusion,
+				, bm_rules_is_member(`vw`.`membership_id`,`vw`.`schedule_group_id`) AS is_member
+				, bm_rules_is_schedule_group(`vw`.`membership_id`,`vw`.`schedule_group_id`) AS is_schedule_group
+				, bm_rules_is_inclusion(`vw`.`rule_type`) AS is_inclusion
+				, bm_rules_is_exclusion(`vw`.`rule_type`) AS is_exclusion
 				, bm_rules_is_priority (`vw`.`rule_type`) AS is_priority
 		FROM `schedules_rules_vw` vw
 		LEFT JOIN `rules_adhoc` mba ON `mba`.`rule_id` = `vw`.`rule_id`
@@ -263,6 +357,7 @@ BEGIN
 		END IF;
 		
 		-- find timeslot slots interset the rule slots.
+	/*
 		UPDATE schedule_timeslot_details p
 		WHERE EXISTS (SELECT 1 
 		              FROM `rule_slots` q
@@ -303,7 +398,7 @@ BEGIN
 		
 		,`is_member_priority`  = CAST((isPriority && isMember) AS INTEGER)
 		,`is_group_priority`   = CAST((isPriority && isScheduleGroup) AS INTEGER); 
-	
+		*/
 	
 		END LOOP cursor_loop;
 	CLOSE rulesCursor;

@@ -85,11 +85,16 @@ BEGIN
     -- open:closed   (0:5]
     -- close:open    [1:6)
     --
-    INSERT INTO timeslot_slots (timeslot_slot_id,opening_slot_id,closing_slot_id,timeslot_id)  
+    
+    -- This table uses RI Tree so needs to call utl_fork_node to calculate the node column. 
+    -- This in effect creats a virtual tree structure.
+    
+    INSERT INTO timeslot_slots (timeslot_slot_id,opening_slot_id,closing_slot_id,timeslot_id,node)  
 	SELECT NULL
           ,min(`a`.`slot_id`) as slot_open_id	
           ,max(`a`.`slot_id`) +1 as slot_close_id 
           ,timeslotID
+          ,utl_fork_node(min(`a`.`slot_id`),max(`a`.`slot_id`))
     FROM `slots` a
     -- as where using closed:open we can not use the last row in slot table
     -- this would cause a FK key constrain we stop at the last slot in the table. 
