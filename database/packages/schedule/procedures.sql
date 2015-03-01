@@ -151,23 +151,26 @@ BEGIN
 			SET MESSAGE_TEXT = 'Date range is not valid';
 		END IF;
 
+	 -- convert for closed:open interval format
 		SET validTo = (validTo + INTERVAL 1 DAY);
 
 	END IF;
 
 	
-	-- We require that the schedule validity period  be contained within the assigned groups validity period
-	-- that being the assign group must be valid for each day the schedule exists.
-	
-	-- Members, Timeslot do not have a validity period, the normal FK will maintain consistency
-	
-	
+	-- We require that the Schedule validity period be filled by the validity period of the group
+	-- the schedule validity occurs within the validity period of the group.
+
 	INSERT INTO `schedules` (`schedule_id`,`open_from`,`closed_on`,`schedule_group_id`,`membership_id`) 
-	VALUES (NULL,validFrom,validTo,(SELECT gs.group_id 
-	                                           FROM schedule_groups gs
-	                                           WHERE gs.valid_from <= validFrom
-	                                           AND gs.valid_to > validTo
-	                                           AND gs.group_id = groupID),memberID);
+	VALUES (NULL
+								,validFrom
+								,validTo
+								,(SELECT gs.group_id 
+	         FROM schedule_groups gs
+	         WHERE gs.valid_from <= validFrom
+	         AND gs.valid_to >= validTo
+	       	 AND gs.group_id = groupID
+	       )
+	       ,memberID);
 	
 	SET scheduleID =  LAST_INSERT_ID();
 
@@ -189,11 +192,15 @@ BEGIN
 	-- table uses closed:open interval period
 	SET validTo = (validTo + INTERVAL 1 DAY);
 	
+	
+	-- only going to retire a schedule if there a zero
+	-- bookings occur after the end date
 	UPDATE `schedules` s SET `s`.`closed_on` = validTo 
 	WHERE NOT EXISTS (
 		SELECT 1
 		FROM `bookings` b
-		WHERE schedule_id
+		WHERE `b`.`schedule_id`  = `s`.`schedule_id`
+		AND   `b`.`closing_date` < validTo
 	)
 	AND `s`.`schedule_id` = scheduleID;
 	
@@ -219,14 +226,15 @@ DROP procedure IF EXISTS `bm_schedule_add_booking`$$
 CREATE PROCEDURE `bm_schedule_add_booking` (IN scheduleID INT
                                             ,IN openTimeslotSlotID INT
                                             ,IN closeTimeslotSlotID INT
-                                           	,IN priorityRuleID INT
-                                           	,
-                                           )
+                                           	,IN priorityRuleID INT)
 BEGIN
 
 	
 
 
+	IF @bm_debug = true THEN
+		CALL util_proc_log('bm_schedule_add_booking');
+	END IF;	
 
 END;
 $$
@@ -269,7 +277,7 @@ BEGIN
   
   There are two general usecases 
   	1. Multi day length bookings
-  	2. Short term bookingss contained within single day.
+  	2. Short term bookings contained within single day.
  
   In the case of short term booking the start and end date be same (closed:closed) interval format
   so the agg will be added to that cal day in the cal week.

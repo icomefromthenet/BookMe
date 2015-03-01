@@ -158,6 +158,13 @@ DROP procedure IF EXISTS `bm_rules_maxbook_create_tmp_table`$$
 CREATE PROCEDURE `bm_rules_maxbook_create_tmp_table`(IN openTimeslotSlotID INT,IN closeTimeslotSlotID INT)
 BEGIN
 
+	/*
+	* This procedure is used to create the temporary global table that will be used to
+	* join onto the master schedule this temp table contains the same timeslotSlots
+	* that schedule would. We Use a range of TimeslotSlotID's making the assumption that the
+	* timeslot slots are grouped into non overlapping sequences.
+	*/
+
 	IF openTimeslotSlotID > closeTimeslotSlotID THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT = 'Clsoing timeslotSlot must proceed the opening slot id';
@@ -171,6 +178,7 @@ BEGIN
   		`d` TINYINT NULL COMMENT 'numeric date part',
 		`y` SMALLINT NULL COMMENT 'year where date occurs',
 		`w` TINYINT NULL COMMENT 'week number in the year',
+		`cal_date` DATE NULL COMMENT 'CAL date of this row'
 		
 		`has_maxed` TINYINT DEFAULT 0,
 		
@@ -182,15 +190,14 @@ BEGIN
     	
   	) ENGINE=MEMORY;
 	
-	-- build empty resuls table
+	-- If a timeslot_slot crosses a day boundary, it will be counted in the cal day of its opening slot value.
 	
-	INSERT INTO `schedule_maxbool_slots` (`timeslot_slot_id`,`y`,`m`,`d`,`w`,`has_maxed`)
-	SELECT `s`.`timeslot_slot_id`,`c`.`y`, `c`.`m`, `c`.`d`,`c`.`w`,0
+	INSERT INTO `schedule_maxbool_slots` (`timeslot_slot_id`,`y`,`m`,`d`,`w`,cal_date,`has_maxed`)
+	SELECT `s`.`timeslot_slot_id`, extract(year from sl.cal_date), extract(month from sl.cal_date), extract(day from sl.cal_date),extract(week from sl.cal_date),date(sl.cal_date),0
 	FROM `timeslot_slots` s
-	JOIN `calendar` c ON `s`.`opening_slot_id` >=`c`.`open_slot_id` AND `s`.`closing_slot_id` <= `c`.`close_slot_id`
+	JOIN slots sl on `sl`.`slot_id` = `s`.`opening_slot_id`
 	WHERE `s`.`timeslot_slot_id` >= openTimeslotSlotID
-	AND `s`.`timeslot_slot_id` <= closeTimeslotSlotID
-	GROUP BY `s`.`timeslot_slot_id`,`c`.`y`, `c`.`m`, `c`.`d`,`c`.`w`;
+	AND `s`.`timeslot_slot_id` <= closeTimeslotSlotID;
 
 END;
 $$
@@ -203,16 +210,14 @@ DROP procedure IF EXISTS `bm_rules_maxbook_cal_day`$$
 
 CREATE PROCEDURE `bm_rules_maxbook_cal_day`(IN scheduleID INT,IN maxBookNum INT)
 BEGIN
-	DECLARE dayValue INT DEFAULT 0;
-	DECLARE monthValue INT DEFAULT 0;
-	DECLARE yearValue INT DEFAULT 0;
+	DECLARE calDate DATE;
 	DECLARE numberBooked INT DEFAULT 0;
 	DECLARE l_last_row_fetched INT DEFAULT 0;
 	-- timeslot loop vars
 	DECLARE timeslots_cursor CURSOR FOR 
-		SELECT `d`,`m`,`y` 
+		SELECT `cal_date`
 		FROM schedule_maxbool_slots 
-		GROUP BY `d`,`m`,`y`;
+		GROUP BY `cal_date`;
 	
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET l_last_row_fetched=1;
 
@@ -226,35 +231,28 @@ BEGIN
 	OPEN timeslots_cursor;
 		cursor_loop:LOOP
 
-		FETCH timeslots_cursor INTO dayValue,monthValue,yearValue;
+		FETCH timeslots_cursor INTO calDate;
 		
 		IF l_last_row_fetched=1 THEN
 			LEAVE cursor_loop;
 		END IF;
 		
 		IF @bm_debug = true THEN	
-				CALL util_proc_log(concat('Looking for bookings on date ',dayValue,'/',monthValue,'/',yearValue));
+				CALL util_proc_log(concat('Looking for bookings on date ',extract(day from calDate),'/',extract(month from calDate),'/',extract(year from calDate)));
 		END IF;
 		
 		-- count the number of bookings for this date
 		SET numberBooked = (SELECT count(`b`.`booking_id`)
-							FROM  calendar c 
-							-- join all bookings that are encompased by this days slots for schedule x
-							LEFT JOIN bookings b ON  `b`.`open_slot_id`  >= `c`.`open_slot_id`
-												 AND `b`.`close_slot_id` <= `c`.`close_slot_id`
-												 AND `b`.`schedule_id`    = scheduleID
-							-- limit to a single calendar day
-							WHERE `c`.`d` = dayValue
-							AND `c`.`y` = yearValue
-							AND `c`.`m` = monthValue
-							GROUP BY `c`.`d`,`c`.`m`,`c`.`y`);
+							FROM bookings b 
+							WHERE `b`.`schedule_id`  = scheduleID 
+							AND   date(`b`.`starting_date`) = calDate);
+							
 		
 		-- do bulk update of all slots for this day
 		IF numberBooked > maxBookNum THEN
 			
 			UPDATE `schedule_maxbool_slots` SET has_maxed = 1
-			WHERE `d` = dayValue 
-			AND   `m` = monthValue AND   `y` = yearValue AND    has_maxed != 1;
+			WHERE `cal_date` = `cal_date`;
 			
 			IF @bm_debug = true THEN	
 				CALL util_proc_log(concat('Updated ',ROW_COUNT(),' number of timeslots in schedule_maxbool_slots table'));

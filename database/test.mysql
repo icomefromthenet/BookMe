@@ -1,0 +1,35 @@
+SELECT open_slot_id, close_slot_id FROM `calendar_months` ORDER BY RAND() LIMIT 1 INTO @minSlot,@maxSlot;
+
+SELECT max(`s`.`timeslot_slot_id`), min(`s`.`timeslot_slot_id`) from timeslot_slots `s` WHERE `s`.`opening_slot_id`  >= @minSlot
+AND  `s`.`closing_slot_id` <= @maxSlot
+and `s`.`timeslot_id` = 3
+INTO @closeTimeslotSlotID, @openTimeslotSlotID;
+
+SET @forkNode  = utl_fork_node(@openTimeslotSlotID,@closeTimeslotSlotID);
+
+SET profiling=1;
+
+
+
+
+
+SELECT `s`.`timeslot_slot_id`, extract(year from sl.cal_date), extract(month from sl.cal_date), extract(day from sl.cal_date),extract(week from sl.cal_date)
+FROM `timeslot_slots` s
+JOIN slots sl on `sl`.`slot_id` = `s`.`opening_slot_id`
+WHERE `s`.`timeslot_slot_id` >= @openTimeslotSlotID
+AND `s`.`timeslot_slot_id` <= @closeTimeslotSlotID;
+
+
+
+/*
+select count(n.node) / (max())
+from (
+    select node
+    FROM `timeslot_slots`
+    group by node
+) n;
+*/
+
+
+
+SHOW profiles;

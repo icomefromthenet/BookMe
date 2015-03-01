@@ -5,7 +5,7 @@ include __DIR__ .'/../vendor/autoload.php';
 # setup the datbase and execute the install
 
 # build schema
-$sqlFile = realpath(__DIR__.'/../database/create.sh');
+$sqlFile = realpath(__DIR__.'/create.sh');
             
 if(false === file_exists($sqlFile)) {
     throw new \Exception("The Database Create SQL file not found at $sqlFile");
@@ -38,7 +38,7 @@ $doctrine->exec('set @bm_debug = true;');
 $doctrine->executeQuery('call bm_install_run(?)',array($GLOBALS['CAL_LENGTH']));
 
 # execute test data insert must be done after insert run
-$sqlFile = realpath(__DIR__.'/../database/data.sh');
+$sqlFile = realpath(__DIR__.'/data.sh');
      
 if(false === file_exists($sqlFile)) {
     throw new \Exception("The Database Create SQL file not found at $sqlFile");

@@ -212,23 +212,23 @@ BEGIN
 		FROM audit_rules_repeat rr
 		WHERE `rr`.`rule_type` IN ('inclusion','exclusion')
 		AND `rr`.`change_time` >= afterDate
-		UNION
+		UNION ALL
 		-- find adhoc rules that been updated/inserted/deleted
 		SELECT DISTINCT `ar`.`rule_id`
 		FROM audit_rules_adhoc `ar`
 		WHERE `ar`.`rule_type` IN ('inclusion','exclusion')
 		AND `ar`.`change_time` >= afterDate
-		UNION
+		UNION ALL
 		-- find padding rules changed
 		SELECT DISTINCT `ap`.`rule_id`
 		FROM audit_rules_padding `ap`
 		WHERE `ap`.`change_time` >= afterDate
-		UNION
+		UNION ALL
 		-- find maxbook rules changed
 		SELECT DISTINCT `amb`.`rule_id`
 		FROM audit_rules_maxbook `amb`
 		WHERE `amb`.`change_time` >= afterDate
-		UNION
+		UNION 
 		-- find rules that have had slot operations
 		SELECT DISTINCT `op`.`rule_id`
 		FROM rule_slots_operations op
@@ -268,7 +268,7 @@ BEGIN
 		
 		
 		INSERT INTO `schedules_affected_by_changes` (`schedule_id`,`date_known`)
-		SELECT `s`.`schedule_id`,NOW()
+		SELECT DISTINCT `s`.`schedule_id`,NOW()
 		FROM schedules s
 		JOIN (SELECT `membership_id`,`schedule_group_id` 
 			  FROM rules_relations 
@@ -284,12 +284,14 @@ BEGIN
 		) 
 		-- a rule can be related to a member OR schedule group while schedule must be related to both.
 		a ON `a`.`membership_id` = `s`.`membership_id` OR `a`.`schedule_group_id` = `s`.`schedule_group_id`
-		-- schedule table using open:close interval format
-		WHERE `s`.`open_from` <= NOW() 
-		AND `s`.`closed_on` > NOW() 
+		-- schedule table using closed:open interval format
+		-- Filter out schedules that are closed and whould not be affected by this change, as they could not
+		-- have bookings after the close date
+		WHERE `s`.`closed_on` >= afterDate
 		AND NOT EXISTS (SELECT 1 
-		              FROM schedules_affected_by_changes af 
-		              WHERE `s`.`schedule_id` = `af`.`schedule_id`);
+		               FROM schedules_affected_by_changes 
+		               WHERE `schedule_id`=`s`.`schedule_id`);
+		
 
 		END LOOP cursor_loop;
 	CLOSE changed_rules_cursor;
