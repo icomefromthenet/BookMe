@@ -1,99 +1,11 @@
 <?php
 namespace IComeFromTheNet\BookMe;
 
-use DateTime;
-use Pimple\Container;
-use Doctrine\DBAL\Connection;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use IComeFromTheNet\BookMe\Events\AppActivityLogHandler;
-use IComeFromTheNet\BookMe\Events\AppDatabaseLogger;
-use IComeFromTheNet\BookMe\Events\AppUserInterface;
-use IComeFromTheNet\BookMe\Events\BookMeEvents;
-use IComeFromTheNet\BookMe\Events\MembershipEvent;
 
-
-
-
-/**
- * Book Me Service and DI Container
- * 
- * With Many of the Stored Procedures where using User Varaibles to
- * work around a very old bug in mysql C API which only fixed in very
- * recent versions of PHP and MYSQL Lib.
- * 
- * Your Database Admin must allow user variables for this code to function.
- *
- * @author Lewis Dyer <getintouch@icomefromthenet.com>
- * @since 1.0
- */
-class BookMeService extends Container
+class BookMeService
 {
-    
-    
-    /**
-     * Get defintion of services should be called only once
-     * 
-     * @return void
-     * @access protected
-     */ 
-    protected function build()
-    {
-        $this['appDatabaseLogger'] = function($c) {
-             return new AppDatabaseLogger($this->getDatabase());
-        };
-        
-        $this['appActivityLog'] = function($c) {
-            return new AppActivityLogHandler($this['appDatabaseLogger'] ,$this->getAppUser());
-        };
-    }
-    
-    
-    
-    public function __construct(Connection $dbal,LoggerInterface $logger,EventDispatcherInterface $dispatcher,AppUserInterface $user)
-    {
-        $this['database'] = $dbal;
-        $this['logger']   = $logger;
-        $this['eventDispatcher'] = $dispatcher;
-        $this['user'] = $user;
-        $this['booted'] = false;
-        
-    }
-    
-    /**
-     * Gets the Service ready for operation.
-     * 
-     * 1. Build Dependency Graph
-     * 2. Wire up event handlers
-     * 
-     * Will only boot once.
-     * 
-     * @return $this;
-     * @access public
-     */ 
-    public function boot()
-    {
-        if(false === $this['booted']) {
-        
-            $this->build();
-        
-            $eventDispatcher  = $this->getEventDispatcher();
-            $database   = $this->getDatabase();
-            $logHandler = $this['appActivityLog'];
-    
-            # subscribe events to database activity log.
-            $eventDispatcher->addSubscriber($logHandler);
-            
-        
-        }
-        
-        
-        return $this;
-        
-    }
-    
-    
-    
+
+
     //----------------------------------------
     // Membership, Schedules and Schedule Groups.
     // 
@@ -377,65 +289,7 @@ class BookMeService extends Container
     {
         
     }
-    
-    //----------------------------------------
-    // External Services Properties
-    // 1. Database
-    // 2. Application Logger
-    // 3. Event Dispatcher
-    //----------------------------------------
-    
-    /**
-     * Loads the doctrine database
-     *
-     * @return Doctrine\DBAL\Connection
-     */
-    public function getDatabase()
-    {
-        return $this['database'];
-    }
-    
-    /**
-     * Loads the doctrine database
-     *
-     * @return Doctrine\DBAL\Connection
-     */
-    public function getDatabaseAdapter()
-    {
-        return $this['database'];
-    }
-    
-    
-    /**
-     * Loads the application log
-     *
-     * @return Psr\Log\LoggerInterface
-     */
-    public function getLogger()
-    {
-        return $this['logger'];
-    }
-    
-    /**
-     * Loads the application log
-     *
-     * @return Symfony\Component\EventDispatcher\EventDispatcherInterface;
-     */
-    public function getEventDispatcher()
-    {
-        return $this['eventDispatcher'];
-    }
-    
-    /**
-     * Return the current user that bootstraped this service
-     * 
-     * @return AppUserInterface
-     */ 
-    public function getAppUser()
-    {
-        return $this['user'];
-    }
-    
-    
+
+
 }
 /* End of File */

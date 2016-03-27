@@ -8,19 +8,38 @@
          convertWarningsToExceptions="true"
          processIsolation="false"
          syntaxCheck="false"
-         bootstrap="bin/setup.php"
+         bootstrap="vendor/autoload.php"
 >
+    
     <php>
-        <var name="DB_USER" value="root" />
-        <var name="DB_PASSWD" value="devboxpwis?" />
-        <var name="DB_DBNAME" value="bookme" />
-        <var name="CAL_LENGTH" value="3" />
+        <var name="DEMO_DATABASE_USER" value="icomefromthenet"/>
+        <var name="DEMO_DATABASE_PASSWORD" value=""/>
+        <var name="DEMO_DATABASE_SCHEMA" value="c9"/>
+        <var name="DEMO_DATABASE_PORT" value="3306"/>
+        <var name="DEMO_DATABASE_HOST" value="172.17.41.61"/>
+        <var name="DEMO_DATABASE_TYPE" value="pdo_mysql"/>
     </php>
+
     <testsuites>
+        
         <testsuite name="default">
-            <directory suffix="Test.php">src/Tests/</directory>
-            <exclude>src/Tests/BasicTest.php</exclude>
+            <directory suffix="Test.php">src/Test/</directory>
+            <exclude>src/Tests/Base</exclude>
+            <groups>
+                <include><group>default</group></include>
+                <exclude><group>install</group></exclude>
+            </groups>
         </testsuite>
+        
+        <testsuite name="install">
+            <directory suffix="Test.php">src/Test/</directory>
+            <exclude>src/Tests/Base</exclude>
+            <groups>
+                <include><group>install</group></include>
+                <exclude><group>default</group></exclude>
+            </groups>
+        </testsuite>
+        
   </testsuites>  
     
 </phpunit>
