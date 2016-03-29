@@ -24,7 +24,7 @@
         
         <testsuite name="default">
             <directory suffix="Test.php">src/Test/</directory>
-            <exclude>src/Tests/Base</exclude>
+            <exclude>src/Tests/Base/</exclude>
             <groups>
                 <include><group>default</group></include>
                 <exclude><group>install</group></exclude>
@@ -33,7 +33,7 @@
         
         <testsuite name="install">
             <directory suffix="Test.php">src/Test/</directory>
-            <exclude>src/Tests/Base</exclude>
+            <exclude>src/Tests/Base/</exclude>
             <groups>
                 <include><group>install</group></include>
                 <exclude><group>default</group></exclude>

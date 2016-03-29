@@ -4,6 +4,7 @@ namespace IComeFromTheNet\BookMe\Bus\Middleware;
 use Valitron\Validator;
 use League\Tactician\Middleware;
 
+use IComeFromTheNet\BookMe\Bus\Middleware\ValidationException;
 
 
 /**
@@ -41,7 +42,7 @@ class ValidatePropMiddleware implements Middleware
             $bValid = $oValidator->validate();
         
             if(false === $bValid) {
-                throw ValiationException::hasFailedValidation($oCommand,$oValidator->errors());
+                throw ValidationException::hasFailedValidation($oCommand,$oValidator->errors());
             }
         
         }

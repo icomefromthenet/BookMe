@@ -44,7 +44,8 @@ class TestWithFixture extends PHPUnit_Extensions_Database_TestCase
     
     
     
-    public function getDataSet($fixtures = array()) {
+    public function getDataSet($fixtures = array()) 
+    {
     
         if (empty($fixtures)) {
             $fixtures = $this->aFixtures;
@@ -57,7 +58,8 @@ class TestWithFixture extends PHPUnit_Extensions_Database_TestCase
         foreach ($fixtures as $fixture) {
             $aPaths[] =  $fixturePath . DIRECTORY_SEPARATOR . "$fixture";
         }
-    
+        
+
         return new ArrayDataSet($aPaths);
     }
     

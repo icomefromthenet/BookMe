@@ -39,7 +39,7 @@ class CalAddYearHandler
         $oDateType     = Type::getType(Type::DATE);
         
         
-        $sSql   .= "SELECT DATE_FORMAT(IFNULL((SELECT MAX(calendar_date) from $sCalTableName),NOW()),'%Y-01-01')";
+        $sSql   .= "SELECT DATE_FORMAT(IFNULL((SELECT MAX(calendar_date) + INTERVAL 1 Day FROM $sCalTableName),NOW()),'%Y-01-01')";
         
         return $oDateType->convertToPHPValue($oDatabase->fetchColumn($sSql,[],0,[]),$oDatabase->getDatabasePlatform());
     }
@@ -87,32 +87,89 @@ class CalAddYearHandler
     }
     
     
-    protected function buildWeeks($iYears)
+    protected function buildWeeks($iYears, \DateTime $oLastCalYear)
     {
         
+        $oDatabase          = $this->oDatabaseAdapter;
+        $sCalTableName      = $this->aTableNames['bm_calendar'];
+        $sCalWeekTableName  = $this->aTableNames['bm_calendar_weeks'];
+        $aSql               = [];
+       
+        $aSql[] =" INSERT INTO `$sCalWeekTableName` (`y`,`m`,`w`) ";
+        $aSql[] =" SELECT `c`.`y`, `c`.`m`, `c`.`w` ";
+        $aSql[] =" FROM `$sCalTableName` c ";
+        $aSql[] =" WHERE `c`.calendar_date >= CAST('".$oLastCalYear->format('Y-m-d')."' AS DATE) ";
+        $aSql[] =" GROUP BY `c`.`y`,`c`.`w` ";
+
+        $sSql = implode(PHP_EOL,$aSql);
+	    $oDatabase->executeUpdate($sSql, [], []);
         
+    }
+    
+    
+    protected function buildMonths($iYears, \DateTime $oLastCalYear)
+    {
+        $oDatabase          = $this->oDatabaseAdapter;
+        $sCalTableName      = $this->aTableNames['bm_calendar'];
+        $sCalMonthTableName  = $this->aTableNames['bm_calendar_months'];
+        $aSql               = [];
+       
+       
+        $aSql[] =" INSERT INTO `$sCalMonthTableName` (`y`,`m`,`month_name`,`m_sweek`,`m_eweek`) ";
+    	$aSql[] =" SELECT `c`.`y`, `c`.`m`, max(`c`.`month_name`) as month_name ";
+    	$aSql[] ="        ,min(`c`.`w`) AS a, max(`c`.`w`) AS b ";
+    	$aSql[] =" FROM $sCalTableName c ";
+    	$aSql[] =" WHERE `c`.calendar_date >= CAST('".$oLastCalYear->format('Y-m-d')."' AS DATE) ";
+        $aSql[] =" GROUP BY `c`.`y`,`c`.`m` ";
+           
+    
+        $sSql = implode(PHP_EOL,$aSql);
+	    $oDatabase->executeUpdate($sSql, [], []);
+       
         
+    }
+    
+    protected function buildQuarters($iYears, \DateTime $oLastCalYear)
+    {
+        $oDatabase          = $this->oDatabaseAdapter;
+        $sCalTableName      = $this->aTableNames['bm_calendar'];
+        $sCalQuarTableName  = $this->aTableNames['bm_calendar_quarters'];
+        $aSql               = [];
+       
+       
+        $aSql[] =" INSERT INTO `$sCalQuarTableName` (`y`,`q`,`m_start`,`m_end`) ";
+    	$aSql[] =" SELECT `c`.`y`,`c`.`q` ";
+    	$aSql[] ="		,min(`c`.`calendar_date`) ";
+    	$aSql[] ="		,max(`c`.`calendar_date`) ";
+    	$aSql[] =" FROM `$sCalTableName` c ";
+    	$aSql[] =" WHERE `c`.calendar_date >= CAST('".$oLastCalYear->format('Y-m-d')."' AS DATE) ";
+        $aSql[] =" GROUP BY `c`.`y`,`c`.`q`; ";
+           
+    
+        $sSql = implode(PHP_EOL,$aSql);
+	    $oDatabase->executeUpdate($sSql, [], []);
         
         
     }
     
     
-    protected function buildMonths($iYears)
+    protected function buildYears($iYears, \DateTime $oLastCalYear)
     {
-        
-        
-    }
+        $oDatabase          = $this->oDatabaseAdapter;
+        $sCalTableName      = $this->aTableNames['bm_calendar'];
+        $sCalYearTableName  = $this->aTableNames['bm_calendar_years'];
+        $aSql               = [];
+       
+       
+        $aSql[] =" INSERT INTO `$sCalYearTableName` (`y`,`y_start`,`y_end`) ";
+	    $aSql[] =" SELECT `c`.`y`,min(`c`.`calendar_date`),max(`c`.`calendar_date`) ";
+	    $aSql[] =" FROM `$sCalTableName` c ";
+	    $aSql[] =" WHERE `c`.calendar_date >= CAST('".$oLastCalYear->format('Y-m-d')."' AS DATE) ";
+	    $aSql[] =" GROUP BY `c`.`y` ";
     
-    protected function buildQuarters($iYears)
-    {
-        
-        
-    }
-    
-    
-    protected function buildYears($iYears)
-    {
-        
+        $sSql = implode(PHP_EOL,$aSql);
+	    $oDatabase->executeUpdate($sSql, [], []);
+       
         
     }
     
@@ -132,7 +189,10 @@ class CalAddYearHandler
         $oLastCalYear = $this->getLastCalendarYear();
         
         $this->buildCalendar($iYears, $oLastCalYear); 
-       
+        $this->buildWeeks($iYears, $oLastCalYear);
+        $this->buildMonths($iYears, $oLastCalYear);
+        $this->buildQuarters($iYears,$oLastCalYear);
+        $this->buildYears($iYears, $oLastCalYear);
         
         return true;
     }

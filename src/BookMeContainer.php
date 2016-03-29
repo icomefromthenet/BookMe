@@ -12,13 +12,20 @@ use League\Tactician\Handler\CommandHandlerMiddleware;
 use League\Tactician\Handler\MethodNameInflector\HandleInflector;
 use League\Tactician\Plugins\LockingMiddleware;
 use League\Tactician\Handler\CommandNameExtractor\ClassNameExtractor;
+use League\Tactician\CommandEvents\EventMiddleware;
+use League\Tactician\CommandEvents\Event\CommandHandled;
 use Bezdomni\Tactician\Pimple\PimpleLocator;
 
 use IComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand;
+use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
+use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
 
 
 use IComeFromTheNet\BookMe\Bus\Handler\CalAddYearHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\SlotAddHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\SlotToggleStatusHandler;
 
+use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidatePropMiddleware;
 use IComeFromTheNet\BookMe\Bus\Middleware\ExceptionWrapperMiddleware;
@@ -67,28 +74,48 @@ class BookMeContainer extends Container
         
             # default table name map
             $this['tableMap'] = array_merge(array(
-                'bm_calendar' => 'bm_calendar'
+                'bm_calendar'           => 'bm_calendar',
+                'bm_calendar_weeks'     => 'bm_calendar_weeks',
+                'bm_calendar_months'    => 'bm_calendar_months',
+                'bm_calendar_quarters'  => 'bm_calendar_quarters',
+                'bm_calendar_years'     => 'bm_calendar_years',
                 
+                'bm_timeslot'           => 'bm_timeslot',
+                'bm_timeslot_day'       => 'bm_timeslot_day',
+                
+                'bm_schedule_membership' => 'bm_schedule_membership',
                 
             ),$aTableNames);
         
         
+            $this['commandBus.handler'] = function($c) {
+                return new CustomHandler($c->getEventDispatcher());
+            };
+        
         
             # Command Bus Handlers
             
-            $this['handlers.cal.addyear'] = function($c) use ($aFinalTableNames) {
+            $this['handlers.cal.addyear'] = function($c) {
                 return new  CalAddYearHandler($c->getTableMap(), $c->getDatabaseAdapter()); 
                 
             };
-
             
+            $this['handlers.slot.add'] = function($c) {
+                return new SlotAddHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            $this['handlers.slot.toggle'] = function($c) {
+                return new SlotToggleStatusHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
             
             # Command Bus
             
             $this['commandBus'] = function($c){
                 
                 $aLocatorMap = [
-                    CalAddYearCommand::class => 'handlers.cal.addyear',
+                    CalAddYearCommand::class        => 'handlers.cal.addyear',
+                    SlotAddCommand::class           => 'handlers.slot.add',
+                    SlotToggleStatusCommand::class  => 'handlers.slot.toggle',
                 ];
         
              
@@ -102,6 +129,15 @@ class BookMeContainer extends Container
                 
                 // Create exrta Middleware 
  
+                $oEventMiddleware       = new EventMiddleware();
+                $oEventMiddleware->addListener(
+                	'command.handled',
+                	function (CommandHandled $event) use ($c) {
+                    	$c->getBusEventHandler()->handle($event);
+                	}
+                );
+                
+                
                 $oLockingMiddleware     = new LockingMiddleware();
                 $oValdiationMiddleware  = new ValidatePropMiddleware();
                 $oExceptionMiddleware   = new ExceptionWrapperMiddleware();
@@ -111,6 +147,7 @@ class BookMeContainer extends Container
                 $oCommandBus = new CommandBus([
                             $oExceptionMiddleware,
                             $oLockingMiddleware,
+                            $oEventMiddleware,
                             $oValdiationMiddleware,
                             $oCommandMiddleware
                 ]);
@@ -151,6 +188,16 @@ class BookMeContainer extends Container
     public function getTableMap()
     {
         return $this['tableMap'];
+    }
+    
+    /**
+     * Return the custom event bus listener
+     * 
+     * @return IComeFromTheNet\BookMe\Bus\Listener\CommandHandled
+     */ 
+    public function getBusEventHandler()
+    {
+        return $this['commandBus.handler'];
     }
     
     //--------------------------------------------------------------------

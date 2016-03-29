@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "8ee24cf6adbdcab2c1e0cc64d57e3069",
-    "content-hash": "a95844e1d41cc2e245fe83bd3a838f7a",
+    "hash": "85867c415aec00f794b90faffad1b53b",
+    "content-hash": "cae54da3276073e200cdfde26993e60a",
     "packages": [
         {
             "name": "bezdomni/tactician-pimple",
@@ -525,6 +525,56 @@
             "time": "2014-09-09 13:34:57"
         },
         {
+            "name": "league/event",
+            "version": "2.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/thephpleague/event.git",
+                "reference": "e4bfc88dbcb60c8d8a2939a71f9813e141bbe4cd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/thephpleague/event/zipball/e4bfc88dbcb60c8d8a2939a71f9813e141bbe4cd",
+                "reference": "e4bfc88dbcb60c8d8a2939a71f9813e141bbe4cd",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "henrikbjorn/phpspec-code-coverage": "~1.0.1",
+                "phpspec/phpspec": "~2.0.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.2-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "League\\Event\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Frank de Jonge",
+                    "email": "info@frenky.net"
+                }
+            ],
+            "description": "Event package",
+            "keywords": [
+                "emitter",
+                "event",
+                "listener"
+            ],
+            "time": "2015-05-21 12:24:47"
+        },
+        {
             "name": "league/tactician",
             "version": "v1.0.2",
             "source": {
@@ -574,6 +624,57 @@
                 "service layer"
             ],
             "time": "2016-02-20 11:14:36"
+        },
+        {
+            "name": "league/tactician-command-events",
+            "version": "v0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/thephpleague/tactician-command-events.git",
+                "reference": "dff9a4ef0120b837a6ba38b689102ca651c7f231"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/thephpleague/tactician-command-events/zipball/dff9a4ef0120b837a6ba38b689102ca651c7f231",
+                "reference": "dff9a4ef0120b837a6ba38b689102ca651c7f231",
+                "shasum": ""
+            },
+            "require": {
+                "league/event": "~2.1",
+                "league/tactician": "^1.0"
+            },
+            "require-dev": {
+                "henrikbjorn/phpspec-code-coverage": "~1.0",
+                "phpspec/phpspec": "~2.1"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.6-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "League\\Tactician\\CommandEvents\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Márk Sági-Kazár",
+                    "email": "mark.sagikazar@gmail.com"
+                }
+            ],
+            "description": "Tactician Command Events",
+            "homepage": "http://tactician.thephpleague.com",
+            "keywords": [
+                "event",
+                "tactician"
+            ],
+            "time": "2015-12-31 13:38:20"
         },
         {
             "name": "monolog/monolog",

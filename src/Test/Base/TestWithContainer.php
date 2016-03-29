@@ -46,7 +46,7 @@ class TestWithContainer extends TestWithFixture
   
   protected function getLogger()
   {
-     return new Logger('test-ledger',array(new TestHandler()));
+     return new Logger('test-test',array(new TestHandler()));
   }
   
   /**

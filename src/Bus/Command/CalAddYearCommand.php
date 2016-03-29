@@ -2,6 +2,10 @@
 namespace IComeFromTheNet\BookMe\Bus\Command;
 
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidationInterface;
+use IComeFromTheNet\BookMe\Bus\Listener\HasEventInterface;
+use IComeFromTheNet\BookMe\Bus\Listener\CommandEvent;
+use IComeFromTheNet\BookMe\BookMeEvents;
+
 
 /**
  * This command is used to add a new year to the calendar table
@@ -9,7 +13,7 @@ use IComeFromTheNet\BookMe\Bus\Middleware\ValidationInterface;
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
  */ 
-class CalAddYearCommand implements ValidationInterface
+class CalAddYearCommand implements ValidationInterface, HasEventInterface
 {
 
   /**
@@ -62,6 +66,21 @@ class CalAddYearCommand implements ValidationInterface
         'year' => $this->iYear
       ];
   }
+  
+  //----------------------------------------------------------------
+  # Has Event Interface
+  
+  public function getEvent()
+  {
+      return new CommandEvent($this);
+  }
+  
+    
+  public function getEventName()
+  {
+    return BookMeEvents::CALENDAR_ADD;  
+  }
+  
   
 }
 /* End of Clas */

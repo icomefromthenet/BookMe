@@ -21,7 +21,8 @@
 	"pimple/pimple" : "3.0.*",
 	"symfony/event-dispatcher" : "2.*",
         "bezdomni/tactician-pimple": "^1.0",
-        "vlucas/valitron": "^1.2"
+        "vlucas/valitron": "^1.2",
+        "league/tactician-command-events": "^0.6.0"
 
     },
       "autoload": { "psr-4" : { "IComeFromTheNet\\BookMe\\" : "src/" } }
