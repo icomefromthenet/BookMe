@@ -19,11 +19,13 @@ use Bezdomni\Tactician\Pimple\PimpleLocator;
 use IComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand;
 use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
 use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 
 
 use IComeFromTheNet\BookMe\Bus\Handler\CalAddYearHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\SlotAddHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\SlotToggleStatusHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\RegisterMemberHandler;
 
 use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
@@ -108,6 +110,11 @@ class BookMeContainer extends Container
                 return new SlotToggleStatusHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
+            $this['handlers.member.register'] = function($c) {
+                return new RegisterMemberHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            
             # Command Bus
             
             $this['commandBus'] = function($c){
@@ -116,6 +123,7 @@ class BookMeContainer extends Container
                     CalAddYearCommand::class        => 'handlers.cal.addyear',
                     SlotAddCommand::class           => 'handlers.slot.add',
                     SlotToggleStatusCommand::class  => 'handlers.slot.toggle',
+                    RegisterMemberCommand::class    => 'handlers.member.register',
                 ];
         
              

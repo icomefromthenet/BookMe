@@ -177,6 +177,105 @@ class init_schema implements EntityInterface
         ");
         
         
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_schedule_team` (
+          `team_id`         INT NOT NULL AUTO_INCREMENT,
+          `timeslot_id`     INT NOT NULL,
+          `registered_date` DATETIME NOT NULL,
+          
+          
+          PRIMARY KEY (`team_id`),
+          CONSTRAINT `schedule_team_fk1`
+            FOREIGN KEY (`timeslot_id`)
+            REFERENCES `bm_timeslot` (`timeslot_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+        )
+        ENGINE = InnoDB
+        COMMENT = 'Group schedules together with a common timeslot';
+        ");
+        
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_schedule_team_members` (
+          `team_id`         INT NOT NULL,
+          `membership_id`   INT NOT NULL,
+          `registered_date` DATETIME NOT NULL,
+          
+          
+          PRIMARY KEY (`team_id`,`membership_id`),
+          CONSTRAINT `schedule_team_members_fk1`
+            FOREIGN KEY (`membership_id`)
+            REFERENCES `bm_schedule_membership` (`membership_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+          CONSTRAINT `schedule_team_members_fk2`
+            FOREIGN KEY (`team_id`)
+            REFERENCES `bm_schedule_team` (`team_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+        )
+        ENGINE = InnoDB
+        COMMENT = 'Relates members to teams';
+        ");
+        
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_schedule` (
+          `schedule_id`     INT NOT NULL AUTO_INCREMENT,
+          `timeslot_id`     INT NOT NULL,
+          `membership_id`    INT NOT NULL,
+          `calendar_year`   INT NOT NULL,
+          `registered_date` DATETIME NOT NULL,
+          
+          
+          PRIMARY KEY (`schedule_id`),
+          UNIQUE INDEX `schedule_uniq1` (`membership_id`,`calendar_year`),
+          CONSTRAINT `schedule_fk1`
+            FOREIGN KEY (`timeslot_id`)
+            REFERENCES `bm_timeslot` (`timeslot_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+          CONSTRAINT `schedule_fk2`
+            FOREIGN KEY (`membership_id`)
+            REFERENCES `bm_schedule_membership` (`membership_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+        )
+        ENGINE = InnoDB
+        COMMENT = 'A Members schedule details';
+        ");
+        
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_schedule_slot` (
+          `schedule_sot_id` INT NOT NULL AUTO_INCREMENT,
+          `timeslot_day_id` INT NOT NULL,
+          `schedule_id`    INT NOT NULL,
+          
+          
+          `slot_open`   DATETIME NOT NULL,
+          `slot_closed` DATETIME NOT NULL,
+          
+          `is_booked`    BOOLEAN DEFAULT false,
+          `is_available` BOOLEAN DEFAULT false,
+          `is_excluded`  BOOLEAN DEFAULT false,
+          `is_override`  BOOLEAN DEFAULT false,
+          
+          
+          PRIMARY KEY (`schedule_sot_id`),
+          UNIQUE INDEX `schedule_uniq1` (`schedule_id`,`slot_closed`),
+          CONSTRAINT `schedule_slot_fk1`
+            FOREIGN KEY (`schedule_id`)
+            REFERENCES `bm_schedule` (`schedule_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+          CONSTRAINT `schedule_slot_fk2`
+            FOREIGN KEY (`timeslot_day_id`)
+            REFERENCES `bm_timeslot_day` (`timeslot_day_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+        )
+        ENGINE = InnoDB
+        COMMENT = 'A Members schedule details';
+        ");
         
         
     }
