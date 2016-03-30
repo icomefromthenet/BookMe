@@ -195,28 +195,7 @@ class init_schema implements EntityInterface
         COMMENT = 'Group schedules together with a common timeslot';
         ");
         
-        $db->executeUpdate("
-        CREATE TABLE IF NOT EXISTS `bm_schedule_team_members` (
-          `team_id`         INT NOT NULL,
-          `membership_id`   INT NOT NULL,
-          `registered_date` DATETIME NOT NULL,
-          
-          
-          PRIMARY KEY (`team_id`,`membership_id`),
-          CONSTRAINT `schedule_team_members_fk1`
-            FOREIGN KEY (`membership_id`)
-            REFERENCES `bm_schedule_membership` (`membership_id`)
-            ON DELETE NO ACTION
-            ON UPDATE NO ACTION,
-          CONSTRAINT `schedule_team_members_fk2`
-            FOREIGN KEY (`team_id`)
-            REFERENCES `bm_schedule_team` (`team_id`)
-            ON DELETE NO ACTION
-            ON UPDATE NO ACTION
-        )
-        ENGINE = InnoDB
-        COMMENT = 'Relates members to teams';
-        ");
+        
         
         $db->executeUpdate("
         CREATE TABLE IF NOT EXISTS `bm_schedule` (
@@ -275,6 +254,35 @@ class init_schema implements EntityInterface
         )
         ENGINE = InnoDB
         COMMENT = 'A Members schedule details';
+        ");
+        
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_schedule_team_members` (
+          `team_id`         INT NOT NULL,
+          `membership_id`   INT NOT NULL,
+          `registered_date` DATETIME NOT NULL,
+          `schedule_id`     INT NOT NULL,
+          
+          
+          PRIMARY KEY (`team_id`,`membership_id`),
+          CONSTRAINT `schedule_team_members_fk1`
+            FOREIGN KEY (`membership_id`)
+            REFERENCES `bm_schedule_membership` (`membership_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+          CONSTRAINT `schedule_team_members_fk2`
+            FOREIGN KEY (`team_id`)
+            REFERENCES `bm_schedule_team` (`team_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+          CONSTRAINT `schedule_team_members_fk3`
+            FOREIGN KEY (`schedule_id`)
+            REFERENCES `bm_schedule` (`schedule_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+        )
+        ENGINE = InnoDB
+        COMMENT = 'Relates members to teams only for a single calendar year (match the schedule)';
         ");
         
         

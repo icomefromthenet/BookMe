@@ -15,7 +15,7 @@ use IComeFromTheNet\BookMe\BookMeEvents;
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
  */ 
-class RegisterMemberCommand implements  HasEventInterface
+class RegisterMemberCommand implements  HasEventInterface, ValidationInterface
 {
 
  
