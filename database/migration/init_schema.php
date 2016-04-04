@@ -204,6 +204,8 @@ class init_schema implements EntityInterface
           `membership_id`    INT NOT NULL,
           `calendar_year`   INT NOT NULL,
           `registered_date` DATETIME NOT NULL,
+          `close_date`     DATE NULL,
+          `is_carryover`   BOOLEAN DEFAULT true,
           
           
           PRIMARY KEY (`schedule_id`),
@@ -223,24 +225,25 @@ class init_schema implements EntityInterface
         COMMENT = 'A Members schedule details';
         ");
         
+        
         $db->executeUpdate("
         CREATE TABLE IF NOT EXISTS `bm_schedule_slot` (
-          `schedule_sot_id` INT NOT NULL AUTO_INCREMENT,
           `timeslot_day_id` INT NOT NULL,
           `schedule_id`    INT NOT NULL,
           
-          
           `slot_open`   DATETIME NOT NULL,
-          `slot_closed` DATETIME NOT NULL,
+          `slot_close` DATETIME NOT NULL,
           
-          `is_booked`    BOOLEAN DEFAULT false,
+          `booking_id`    INT  DEFAULT NULL,
+          
           `is_available` BOOLEAN DEFAULT false,
           `is_excluded`  BOOLEAN DEFAULT false,
           `is_override`  BOOLEAN DEFAULT false,
+          `is_closed`  BOOLEAN DEFAULT false,
           
           
-          PRIMARY KEY (`schedule_sot_id`),
-          UNIQUE INDEX `schedule_uniq1` (`schedule_id`,`slot_closed`),
+          PRIMARY KEY (`schedule_id`,`slot_close`),
+          UNIQUE INDEX `schedule_uniq1` (`schedule_id`,`slot_open`),
           CONSTRAINT `schedule_slot_fk1`
             FOREIGN KEY (`schedule_id`)
             REFERENCES `bm_schedule` (`schedule_id`)
@@ -251,10 +254,55 @@ class init_schema implements EntityInterface
             REFERENCES `bm_timeslot_day` (`timeslot_day_id`)
             ON DELETE NO ACTION
             ON UPDATE NO ACTION
+        
         )
         ENGINE = InnoDB
         COMMENT = 'A Members schedule details';
         ");
+        
+       
+        
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_booking` (
+          `booking_id`              INT NOT NULL AUTO_INCREMENT,
+          `schedule_id`             INT NOT NULL,
+          `slot_open`               DATETIME NOT NULL,
+          `slot_close`              DATETIME NOT NULL,
+          `registered_date`         DATETIME NOT NULL,  
+   
+          PRIMARY KEY (`booking_id`),
+          CONSTRAINT `booking_fk1`
+            FOREIGN KEY (`schedule_id`,`slot_open`)
+            REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_open`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+         CONSTRAINT `booking_fk2`
+            FOREIGN KEY (`schedule_id`,`slot_close`)
+            REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_close`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+       )
+       ENGINE = InnoDB
+       COMMENT = 'Contain details on bookings';
+     
+       ");
+      
+      $db->executeUpdate("
+          CREATE TABLE IF NOT EXISTS `bm_booking_conflict` (
+            `booking_id`      INT NOT NULL AUTO_INCREMENT,
+            `known_date`      DATETIME NOT NULL,  
+            
+            PRIMARY KEY (`booking_id`),
+            CONSTRAINT `booking_conflict_fk1`
+              FOREIGN KEY (`booking_id`)
+              REFERENCES `bm_booking` (`booking_id`)
+              ON DELETE NO ACTION
+              ON UPDATE NO ACTION
+       
+         )
+         ENGINE = InnoDB
+         COMMENT = 'Books Found in Conflict';
+       ");
         
         $db->executeUpdate("
         CREATE TABLE IF NOT EXISTS `bm_schedule_team_members` (
@@ -288,15 +336,78 @@ class init_schema implements EntityInterface
         
     }
 
-
+    public function buildRulesTable(Connection $db, Schema $sc)
+    {
+        
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_rule_type` (
+          `rule_type_id` INT NOT NULL AUTO_INCREMENT,
+          `rule_code`    CHAR(4) NOT NULL,
+          
+           PRIMARY KEY (`rule_type_id`)
+        )
+        ENGINE = InnoDB
+        COMMENT = 'Defines basic avability rules';
+      ");
+      
+      $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_rule` (
+          `rule_id`      INT NOT NULL AUTO_INCREMENT,
+          `rule_type_id` INT NOT NULL,
+          
+          
+          PRIMARY KEY (`rule_id`),
+          CONSTRAINT `rule_fk1`
+            FOREIGN KEY (`rule_type_id`)
+            REFERENCES `bm_rule_type` (`rule_type_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION     
+        )
+        ENGINE = InnoDB
+        COMMENT = 'Defines basic avability rules';
+      ");
+      
+      $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_rule_series` (
+          `rule_series_id` INT NOT NULL AUTO_INCREMENT,
+          `rule_id`        INT NOT NULL,
+          `rule_type_id`   INT NOT NULL,
+          `schedule_id`    INT NOT NULL,
+          `slot_open`      DATETIME NOT NULL,
+          `slot_close`     DATETIME NOT NULL,
+          
+         PRIMARY KEY (`rule_series_id`),
+         CONSTRAINT `rule_series_fk1`
+            FOREIGN KEY (`rule_id`)
+            REFERENCES `bm_rule` (`rule_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+        CONSTRAINT `rule_series_fk2`
+            FOREIGN KEY (`schedule_id`,`slot_open`)
+            REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_open`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,    
+         CONSTRAINT `rule_series_fk3`
+            FOREIGN KEY (`schedule_id`,`slot_close`)
+            REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_close`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+       )
+        ENGINE = InnoDB
+        COMMENT = 'Defines schedule slots affected by rule';
+      ");
+      
+      
+      
+    }
+  
     public function up(Connection $db, Schema $sc)
     {
         $this->buildUtilityTables($db,$sc);
         $this->buildCalendarTables($db,$sc);
         $this->buildSlotTables($db,$sc);
         $this->buildScheduleTables($db,$sc);
-         
-
+        $this->buildRulesTable($db,$sc);
     }
 
     public function down(Connection $db, Schema $sc)

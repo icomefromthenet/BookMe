@@ -41,28 +41,40 @@ class WithdrawlTeamMemberHandler
     public function handle(WithdrawlTeamMemberCommand $oCommand)
     {
         
-        $oDatabase         = $this->oDatabaseAdapter;
-        $sTeamTableName    = $this->aTableNames['bm_schedule_team'];
-        $iTeamId           = null;
-        $iTimeSlotId       = $oCommand->getTimeSlotId();
+        $oDatabase              = $this->oDatabaseAdapter;
+        $sTeamMemberTableName   = $this->aTableNames['bm_schedule_team_members'];
         
-        $sSql = " INSERT INTO $sTeamTableName (team_id, timeslot_id ,registered_date) VALUES (null, ? ,NOW()) ";
-
-	    
+        $iTeamId           = $oCommand->getTeamId();
+        $iMemberId         = $oCommand->getMemberId();
+        $iScheduleId       = $oCommand->getScheduleId();
+  
+  
+        $sSql  =" DELETE FROM $sTeamMemberTableName ";
+        $sSql .=" WHERE `team_id`     = :iTeamId ";
+        $sSql .=" AND `schedule_id`   = :iScheduleId ";
+        $sSql .=" AND `membership_id` = :iMemberId ";      
+  
 	    try {
 	    
-	        $oDatabase->executeUpdate($sSql, [$iTimeSlotId], [Type::getType(Type::INTEGER)]);
-            
-            $iTeamId = $oDatabase->lastInsertId();
-            
-            $oCommand->setTeamId($iTeamId);
-                 
+	        $oIntegerType = Type::getType(Type::INTEGER);
+	    
+	        $aParams = [
+	                ':iTeamId'     => $iTeamId,
+	                ':iScheduleId' => $iScheduleId,
+	                ':iMemberId'   => $iMemberId,  
+	        ];
+	    
+	       $iRowsRemoved =  $oDatabase->executeUpdate($sSql, $aParams, [$oIntegerType, $oIntegerType, $oIntegerType]);
+
+            if(true === empty($iRowsRemoved)) {
+                throw new DBALException('Unable to find Team membership to remove');
+            }
+
 	    }
 	    catch(DBALException $e) {
-	        throw SlotFailedException::hasFailedRegisterTeam($oCommand, $e);
+	        throw hasFailedWithdrawlTeamMember::hasFailedWithdrawlTeamMember($oCommand, $e);
 	    }
-    	
-        
+    
         
         return true;
     }

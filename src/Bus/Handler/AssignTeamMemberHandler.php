@@ -43,7 +43,7 @@ class AssignTeamMemberHandler
     }
     
     
-    public function handle(WithdrawlTeamMemberCommand $oCommand)
+    public function handle(AssignTeamMemberCommand $oCommand)
     {
         
         $oDatabase              = $this->oDatabaseAdapter;
@@ -51,7 +51,7 @@ class AssignTeamMemberHandler
         $sScheduleTableName     = $this->aTableNames['bm_schedule'];
         $sTeamMemberTableName   = $this->aTableNames['bm_schedule_team_members'];
         
-        $iTeamId           = $oCommand->get;
+        $iTeamId           = $oCommand->getTeamId();
         $iMemberId         = $oCommand->getMemberId();
         $iScheduleId       = $oCommand->getScheduleId();
         

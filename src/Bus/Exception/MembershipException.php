@@ -6,15 +6,14 @@ use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
 use IComeFromTheNet\BookMe\Bus\Command\AssignTeamMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\WithdrawlTeamMemberCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverTeamsCommand;
 
 use League\Tactician\Exception\Exception as BusException;
 use Doctrine\DBAL\DBALException;
 
 
 /**
- * Custom Exception for Validation Middleware.
- * 
- * This is raised when exception fails
+ * Custom Exception for Membership errors.
  * 
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
@@ -86,6 +85,23 @@ class MembershipException extends BookMeException implements BusException
     {
         $exception = new static(
             'Unable to withdrawl member at id '.$oCommand->getMemberId() .' to team at id '.$oCommand->getTeamId() .' For Schedule at id '.$oCommand->getScheduleId(), 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+    }
+    
+     /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
+    public static function hasFailedRolloverTeam(RolloverTeamsCommand $oCommand, DBALException $oDatabaseException)
+    {
+        $exception = new static(
+            'Unable to rollover teams for calendar year '.$oCommand->getCalendarYearRollover()
+            , 0 , $oDatabaseException
         );
         
         $exception->oCommand = $oCommand;

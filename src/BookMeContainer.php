@@ -21,6 +21,12 @@ use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
 use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverTeamsCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
+use IComeFromTheNet\BookMe\Bus\Command\TakeBookingCommand;
+use IComeFromTheNet\BookMe\Bus\Command\ClearBookingCommand;
+
+
 
 
 use IComeFromTheNet\BookMe\Bus\Handler\CalAddYearHandler;
@@ -28,6 +34,10 @@ use IComeFromTheNet\BookMe\Bus\Handler\SlotAddHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\SlotToggleStatusHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RegisterMemberHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RegisterTeamHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\RolloverTeamsHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\RolloverSchedulesHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\TakeBookingHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\ClearBookingHandler;
 
 use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
@@ -92,6 +102,9 @@ class BookMeContainer extends Container
                 'bm_schedule_team_members' => 'bm_schedule_team_members',
                 'bm_schedule'              => 'bm_schedule',
                 
+                'bm_booking'               => 'bm_booking',
+                'bm_booking_conflict'      => 'bm_booking_conflict',
+                
                 
             ),$aTableNames);
         
@@ -124,6 +137,22 @@ class BookMeContainer extends Container
                 return new RegisterTeamHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
+            $this['handlers.team.rollover'] = function($c) {
+                return new RolloverTeamsHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            $this['handlers.schedule.rollover'] = function($c) {
+                return new RolloverSchedulesHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            $this['handlers.booking.take'] = function($c) {
+                return new TakeBookingHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            $this['handlers.schedule.clear'] = function($c) {
+                return new ClearBookingHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
             
             # Command Bus
             
@@ -135,6 +164,10 @@ class BookMeContainer extends Container
                     SlotToggleStatusCommand::class  => 'handlers.slot.toggle',
                     RegisterMemberCommand::class    => 'handlers.member.register',
                     RegisterTeamCommand::class      => 'handlers.team.register',
+                    RolloverSchedulesCommand::class => 'handlers.schedule.rollover',
+                    RolloverTeamsCommand::class     => 'handlers.team.rollover',
+                    TakeBookingCommand::class       => 'handlers.booking.take',
+                    ClearBookingCommand::class      => 'handlers.schedule.clear',
                 ];
         
              
