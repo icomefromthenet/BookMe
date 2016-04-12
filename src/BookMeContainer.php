@@ -43,6 +43,9 @@ use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidatePropMiddleware;
 use IComeFromTheNet\BookMe\Bus\Middleware\ExceptionWrapperMiddleware;
+use IComeFromTheNet\BookMe\Bus\Middleware\UnitOfWorkMiddleware;
+
+
 
 /**
  * Book Me DI Container
@@ -193,13 +196,15 @@ class BookMeContainer extends Container
                 $oLockingMiddleware     = new LockingMiddleware();
                 $oValdiationMiddleware  = new ValidatePropMiddleware();
                 $oExceptionMiddleware   = new ExceptionWrapperMiddleware();
+                $oUnitOfWorkMiddleware  = new UnitOfWorkMiddleware($c->getDatabaseAdapter());
         
                 // create the command bus
         
                 $oCommandBus = new CommandBus([
                             $oExceptionMiddleware,
-                            $oLockingMiddleware,
                             $oEventMiddleware,
+                            $oLockingMiddleware,
+                            $oUnitOfWorkMiddleware,
                             $oValdiationMiddleware,
                             $oCommandMiddleware
                 ]);

@@ -74,12 +74,13 @@ class TakeBookingHandler
         
         $sTakeBookSql = implode(PHP_EOL, $aTakeBookSql);
       
-        # Step 3 update the scheudle with a booking
+        # Step 3 update the schedule with a booking
         
         $aCreateBookSql[] = " UPDATE $sScheduleSlotTableName  ";
         $aCreateBookSql[] = " SET  booking_id = :iBookingId ";
         $aCreateBookSql[] = " WHERE `schedule_id` = :iScheduleId ";
         $aCreateBookSql[] = " AND `slot_open` >= :oSlotOpen AND `slot_close` <= :oSlotClose ";
+        $aCreateBookSql[] = " AND `booking_id` IS NULL ";
           
         $sCreateBookSql = implode(PHP_EOL,$aCreateBookSql);
       
@@ -104,9 +105,9 @@ class TakeBookingHandler
 	           
 	       ];
 	    
-	        $iRowsAffected = $oDatabase->executeUpdate($sLockSql, $aParams, $aTypes);
+	        $iRowsLocked = $oDatabase->executeUpdate($sLockSql, $aParams, $aTypes);
 	        
-	        if($iRowsAffected == 0) {
+	        if($iRowsLocked == 0) {
 	            throw BookingException::hasFailedToReserveSlots($oCommand ,new DBALException('Could not find schedule slots to lock'));
 	        }
 	        
@@ -121,9 +122,12 @@ class TakeBookingHandler
 	        }
 	       
 	        
-	        $iRowsAffected = $oDatabase->executeUpdate($sCreateBookSql, array_merge($aParams,[':iBookingId' => $iBookingId]), array_merge($aTypes,[':iBookingId'=> $oIntType]));
+	        $iScheduleUsed = $oDatabase->executeUpdate($sCreateBookSql, array_merge($aParams,[':iBookingId' => $iBookingId]), array_merge($aTypes,[':iBookingId'=> $oIntType]));
 	        
-	        if($iRowsAffected == 0) {
+	        # We need to verify that we have applied the booking to each of the required slots. If we did not have this check we could end up with half a booking on the schedule
+	        # this assumes the lock SQL has pikedup all slots required.
+	        
+	        if($iScheduleUsed == 0 || ($iScheduleUsed !==  $iRowsLocked)) {
 	            throw new DBALException('Could not update schedule with new booking');
 	        }
                  

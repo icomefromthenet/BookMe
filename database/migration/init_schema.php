@@ -355,6 +355,18 @@ class init_schema implements EntityInterface
           `rule_id`      INT NOT NULL AUTO_INCREMENT,
           `rule_type_id` INT NOT NULL,
           
+          `repeat_minute` VARCHAR(45) NOT NULL,
+          `repeat_hour` VARCHAR(45) NOT NULL,
+          `repeat_dayofweek` VARCHAR(45) NOT NULL,
+          `repeat_dayofmonth` VARCHAR(45) NOT NULL,
+          `repeat_month` VARCHAR(45) NOT NULL,
+            
+          `start_from` DATETIME NOT NULL,
+          `end_at`     DATETIME NOT NULL,  
+          
+          `max_count` INT NOT NULL,
+          
+          
           
           PRIMARY KEY (`rule_id`),
           CONSTRAINT `rule_fk1`
@@ -364,7 +376,7 @@ class init_schema implements EntityInterface
             ON UPDATE NO ACTION     
         )
         ENGINE = InnoDB
-        COMMENT = 'Defines basic avability rules';
+        COMMENT = 'Rule Slots';
       ");
       
       $db->executeUpdate("

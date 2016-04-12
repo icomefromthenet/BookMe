@@ -12,5 +12,9 @@ use \Exception;
 class BookMeException extends Exception
 {
     
+    
+    
+    
+    
 }
 /* End of File */

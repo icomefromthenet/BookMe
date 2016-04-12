@@ -31,11 +31,11 @@
             </groups>
         </testsuite>
         
-        <testsuite name="install">
+        <testsuite name="CalendarSlots">
             <directory suffix="Test.php">src/Test/</directory>
             <exclude>src/Tests/Base/</exclude>
             <groups>
-                <include><group>install</group></include>
+                <include><group>CalendarSlots</group></include>
                 <exclude><group>default</group></exclude>
             </groups>
         </testsuite>

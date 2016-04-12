@@ -1,16 +1,21 @@
 <?php
 namespace IComeFromTheNet\BookMe\Test;
 
-use IComeFromTheNet\BookMe\Test\Base\TestInstallBase;
+use IComeFromTheNet\BookMe\Test\Base\TestCalendarSlotsGroupBase;
 use IComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand;
 
 
-class CalInstallTest extends TestInstallBase
+class CalendarCommandsTest extends TestCalendarSlotsGroupBase
 {
     
     
+   protected function handleEventPostFixtureRun()
+   {
+      // calender if first object to install so nothing need to do yet
+   }   
+    
     /**
-     * @group install
+     * @group CalendarSlots
      */ 
     public function testAddYear()
     {
@@ -40,7 +45,7 @@ class CalInstallTest extends TestInstallBase
     
     
     /**
-     * @group install
+     * @group CalendarSlots
      * @expectedException IComeFromTheNet\BookMe\Bus\Middleware\ValidationException
      * @expectedExceptionMessage Validation has failed for commandIComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand
      */ 
@@ -58,7 +63,7 @@ class CalInstallTest extends TestInstallBase
     }
     
     /**
-     * @group install
+     * @group CalendarSlots
      * @expectedException IComeFromTheNet\BookMe\Bus\Middleware\ValidationException
      * @expectedExceptionMessage Validation has failed for commandIComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand
      */ 

@@ -57,6 +57,7 @@ final class BookMeEvents
     
     /**
      * When a stopped schedule is resumed 
+     * 
      */ 
     const SCHEDULE_RESUME = 'bookme.schedule.resume';
     
@@ -80,5 +81,25 @@ final class BookMeEvents
      */ 
     const BOOKING_CLEARED = 'bookme.booking.cleared';
     
+    /**
+     * When emitt when a conflict check has completed
+     */ 
+    const BOOKING_CONFLICT = 'bookme.booking.conflict';
+    
+    /**
+     * When a rollover rules
+     */ 
+    const RULE_ROLLOVER = 'bookme.rule.rollover';
+    
+    /**
+     * When a create a new rule
+     */ 
+    const RULE_CREATE = 'bookme.rule.create';
+    
+    
+    /**
+     * When a rule is removed
+     */ 
+    const RULE_REMOVE = 'bookme.rule.remove';
 }
 /* End of File */

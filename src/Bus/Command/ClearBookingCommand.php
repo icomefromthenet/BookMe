@@ -26,7 +26,7 @@ class ClearBookingCommand implements  HasEventInterface, ValidationInterface
     
     public function __construct($iBookingDatabaseId)
     {
-        $this->iBookingDatabaseId      = iBookingDatabaseId;
+        $this->iBookingDatabaseId      = $iBookingDatabaseId;
         
     }
     

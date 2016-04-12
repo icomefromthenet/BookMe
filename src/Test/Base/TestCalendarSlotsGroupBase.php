@@ -1,16 +1,16 @@
 <?php
 namespace IComeFromTheNet\BookMe\Test\Base;
 
+use RuntimeException;
 use \PHPUnit_Extensions_Database_Operation_Factory;
 
 /**
- * Install test should start with a clean slate and assume only records in
- * our database come from the migration file.
+ * Test methods within the schedule module
  * 
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
  */ 
-class TestInstallBase extends TestWithContainer
+class TestCalendarSlotsGroupBase extends TestWithContainer
 {
     
     protected $aFixtures = ['truncate_fixture.php'];
@@ -25,6 +25,25 @@ class TestInstallBase extends TestWithContainer
     {
         return PHPUnit_Extensions_Database_Operation_Factory::TRUNCATE();
     }
+    
+    
+     /**
+     * Performs operation returned by getSetUpOperation().
+     */
+    protected function setUp()
+    {
+        parent::setUp();
+     
+        // Need to execute operations which use our own services to do setups
+        $this->handleEventPostFixtureRun();
+    }
+    
+   
+   protected function handleEventPostFixtureRun()
+   {
+       throw new RuntimeException('This method must be implemented');
+   }    
+
     
     
 }
