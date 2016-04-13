@@ -158,6 +158,33 @@ class init_schema implements EntityInterface
         COMMENT = 'the timeslots for a given day';
         ");
         
+        $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_timeslot_year` (
+          `timeslot_year_id`  INT NOT NULL AUTO_INCREMENT COMMENT 'Table Primary key',
+          `timeslot_id`       INT NOT NULL COMMENT 'FK to slot table',
+          `y`                 SMALLINT NULL COMMENT 'year where date occurs',
+          `m`                 TINYINT NULL COMMENT 'month of the year',
+          `d`                 TINYINT NULL COMMENT 'numeric date part',
+          `dw`                TINYINT NULL COMMENT 'day number of the date in a week',
+          `w`                 TINYINT NULL COMMENT 'week number in the year',
+          `open_minute`       INT NOT NULL COMMENT 'Closing Minute component',    
+          `close_minute`      INT NOT NULL COMMENT 'Closing Minute component', 
+         
+          `closing_slot`      DATETIME NOT NULL COMMENT 'The closing slot time',
+          `opening_slot`      DATETIME NOT NULL COMMENT 'The opening slot time',
+         
+         
+          PRIMARY KEY (`timeslot_year_id`),
+          UNIQUE INDEX `timeslot_year_uqidx_1` (`timeslot_id`,`closing_slot`),
+          CONSTRAINT `timeslot_year_fk_1`
+            FOREIGN KEY (`timeslot_id`)
+            REFERENCES `bm_timeslot` (`timeslot_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+        )
+        ENGINE = InnoDB
+        COMMENT = 'the timeslots for a given year';
+        ");
         
     }
 

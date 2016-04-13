@@ -64,6 +64,7 @@ class StartScheduleHandler
         
         # Step 2 create slots for this calender year  
         
+        
         $a2Sql[] = " INSERT INTO $sScheduleSlotTableName (`timeslot_day_id`, `schedule_id`, `slot_open`, `slot_close`)  ";
         $a2Sql[] = " SELECT `s`.`timeslot_day_id`, ?, (`c`.`calendar_date` + INTERVAL `s`.`open_minute` MINUTE) , (`c`.`calendar_date` + INTERVAL `s`.`close_minute` MINUTE) ";
         $a2Sql[] = " FROM $sCalenderTableName c";

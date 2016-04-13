@@ -63,6 +63,22 @@ class SlotFailedException extends BookMeException implements BusException
      *
      * @return static
      */
+    public static function hasFailedToCreateYear(SlotAddCommand $oCommand, DBALException $oDatabaseException)
+    {
+        $exception = new static(
+            'Unable to create new timeslot year for '. $oCommand->getSlotLength() .' ', 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+    }
+    
+    /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
     public static function hasFailedToToggleStatus(SlotToggleStatusCommand $oCommand, DBALException $oDatabaseException)
     {
         $exception = new static(

@@ -99,6 +99,7 @@ class BookMeContainer extends Container
                 
                 'bm_timeslot'           => 'bm_timeslot',
                 'bm_timeslot_day'       => 'bm_timeslot_day',
+                'bm_timeslot_year'      => 'bm_timeslot_year',
                 
                 'bm_schedule_membership'   => 'bm_schedule_membership',
                 'bm_schedule_team'         => 'bm_schedule_team',

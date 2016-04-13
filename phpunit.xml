@@ -21,13 +21,26 @@
     </php>
 
     <testsuites>
-        
-        <testsuite name="default">
+        <testsuite name="Rule">
             <directory suffix="Test.php">src/Test/</directory>
             <exclude>src/Tests/Base/</exclude>
             <groups>
-                <include><group>default</group></include>
-                <exclude><group>install</group></exclude>
+                <include><group>Rule</group></include>
+                <exclude><group>CalendarSlots</group></exclude>
+                <exclude><group>Rollover</group></exclude>
+                <exclude><group>Booking</group></exclude>
+            </groups>
+        </testsuite>
+        
+        
+        <testsuite name="Booking">
+            <directory suffix="Test.php">src/Test/</directory>
+            <exclude>src/Tests/Base/</exclude>
+            <groups>
+                <include><group>Booking</group></include>
+                <exclude><group>CalendarSlots</group></exclude>
+                <exclude><group>Rollover</group></exclude>
+                <exclude><group>Rule</group></exclude>
             </groups>
         </testsuite>
         
@@ -36,7 +49,20 @@
             <exclude>src/Tests/Base/</exclude>
             <groups>
                 <include><group>CalendarSlots</group></include>
-                <exclude><group>default</group></exclude>
+                <exclude><group>Booking</group></exclude>
+                <exclude><group>Rollover</group></exclude>
+                <exclude><group>Rule</group></exclude>
+            </groups>
+        </testsuite>
+        
+        <testsuite name="Rollover">
+            <directory suffix="Test.php">src/Test/</directory>
+            <exclude>src/Tests/Base/</exclude>
+            <groups>
+                <include><group>Rollover</group></include>
+                <exclude><group>CalendarSlots</group></exclude>
+                <exclude><group>Booking</group></exclude>
+                <exclude><group>Rule</group></exclude>
             </groups>
         </testsuite>
         
