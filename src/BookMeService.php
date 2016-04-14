@@ -1,6 +1,7 @@
 <?php
 namespace IComeFromTheNet\BookMe;
 
+use DateTime;
 use IComeFromTheNet\BookMe\BookMeContainer;
 use IComeFromTheNet\BookMe\BookMeException;
 use IComeFromTheNet\BookMe\BookMeEvents;
@@ -11,6 +12,9 @@ use IComeFromTheNet\BookMe\Bus\Command\ToggleScheduleCarryCommand;
 use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
+use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
 
 /**
  * Core Library Service.
@@ -96,7 +100,13 @@ class BookMeService
     
     
     
-    
+    /**
+     * Toggle between a timeslot between active and inactive
+     * 
+     * @return boolean true if command successful
+     * @throws BookMeException if their are no updates
+     * 
+     */ 
     public function toggleSlotAvability($iTimeslotDatabaseId)
     {
         $oCommand = new ToggleScheduleCarryCommand($iTimeslotDatabaseId);
@@ -157,6 +167,42 @@ class BookMeService
      
         
     }
+    
+    
+    public function startSchedule($iMemberDatabaseId, $iTimeSlotDatabbaseId, $iCalendarYear)
+    {
+        $oCommand = new StartScheduleCommand($iMemberDatabaseId, $iTimeSlotDatabbaseId, $iCalendarYear);  
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+       
+        return $oCommand->getScheduleId();
+     
+        
+    }
+    
+    
+    
+    public function stopSchedule($iScheduleDatabaseId, DateTime $oStopDate)
+    {
+        $oCommand = new StopScheduleCommand($iScheduleDatabaseId, $oStopDate);  
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+       
+        return true;
+   
+    }
+    
+    
+    public function resumeSchedule($iScheduleDatabaseId)
+    {
+        $oCommand = new ResumeScheduleCommand($iScheduleDatabaseId);  
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+       
+        return true;
+        
+    }
+    
     
     /**
      * 

@@ -39,7 +39,6 @@ class AssignTeamMemberHandler
         $this->oDatabaseAdapter = $oDatabaseAdapter;
         $this->aTableNames      = $aTableNames;
         
-        
     }
     
     

@@ -6,6 +6,7 @@ use IComeFromTheNet\BookMe\Test\Base\TestCalendarSlotsGroupBase;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
 use IComeFromTheNet\BookMe\Bus\Command\WithdrawlTeamMemberCommand;
+use IComeFromTheNet\BookMe\Bus\Command\AssignTeamMemberCommand;
 
 use IComeFromTheNet\BookMe\BookMeService;
 use IComeFromTheNet\BookMe\Bus\Exception\MembershipException;
@@ -115,10 +116,17 @@ class MembersTeamsCommandTest extends TestCalendarSlotsGroupBase
     }
     
     
-    public function RegisterTeamMember($iMemberId)
+    public function RegisterTeamMember($iMemberId,$iTeamId)
     {
         
+        $oContainer  = $this->getContainer();
         
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand  = new AssignTeamMemberCommand($iMemberId);
+       
+        $oCommandBus->handle($oCommand);
+    
         
         
         

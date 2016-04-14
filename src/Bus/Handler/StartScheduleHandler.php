@@ -43,7 +43,7 @@ class StartScheduleHandler
         $oDatabase              = $this->oDatabaseAdapter;
         $sScheduleTableName     = $this->aTableNames['bm_schedule'];
         $sScheduleSlotTableName = $this->aTableNames['bm_schedule_slot'];
-        $sCalenderTableName     = $this->aTableNames['bm_calendar'];
+        $sTimeSlotYearTableName = $this->aTableNames['bm_timeslot_day_year'];
         $sSlotTableName         = $this->aTableNames['bm_timeslot_day']; 
         
         $iScheduleId            = null;
@@ -65,11 +65,11 @@ class StartScheduleHandler
         # Step 2 create slots for this calender year  
         
         
-        $a2Sql[] = " INSERT INTO $sScheduleSlotTableName (`timeslot_day_id`, `schedule_id`, `slot_open`, `slot_close`)  ";
-        $a2Sql[] = " SELECT `s`.`timeslot_day_id`, ?, (`c`.`calendar_date` + INTERVAL `s`.`open_minute` MINUTE) , (`c`.`calendar_date` + INTERVAL `s`.`close_minute` MINUTE) ";
-        $a2Sql[] = " FROM $sCalenderTableName c";
-        $a2Sql[] = " CROSS JOIN $sSlotTableName s ";
+        $a2Sql[] = " INSERT INTO $sScheduleSlotTableName (`schedule_id`, `slot_open`, `slot_close`)  ";
+        $a2Sql[] = " SELECT  ?, `c`.`opening_slot` , `c`.`closing_slot`";
+        $a2Sql[] = " FROM $sTimeSlotYearTableName c";
         $a2Sql[] = " WHERE `c`.`y` = ? ";
+        $a2Sql[] = " WHERE `c`.`timeslot_id` = ? ";
           
           
         $s2Sql = implode(PHP_EOL,$a2Sql);
@@ -91,7 +91,7 @@ class StartScheduleHandler
 	        $oCommand->setScheduleId($iScheduleId);
 	        
 	        
-	        $iRowsAffected = $oDatabase->executeUpdate($s2Sql, [$iScheduleId,$iCalendarYear], [$oIntType,$oIntType]);
+	        $iRowsAffected = $oDatabase->executeUpdate($s2Sql, [$iScheduleId,$iCalendarYear,$iTimeSlotId], [$oIntType,$oIntType,$oIntType]);
 	        
 	        if($iRowsAffected == 0) {
 	            throw new DBALException('Could not generate schedule slots');

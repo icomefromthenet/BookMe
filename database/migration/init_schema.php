@@ -255,7 +255,6 @@ class init_schema implements EntityInterface
         
         $db->executeUpdate("
         CREATE TABLE IF NOT EXISTS `bm_schedule_slot` (
-          `timeslot_day_id` INT NOT NULL,
           `schedule_id`    INT NOT NULL,
           
           `slot_open`   DATETIME NOT NULL,
@@ -270,15 +269,9 @@ class init_schema implements EntityInterface
           
           
           PRIMARY KEY (`schedule_id`,`slot_close`),
-          UNIQUE INDEX `schedule_uniq1` (`schedule_id`,`slot_open`),
           CONSTRAINT `schedule_slot_fk1`
             FOREIGN KEY (`schedule_id`)
             REFERENCES `bm_schedule` (`schedule_id`)
-            ON DELETE NO ACTION
-            ON UPDATE NO ACTION,
-          CONSTRAINT `schedule_slot_fk2`
-            FOREIGN KEY (`timeslot_day_id`)
-            REFERENCES `bm_timeslot_day` (`timeslot_day_id`)
             ON DELETE NO ACTION
             ON UPDATE NO ACTION
         
@@ -298,12 +291,7 @@ class init_schema implements EntityInterface
           `registered_date`         DATETIME NOT NULL,  
    
           PRIMARY KEY (`booking_id`),
-          CONSTRAINT `booking_fk1`
-            FOREIGN KEY (`schedule_id`,`slot_open`)
-            REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_open`)
-            ON DELETE NO ACTION
-            ON UPDATE NO ACTION,
-         CONSTRAINT `booking_fk2`
+         CONSTRAINT `booking_fk1`
             FOREIGN KEY (`schedule_id`,`slot_close`)
             REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_close`)
             ON DELETE NO ACTION
@@ -421,12 +409,7 @@ class init_schema implements EntityInterface
             REFERENCES `bm_rule` (`rule_id`)
             ON DELETE NO ACTION
             ON UPDATE NO ACTION,
-        CONSTRAINT `rule_series_fk2`
-            FOREIGN KEY (`schedule_id`,`slot_open`)
-            REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_open`)
-            ON DELETE NO ACTION
-            ON UPDATE NO ACTION,    
-         CONSTRAINT `rule_series_fk3`
+         CONSTRAINT `rule_series_fk2`
             FOREIGN KEY (`schedule_id`,`slot_close`)
             REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_close`)
             ON DELETE NO ACTION

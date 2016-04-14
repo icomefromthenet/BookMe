@@ -10,7 +10,7 @@ use IComeFromTheNet\BookMe\Bus\Exception\SlotFailedException;
 
 
 
-class SlotCommandsTest extends TestCalendarSlotsGroupBase
+class SlotCommandTest extends TestCalendarSlotsGroupBase
 {
     
     
@@ -69,10 +69,23 @@ class SlotCommandsTest extends TestCalendarSlotsGroupBase
         
         // Assert max date is equal
         
-        $iCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) from bm_timeslot_day where timeslot_id = ? ",[$oCommand->getTimeSlotId()],0,[]);
+        $iDayCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
+                                                                           from bm_timeslot_day 
+                                                                           where timeslot_id = ? "
+                                                                           ,[$oCommand->getTimeSlotId()],0,[]);
        
        
-        $this->assertEquals($numberSlots,$iCount); 
+        $this->assertEquals($numberSlots,$iDayCount,'The Day slot are less than expected number'); 
+        
+        $iYearCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
+                                                                            from bm_timeslot_year 
+                                                                            where timeslot_id = ? "
+                                                                            ,[$oCommand->getTimeSlotId()],0,[]);
+        
+        
+        $this->assertGreaterThanOrEqual($iDayCount *365, $iYearCount,'The year slot count is less than expected' );
+      
+        
         
         return $oCommand->getTimeSlotId();
         
