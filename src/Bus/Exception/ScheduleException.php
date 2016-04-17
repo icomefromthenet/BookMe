@@ -64,7 +64,7 @@ class ScheduleException extends BookMeException implements BusException
      *
      * @return static
      */
-    public static function hasFailedStartSchedule(StopScheduleCommand $oCommand, DBALException $oDatabaseException)
+    public static function hasFailedStartSchedule(StartScheduleCommand $oCommand, DBALException $oDatabaseException)
     {
         $exception = new static(
             'Unable to start schedule and create slots for member at id  '.$oCommand->getMemberId()

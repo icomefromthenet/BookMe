@@ -6,6 +6,7 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 use Monolog\Logger;
 use Monolog\Handler\TestHandler;
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Types\Type;
 use IComeFromTheNet\BookMe\BookMeContainer;
 use IComeFromTheNet\BookMe\Test\Base\TestWithFixture;
 
@@ -72,7 +73,12 @@ class TestWithContainer extends TestWithFixture
   */
   protected function getNow()
   {
-    return new DateTime();
+      $oDBPlatform  = $this->getDoctrineConnection()->getDatabasePlatform();
+      $oDateType    = Type::getType(Type::DATE); 
+      $sNow         =  $this->getDoctrineConnection()
+                     ->fetchColumn("select date_format(NOW(),'%Y-%m-%d')  ",[],0,[]);
+     
+     return $oDateType->convertToPHPValue($sNow,$oDBPlatform);
   }
   
  

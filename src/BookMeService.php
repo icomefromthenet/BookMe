@@ -9,6 +9,7 @@ use IComeFromTheNet\BookMe\BookMeEvents;
 
 use IComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ToggleScheduleCarryCommand;
+use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
 use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
@@ -109,7 +110,7 @@ class BookMeService
      */ 
     public function toggleSlotAvability($iTimeslotDatabaseId)
     {
-        $oCommand = new ToggleScheduleCarryCommand($iTimeslotDatabaseId);
+        $oCommand = new SlotToggleStatusCommand($iTimeslotDatabaseId);
         
         return $this->getContainer()->getCommandBus()->handle($oCommand);
     }

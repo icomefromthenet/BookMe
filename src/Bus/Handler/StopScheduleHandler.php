@@ -39,7 +39,7 @@ class StopScheduleHandler
     }
     
     
-    public function handle(StopScheduleHandler $oCommand)
+    public function handle(StopScheduleCommand $oCommand)
     {
         $oDatabase              = $this->oDatabaseAdapter;
         $sScheduleTableName     = $this->aTableNames['bm_schedule'];
@@ -64,7 +64,7 @@ class StopScheduleHandler
         $a2Sql[] = " SELECT `slot_open` ";
         $a2Sql[] = " FROM $sScheduleSlotTableName  ";
         $a2Sql[] = " WHERE schedule_id = ? ";
-        $a2Sql[] = " AND slot_open => ? ";
+        $a2Sql[] = " AND slot_open >= ? ";
         $a2Sql[] = " FOR UPDATE ";
         
         $s2Sql = implode(PHP_EOL,$a2Sql);
@@ -72,7 +72,7 @@ class StopScheduleHandler
         $a3Sql[] = " UPDATE $sScheduleSlotTableName  ";
         $a3Sql[] = " SET  is_closed = true ";
         $a3Sql[] = " WHERE schedule_id = ? ";
-        $a3Sql[] = " AND slot_open => ?";
+        $a3Sql[] = " AND slot_open >= ?";
           
         $s3Sql = implode(PHP_EOL,$a2Sql);
       

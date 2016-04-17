@@ -6,6 +6,8 @@ use IComeFromTheNet\BookMe\Test\Base\TestCalendarSlotsGroupBase;
 use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\ToggleScheduleCarryCommand;
+
 use IComeFromTheNet\BookMe\BookMeService;
 use IComeFromTheNet\BookMe\Bus\Exception\ScheduleException;
 
@@ -13,6 +15,10 @@ use IComeFromTheNet\BookMe\Bus\Exception\ScheduleException;
 
 class ScheduleCommandTest extends TestCalendarSlotsGroupBase
 {
+    
+    
+    protected $aDatabaseId = [];
+    
     
     
    protected function handleEventPostFixtureRun()
@@ -27,16 +33,29 @@ class ScheduleCommandTest extends TestCalendarSlotsGroupBase
       $iFifteenMinuteTimeslot = $oService->addTimeslot(15);
 
       $oService->toggleSlotAvability($iTenMinuteTimeslot);    
-
-      
+  
       $iMemberOne   = $oService->registerMembership();
       $iMemberTwo   = $oService->registerMembership();
       $iMemberThree = $oService->registerMembership();
       $iMemberFour  = $oService->registerMembership();
     
-      $iTeamOne     = $this->registerTeam($iFiveMinuteTimeslot);
-      $iTeamTwo     = $this->registerTeam($iFifteenMinuteTimeslot);
-    
+      $iTeamOne     = $oService->registerTeam($iFiveMinuteTimeslot);
+      $iTeamTwo     = $oService->registerTeam($iFifteenMinuteTimeslot);
+            
+            
+      $this->aDatabaseId = [
+        'five_minute'    => $iFiveMinuteTimeslot,
+        'ten_minute'     => $iTenMinuteTimeslot,
+        'fifteen_minute' => $iFifteenMinuteTimeslot,
+        'member_one'     => $iMemberOne,
+        'member_two'     => $iMemberTwo,
+        'member_three'   => $iMemberThree,
+        'member_four'    => $iMemberFour,
+        'team_two'       => $iTeamTwo,
+        'team_one'       => $iTeamOne,
+      ];
+      
+      
    }  
    
    
@@ -46,68 +65,87 @@ class ScheduleCommandTest extends TestCalendarSlotsGroupBase
     public function testScheduleCommands()
     {
        // Test Add New Slot
+       $iCalYear =  (int) $this->getContainer()
+                                 ->getDatabaseAdapter()
+                                 ->fetchColumn("select year(NOW()) 
+                                                from bm_schedule_membership 
+                                                ",[],0,[]);
+      
+        $oNow = $this->getContainer()->getNow();  
        
-       //$iSlotId = $this->AddNewSlotTest();
+        $this->StartScheduleTest($this->aDatabaseId['member_one'], $this->aDatabaseId['five_minute'], $iCalYear);
        
-        /*   
-       // Test on dupliate failure
-       try {
-           $this->AddFailsOnDuplicateTest();
-           $this->assertFalse(true,'Exception on duplicate not raised');
-       } catch(SlotFailedException $e) {
-           $this->assertTrue(true);
-       }
-       
-       // Test disabled toggle
-       $this->ToggleDisabledTest($iSlotId);
-     
-       
-       // Test Enabled Toggle
-       $this->ToggleEnabledTest($iSlotId);
-       
-       */
+        $this->StopScheduleTest($this->aDatabaseId['schedule_one'], $oNow);
+    
+        $this->ResumeScheduleTest($this->aDatabaseId['schedule_one'], $oNow);
+    
+        
+        $this->ToggleScheduleCarry($this->aDatabaseId['schedule_one']);   
        
     }
     
     
-    public function AddNewSlotTest()
+    public function StartScheduleTest($iMemberDatabaseId, $iTimeSlotDatabbaseId, $iCalendarYear)
     {
         $oContainer  = $this->getContainer();
         
         $oCommandBus = $oContainer->getCommandBus(); 
        
-        $oCommand  = new SlotAddCommand(12);
+        $oCommand  = new StartScheduleCommand($iMemberDatabaseId,$iTimeSlotDatabbaseId,$iCalendarYear);
        
         $oCommandBus->handle($oCommand);
         
-        $this->assertNotEmpty($oCommand->getTimeSlotId());
+        $this->assertNotEmpty($oCommand->getScheduleId());
         
-        $numberSlots = (int)((60*24) / 12);
+        $this->aDatabaseId['schedule_one'] = $oCommand->getScheduleId();
         
-        // Assert max date is equal
-        
-        $iDayCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
-                                                                           from bm_timeslot_day 
-                                                                           where timeslot_id = ? "
-                                                                           ,[$oCommand->getTimeSlotId()],0,[]);
-       
-       
-        $this->assertEquals($numberSlots,$iDayCount,'The Day slot are less than expected number'); 
-        
-        $iYearCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
-                                                                            from bm_timeslot_year 
-                                                                            where timeslot_id = ? "
-                                                                            ,[$oCommand->getTimeSlotId()],0,[]);
-        
-        
-        $this->assertGreaterThanOrEqual($iDayCount *365, $iYearCount,'The year slot count is less than expected' );
-      
-        
-        
-        return $oCommand->getTimeSlotId();
         
     }
     
+    public function StopScheduleTest($iScheduleId, $oNow)
+    {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        
+        if(true == empty($iScheduleId)) {
+            $this->assertTrue(false,'Unable to find schedule database id to run stop test on');
+        }
+       
+        $oCommand  = new StopScheduleCommand($iScheduleId,$this->getContainer()->getNow());
+       
+        $oCommandBus->handle($oCommand);
+      
+        
+    }
+    
+    
+    public function ResumeScheduleTest($iScheduleId, $oNow)
+    {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand    = new ResumeScheduleCommand($iScheduleId);
+        
+        $oCommandBus->handle($oCommand);
+     
+        
+    }
+    
+    public function ToggleScheduleCarry($iScheduleId)
+    {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand    = new ToggleScheduleCarryCommand($iScheduleId);
+        
+        $oCommandBus->handle($oCommand);
+      
+        
+    }
 
     
     

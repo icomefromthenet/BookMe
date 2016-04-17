@@ -22,10 +22,14 @@ use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverTeamsCommand;
-use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
 use IComeFromTheNet\BookMe\Bus\Command\TakeBookingCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ClearBookingCommand;
 
+use IComeFromTheNet\BookMe\Bus\Command\ToggleScheduleCarryCommand;
+use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
+use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleHandler;
 
 
 
@@ -35,9 +39,15 @@ use IComeFromTheNet\BookMe\Bus\Handler\SlotToggleStatusHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RegisterMemberHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RegisterTeamHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverTeamsHandler;
-use IComeFromTheNet\BookMe\Bus\Handler\RolloverSchedulesHandler;
+
 use IComeFromTheNet\BookMe\Bus\Handler\TakeBookingHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\ClearBookingHandler;
+
+use IComeFromTheNet\BookMe\Bus\Handler\ToggleScheduleCarryHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\RolloverSchedulesHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\StartScheduleHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\StopScheduleHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\ResumeScheduleHandler;
 
 use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
@@ -105,6 +115,7 @@ class BookMeContainer extends Container
                 'bm_schedule_team'         => 'bm_schedule_team',
                 'bm_schedule_team_members' => 'bm_schedule_team_members',
                 'bm_schedule'              => 'bm_schedule',
+                'bm_schedule_slot'         => 'bm_schedule_slot',
                 
                 'bm_booking'               => 'bm_booking',
                 'bm_booking_conflict'      => 'bm_booking_conflict',
@@ -145,8 +156,9 @@ class BookMeContainer extends Container
                 return new RolloverTeamsHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
-            $this['handlers.schedule.rollover'] = function($c) {
-                return new RolloverSchedulesHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            
+            $this['handlers.schedule.toggle'] = function($c) {
+                return new ToggleScheduleCarryHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
             $this['handlers.booking.take'] = function($c) {
@@ -157,21 +169,42 @@ class BookMeContainer extends Container
                 return new ClearBookingHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
+            $this['handlers.schedule.rollover'] = function($c) {
+                return new RolloverSchedulesHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+        
+            $this['handlers.schedule.start'] = function($c) {
+                return new StartScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+        
+            $this['handlers.schedule.stop'] = function($c) {
+                return new StopScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            $this['handlers.schedule.resume'] = function($c) {
+                return new ResumeScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+        
+            
             
             # Command Bus
             
             $this['commandBus'] = function($c){
                 
                 $aLocatorMap = [
-                    CalAddYearCommand::class        => 'handlers.cal.addyear',
-                    SlotAddCommand::class           => 'handlers.slot.add',
-                    SlotToggleStatusCommand::class  => 'handlers.slot.toggle',
-                    RegisterMemberCommand::class    => 'handlers.member.register',
-                    RegisterTeamCommand::class      => 'handlers.team.register',
-                    RolloverSchedulesCommand::class => 'handlers.schedule.rollover',
-                    RolloverTeamsCommand::class     => 'handlers.team.rollover',
-                    TakeBookingCommand::class       => 'handlers.booking.take',
-                    ClearBookingCommand::class      => 'handlers.schedule.clear',
+                    CalAddYearCommand::class            => 'handlers.cal.addyear',
+                    SlotAddCommand::class               => 'handlers.slot.add',
+                    SlotToggleStatusCommand::class      => 'handlers.slot.toggle',
+                    RegisterMemberCommand::class        => 'handlers.member.register',
+                    RegisterTeamCommand::class          => 'handlers.team.register',
+                    RolloverSchedulesCommand::class     => 'handlers.schedule.rollover',
+                    RolloverTeamsCommand::class         => 'handlers.team.rollover',
+                    TakeBookingCommand::class           => 'handlers.booking.take',
+                    ClearBookingCommand::class          => 'handlers.schedule.clear',
+                    ToggleScheduleCarryCommand::class   => 'handlers.schedule.toggle',
+                    StartScheduleCommand::class         => 'handlers.schedule.start',
+                    StopScheduleCommand::class          => 'handlers.schedule.stop',
+                    ResumeScheduleHandler::class        => 'handlers.schedule.resume',
                 ];
         
              

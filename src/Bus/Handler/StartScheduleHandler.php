@@ -38,12 +38,12 @@ class StartScheduleHandler
     }
     
     
-    public function handle(StartScheduleHandler $oCommand)
+    public function handle(StartScheduleCommand $oCommand)
     {
         $oDatabase              = $this->oDatabaseAdapter;
         $sScheduleTableName     = $this->aTableNames['bm_schedule'];
         $sScheduleSlotTableName = $this->aTableNames['bm_schedule_slot'];
-        $sTimeSlotYearTableName = $this->aTableNames['bm_timeslot_day_year'];
+        $sTimeSlotYearTableName = $this->aTableNames['bm_timeslot_year'];
         $sSlotTableName         = $this->aTableNames['bm_timeslot_day']; 
         
         $iScheduleId            = null;
@@ -66,10 +66,10 @@ class StartScheduleHandler
         
         
         $a2Sql[] = " INSERT INTO $sScheduleSlotTableName (`schedule_id`, `slot_open`, `slot_close`)  ";
-        $a2Sql[] = " SELECT  ?, `c`.`opening_slot` , `c`.`closing_slot`";
+        $a2Sql[] = " SELECT  ? , `c`.`opening_slot` as slot_open , `c`.`closing_slot` as slot_close ";
         $a2Sql[] = " FROM $sTimeSlotYearTableName c";
         $a2Sql[] = " WHERE `c`.`y` = ? ";
-        $a2Sql[] = " WHERE `c`.`timeslot_id` = ? ";
+        $a2Sql[] = " AND `c`.`timeslot_id` = ? ";
           
           
         $s2Sql = implode(PHP_EOL,$a2Sql);
