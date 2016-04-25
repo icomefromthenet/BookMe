@@ -72,43 +72,79 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
      */ 
     protected $iRuleDatabaseId;
     
+    /**
+     * @var integer the databse id of the timeslot
+     */ 
+    protected $iTimeslotDatabaseId;
     
     
-    
-    public function __construct(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iRuleTypeDatabaseId,   $sRepeatMinute, $sRepeatHour, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
+    public function __construct(DateTime $oStartFromDate
+                              , DateTime $oEndtAtDate
+                              , $iRuleTypeDatabaseId
+                              , $iTimeslotDatabaseId
+                              , $iOpeningSlot
+                              , $iClosingSlot
+                              , $sRepeatDayofweek
+                              , $sRepeatDayofmonth
+                              , $sRepeatMonth)
     {
-        $this->sRepeatMinute        = $sRepeatMinute;
-        $this->sRepeatHour          = $sRepeatHour;
+        $this->sRepeatMinute        = '*';
+        $this->sRepeatHour          = '*';
         $this->sRepeatDayofweek     = $sRepeatDayofweek;
         $this->sRepeatDayofmonth    = $sRepeatDayofmonth;
         $this->sRepeatMonth         = $sRepeatMonth; 
         
+        
         $this->oStartFromDate       = $oStartFromDate;
         $this->oEndtAtDate          = $oEndtAtDate;
         $this->iRuleTypeDatabaseId  = $iRuleTypeDatabaseId;
-    
+        $this->iOpeningSlot         = $iOpeningSlot;
+        $this->iClosingSlot         = $iClosingSlot;
+        $this->iTimeslotDatabaseId  = $iTimeslotDatabaseId;
     }
   
   
     /**
+    * Return the rule type database id
+    * 
+    * @return integer 
+    */ 
+    public function getRuleTypeId()
+    {
+        return $this->iRuleTypeDatabaseId;
+    }
+  
+   /**
     * Return the rule database id
     * 
     * @return integer 
     */ 
     public function getRuleId()
     {
-        return $this->iRuleTypeDatabaseId;
+        return $this->iRuleDatabaseId;
     }
+    
+    /**
+     * Return the database id of the timeslot this 
+     * rule belongs too.
+     * 
+     * @return integer
+     */ 
+    public function getTimeSlotId()
+    {
+        return $this->iTimeslotDatabaseId;
+    }
+  
   
     /**
      * Set the rule database id once created
      * 
      * @return void
-     * @param integer   $iRuleTypeDatabaseId
+     * @param integer   $iRuleDatabaseId
      */ 
-    public function setRuleId($iRuleTypeDatabaseId)
+    public function setRuleId($iRuleDatabaseId)
     {
-        $this->iRuleTypeDatabaseId = $iRuleTypeDatabaseId;
+        $this->iRuleDatabaseId = $iRuleDatabaseId;
     }
   
     /**
@@ -161,6 +197,46 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
         return $this->sRepeatMonth;
     }
     
+    /**
+     * Return the opening slot minute
+     * 
+     * @return integer
+     */ 
+    public function getOpeningSlot()
+    {
+        return $this->iOpeningSlot;
+    }
+    
+    /**
+     * Return the closing slot minute
+     * 
+     * @return integer
+     */ 
+    public function getClosingSlot()
+    {
+        return $this->iClosingSlot;
+    }
+    
+    /**
+     * First day to start the repat rule
+     * 
+     * @return DateTime
+     */ 
+    public function getCalendarStart()
+    {
+        return $this->oStartFromDate;
+    }
+    
+    /**
+     * Last day to repat this rule on
+     * 
+     * @return DateTime
+     */ 
+    public function getCalendarEnd()
+    {
+        return $this->oEndtAtDate;
+    }
+    
   
     //---------------------------------------------------------
     # validation interface
@@ -170,16 +246,23 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
     {
         return [
             'integer' => [
-                ['rule_type_id']
+                ['rule_type_id'],['opening_slot'],['closing_slot'],['timeslot_id']
             ]
             ,'min' => [
-               ['rule_type_id',1]
+               ['rule_type_id',1],['opening_slot',1],['timeslot_id',1]
+            ]
+            ,'max' => [
+                ['closing_slot',(60*24)]
             ]
             ,'required' => [
-               ['rule_type_id'],['start_from'],['end_at']
+               ['rule_type_id'],['repeat_dayofweek'],['repeat_dayofmonth'],['repeat_month'],['timeslot_id']
             ]
-            ,'dateAfter' => 
-            ['end_at',$this->oStartFromDate]
+            ,'dateAfter' => [ 
+                ['end_at',$this->oStartFromDate]
+            ]
+            ,'calendarSameYear' => [
+                ['end_at','start_from']
+            ]
             
         ];
     }
@@ -196,6 +279,9 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
             'repeat_dayofweek'  => $this->sRepeatDayofweek,
             'repeat_dayofmonth' => $this->sRepeatDayofmonth,
             'repeat_month'      => $this->sRepeatMonth,
+            'opening_slot'      => $this->iOpeningSlot,
+            'closing_slot'      => $this->iClosingSlot,
+            'timeslot_id'       => $this->iTimeslotDatabaseId,
         ];
     }
   

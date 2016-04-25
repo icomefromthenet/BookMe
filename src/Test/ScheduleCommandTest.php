@@ -127,10 +127,11 @@ class ScheduleCommandTest extends TestCalendarSlotsGroupBase
         
         $oCommandBus = $oContainer->getCommandBus(); 
        
-        $oCommand    = new ResumeScheduleCommand($iScheduleId);
+        $oCommand    = new ResumeScheduleCommand($iScheduleId,$oNow);
         
         $oCommandBus->handle($oCommand);
      
+        $this->assertTrue(true);
         
     }
     
@@ -144,7 +145,7 @@ class ScheduleCommandTest extends TestCalendarSlotsGroupBase
         
         $oCommandBus->handle($oCommand);
       
-        
+        $this->assertTrue(true);
     }
 
     

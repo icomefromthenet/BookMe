@@ -82,6 +82,22 @@ class ScheduleException extends BookMeException implements BusException
      *
      * @return static
      */
+    public static function hasFailedResumeSchedule(StopScheduleCommand $oCommand, DBALException $oDatabaseException)
+    {
+        $exception = new static(
+            'Unable to resume schedule and remove blackout availability for schedule at id  '.$oCommand->getScheduleId(), 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+    }
+    
+    /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
     public static function hasFailedRolloverSchedule(RolloverSchedulesCommand $oCommand, DBALException $oDatabaseException)
     {
         $exception = new static(

@@ -357,7 +357,7 @@ class init_schema implements EntityInterface
         $db->executeUpdate("
         CREATE TABLE IF NOT EXISTS `bm_rule_type` (
           `rule_type_id` INT NOT NULL AUTO_INCREMENT,
-          `rule_code`    CHAR(4) NOT NULL,
+          `rule_code`    CHAR(6) NOT NULL,
           
            PRIMARY KEY (`rule_type_id`)
         )
@@ -396,22 +396,21 @@ class init_schema implements EntityInterface
       
       $db->executeUpdate("
         CREATE TABLE IF NOT EXISTS `bm_rule_series` (
-          `rule_series_id` INT NOT NULL AUTO_INCREMENT,
           `rule_id`        INT NOT NULL,
           `rule_type_id`   INT NOT NULL,
-          `schedule_id`    INT NOT NULL,
+          `cal_year`       INT NOT NULL,
           `slot_open`      DATETIME NOT NULL,
           `slot_close`     DATETIME NOT NULL,
           
-         PRIMARY KEY (`rule_series_id`),
+         PRIMARY KEY (`cal_year`,`slot_close`),
          CONSTRAINT `rule_series_fk1`
             FOREIGN KEY (`rule_id`)
             REFERENCES `bm_rule` (`rule_id`)
             ON DELETE NO ACTION
             ON UPDATE NO ACTION,
          CONSTRAINT `rule_series_fk2`
-            FOREIGN KEY (`schedule_id`,`slot_close`)
-            REFERENCES `bm_schedule_slot` (`schedule_id`,`slot_close`)
+            FOREIGN KEY (`rule_type_id`)
+            REFERENCES `bm_rule_type` (`rule_type_id`)
             ON DELETE NO ACTION
             ON UPDATE NO ACTION
        )

@@ -23,17 +23,28 @@ class ResumeScheduleCommand implements ValidationInterface, HasEventInterface
      */ 
     protected $iScheduleDatabaseId;
     
+    /**
+     * @var date to restart schedule from
+     */ 
+    protected $oFromDate;
     
-    
-    public function __construct($iScheduleDatabaseId)
+    public function __construct($iScheduleDatabaseId, DateTime $oFromDate)
     {
         $this->iScheduleDatabaseId      = $iScheduleDatabaseId;
+        $this->oFromDate                = $oFromDate;
     }
     
+    
+    /**
+     * Fetch the date to restart schedule from
+     *  
+     * @return DateTime
+     */ 
+    public function getFromDate()
+    {
+        return $this->oFromDate;
+    }
    
-    
-    
-    
     
     /**
     * Return the schedule database id
@@ -60,7 +71,7 @@ class ResumeScheduleCommand implements ValidationInterface, HasEventInterface
                 ['schedule_id',1]
             ]
             ,'required' => [
-                ['schedule_id']
+                ['schedule_id'],['from_date']
             ]
         ];
     }
@@ -71,6 +82,7 @@ class ResumeScheduleCommand implements ValidationInterface, HasEventInterface
       
       return [
         'schedule_id' => $this->iScheduleDatabaseId,
+        'from_date'   => $this->oFromDate
       ];
       
     }

@@ -6,6 +6,7 @@ use Pimple\Container;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Valitron\Validator;
 use League\Tactician\CommandBus;
 use League\Tactician\Handler\Locator;
 use League\Tactician\Handler\CommandHandlerMiddleware;
@@ -29,7 +30,7 @@ use IComeFromTheNet\BookMe\Bus\Command\ToggleScheduleCarryCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
-use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleHandler;
+use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
 
 
 
@@ -55,7 +56,9 @@ use IComeFromTheNet\BookMe\Bus\Middleware\ValidatePropMiddleware;
 use IComeFromTheNet\BookMe\Bus\Middleware\ExceptionWrapperMiddleware;
 use IComeFromTheNet\BookMe\Bus\Middleware\UnitOfWorkMiddleware;
 
-
+use IComeFromTheNet\BookMe\Cron\CronToQuery;
+use IComeFromTheNet\BookMe\Cron\SegmentParser;
+use IComeFromTheNet\BookMe\Cron\SlotFinder;
 
 /**
  * Book Me DI Container
@@ -98,8 +101,21 @@ class BookMeContainer extends Container
     {
         if(false === $this['booted']) {
         
+            # Custom Validators
+        
+            Validator::addRule('calendarSameYear', function($field, $value, array $params, array $fields) {
+                 
+                 $vtime = ($value instanceof \DateTime) ? $value->format('Y') : date('Y',$value);
+                 $ptime = ($fields[$params[0]] instanceof \DateTime) ? $fields[$params[0]]->format('Y') : date('Y',$fields[$params[0]]);
+                 
+                 return $vtime == $ptime;
+                
+            }, 'Calendar Year do not match');
+        
+        
         
             # default table name map
+            
             $this['tableMap'] = array_merge(array(
                 'bm_calendar'           => 'bm_calendar',
                 'bm_calendar_weeks'     => 'bm_calendar_weeks',
@@ -119,6 +135,14 @@ class BookMeContainer extends Container
                 
                 'bm_booking'               => 'bm_booking',
                 'bm_booking_conflict'      => 'bm_booking_conflict',
+                
+                'bm_rule_type'             => 'bm_rule_type',
+                'bm_rule'                  => 'bm_rule',
+                'bm_rule_series'           => 'bm_rule_series',
+                
+                
+                 // Temp tables 
+                'bm_tmp_rule_series'        => 'bm_tmp_rule_series',
                 
                 
             ),$aTableNames);
@@ -204,7 +228,7 @@ class BookMeContainer extends Container
                     ToggleScheduleCarryCommand::class   => 'handlers.schedule.toggle',
                     StartScheduleCommand::class         => 'handlers.schedule.start',
                     StopScheduleCommand::class          => 'handlers.schedule.stop',
-                    ResumeScheduleHandler::class        => 'handlers.schedule.resume',
+                    ResumeScheduleCommand::class        => 'handlers.schedule.resume',
                 ];
         
              
@@ -246,6 +270,22 @@ class BookMeContainer extends Container
                 return $oCommandBus;
                 
             };
+            
+        
+            # Cron to Query
+            $this['slotFinder'] = function($c) {
+                return new SlotFinder($c->getLogger(), $c->getDatabase(), $c->getTableMap());
+                
+            };
+            
+            $this['cronSegmentParser'] = function($c) {
+              return new SegmentParser($c->getLogger());  
+            };
+        
+            $this['cronToQuery'] = function($c) {
+                return new CronToQuery($c->getLogger(), $c->getDatabase(), $c->getTableMap(), $c->getCronSegementParser(),$c->getSlotFinder());
+            };
+            
             
         }
         
@@ -345,6 +385,35 @@ class BookMeContainer extends Container
         return $this['now'];
     }
     
+    /**
+     * Load the cronToQuery parser used n rules engine
+     * 
+     * @return CronToQuery
+     */ 
+    public function getCronToQuery()
+    {
+        return $this['cronToQuery'];
+    }
+    
+    /**
+     * Return the cron slot finder
+     * 
+     * @return SlotFinder
+     */ 
+    public function getSlotFinder()
+    {
+        return $this['slotFinder'];
+    }
+    
+    /**
+     * Return the cron segment parser
+     * 
+     * @return SegmentParser
+     */ 
+    public function getCronSegementParser()
+    {
+        return $this['cronSegmentParser'];
+    }
     
 }
 /* End of File */

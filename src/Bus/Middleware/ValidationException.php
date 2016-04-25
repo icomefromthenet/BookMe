@@ -34,7 +34,7 @@ class ValidationException extends BookMeException implements BusException
     public static function hasFailedValidation(ValidationInterface $oCommand, array $aErrors)
     {
         $exception = new static(
-            'Validation has failed for command'. get_class($oCommand)
+            'Validation has failed for '. get_class($oCommand)
         );
         
         $exception->oCommand = $oCommand;

@@ -1,5 +1,5 @@
 <?php
-namespace IComeFromTheNet\BookMe;
+namespace IComeFromTheNet\BookMe\Cron;
 
 use IComeFromTheNet\BookMe\BookMeException;
 
