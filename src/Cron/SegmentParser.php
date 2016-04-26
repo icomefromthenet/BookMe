@@ -99,45 +99,45 @@ class SegmentParser
                         //test for range with increment e.g 01-59/39
         
                         $sFormatSTR      = '##-##/##';
-                      	$sOpenValue      = $aMatches[2];
-					    $sCloseValue     = $aMatches[1];				
-					    $sIncrementValue = $aMatches[3];
+                      	$iOpenValue      = $aMatches[1];
+					    $iCloseValue     = $aMatches[2];				
+					    $iIncrementValue = $aMatches[3];
 		              
                     break;
         			case preg_match($this->getPatternB($sCronType, $sCronExpr),$sSplitValue,$aMatches) :
 		                //test for a scalar with increment e.g 6/3 (this short for 6-59/3)
 				
-	    				$formatSTR      = '##/##';
-		    			$sOpenValue     = $aMatches[0];
-			    		$closeValue     = $iMaxCloseValue;
-				    	$incrementValue = $aMatches[1];
+	    				$sFormatSTR      = '##/##';
+		    			$iOpenValue      = $aMatches[1];
+			    		$iCloseValue     = $iMaxCloseValue;
+				    	$iIncrementValue = $aMatches[2];
 				    	
 				    break;
 			    	case preg_match($this->getPatternC($sCronType, $sCronExpr),$sSplitValue,$aMatches) :				
 				    	//test a range with e.g 34-59
 					
 					    $sFormatSTR     =  '##-##';
-					    $openValue      = $aMatches[2];
-					    $closeValue     = $aMatches[1];				
-					    $incrementValue = 1;
+					    $iOpenValue      = $aMatches[1];
+					    $iCloseValue     = $aMatches[2];				
+					    $iIncrementValue = 1;
 					
 				    break;
 				    case preg_match($this->getPatternD($sCronType, $sCronExpr),$sSplitValue,$aMatches) :
 				        //test for a scalar value
     										
     					$sFormatSTR     =  '##';
-    					$openValue      = $aMatches[2];
-    					$closeValue     = $aMatches[1];	
-    					$incrementValue = 1;
+    					$iOpenValue      = $aMatches[1];
+    					$iCloseValue     = $aMatches[1];	
+    					$iIncrementValue = 1;
     					
     				break;
     				case preg_match($this->getPatternE($sCronType, $sCronExpr),$sSplitValue,$aMatches):
     				    //test for a * with increment e.g */5
     					
     					$sFormatSTR     =  '*/##';
-    					$openValue      = $iMinOpenValue;
-    					$closeValue     = $iMaxCloseValue;
-    					$incrementValue = $aMatches[1];
+    					$iOpenValue      = $iMinOpenValue;
+    					$iCloseValue     = $iMaxCloseValue;
+    					$iIncrementValue = $aMatches[2];
                     break;
     				default :
     				    $sMessage = "unable to determine child segemnt type at $i for segment $sSplitValue";
@@ -149,7 +149,7 @@ class SegmentParser
 			
     			// validate opening occurse before closing. 
     			
-    			if($closeValue < $openValue){
+    			if($iCloseValue < $iOpenValue){
     			    $sMessage = "Close occurs before Opening in child segemnt type at $i for segment $sSplitValue";
     				$this->oAppLogger->debug($sMessage);
                     throw ParseCronException::parseCronFailed($sMessage, $sCronExpr);
@@ -189,19 +189,19 @@ class SegmentParser
         
         switch($sCronType) {
             case 'minute':
-                $sCronRegex = '/^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([0-5][0-9]|[0-9])-([0-5][0-9]|[0-9])\/([0-9]+)$/';
             break;
             case 'hour':       
-                $sCronRegex = '/^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$';
+                $sCronRegex = '/^([1-2][0-9]|[3][0-1]|[1-9])-([1-2][0-9]|[3][0-1]|[1-9])\/([0-9]+)$';
             break;
             case 'dayofmonth': 
-                $sCronRegex = '/^([0-6]{1})-([0-6]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([1-2][0-9]|[3][0-1]|[1-9])-([1-2][0-9]|[3][0-1]|[1-9])\/([0-9]+)$/';
             break;
             case 'dayofweek': 
-                $sCronRegex = '/^([0-6]{1})-([0-6]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([0-6])-([0-6])\/([0-9]+)$/';
             break;
             case 'month':      
-                $sCronRegex  = '/^([1-9]{1}|[1-2][1-2]{1})-([1-9]{1}|[1-2][1-2]{1})\\\([0-9]+)$/';
+                $sCronRegex  = '/^([1-9]|[1-2][1-2])-([1-2][1-2]|[1-9])\/([0-9]+)$/';
             break;    
             default: throw ParseCronException::parseCronFailed("Unable to match $sCronType ",$sCronString);
         }
@@ -221,19 +221,19 @@ class SegmentParser
     {
          switch($sCronType) {
             case 'minute':
-                $sCronRegex = '/^([0-5][0-9]{1}|[0-9]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([0-5][0-9]|[0-9])\/([0-9]+)$/';
             break;
             case 'hour':       
-                $sCronRegex = '/^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([0-1][0-9]|[2][0-3]|[0-9])\/([0-9]+)$/';
             break;
             case 'dayofmonth': 
-                $sCronRegex = '/^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([1-2][0-9]|[3][0-1]|[1-9])\/([0-9]+)$/';
             break;
             case 'dayofweek': 
-                $sCronRegex = '/^([0-6]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([0-6])\/([0-9]+)$/';
             break;
             case 'month':      
-                $sCronRegex = '/^([1-9]{1}|[1-2][1-2]{1})\\\([0-9]+)$/';
+                $sCronRegex = '/^([1-2][1-2]|[1-9])\/([0-9]+)$/';
             break;    
             default: throw ParseCronException::parseCronFailed("Unable to match $sCronType ",$sCronString);
         }
@@ -255,16 +255,16 @@ class SegmentParser
                 $sCronRegex = '/^([0-5][0-9]{1}|[0-9]{1})-([0-5][0-9]{1}|[0-9]{1})$/';
             break;
             case 'hour':       
-                $sCronRegex = '/^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})-([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$/';
+                $sCronRegex = '/^([0-1][0-9]|[2][0-3]|[0-9])-([0-1][0-9]|[2][0-3]|[0-9])$/';
             break;
             case 'dayofmonth': 
-                $sCronRegex = '/^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})-([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})$/';
+                $sCronRegex = '/^([1-2][0-9]|[3][0-1]|[1-9])-([1-2][0-9]|[3][0-1]|[1-9])$/';
             break;
             case 'dayofweek': 
-                $sCronRegex = '/^([0-6]{1})-([0-6]{1})$/';
+                $sCronRegex = '/^([0-6])-([0-6])$/';
             break;
             case 'month':      
-                $sCronRegex = '/^([1-9]{1}|[1-2][1-2]{1})-([1-9]{1}|[1-2][1-2]{1})/';
+                $sCronRegex = '/^([1-2][1-2]|[1-9])-([1-2][1-2]|[1-9])$/';
             break;    
             default: throw ParseCronException::parseCronFailed("Unable to match $sCronType ",$sCronString);
         }
@@ -283,19 +283,19 @@ class SegmentParser
     {
          switch($sCronType) {
             case 'minute':
-                $sCronRegex = '/^([0-5][0-9]?|[0-9]{1})$/';
+                $sCronRegex = '/^([0-5][0-9]?|[0-9])$/';
             break;
             case 'hour':       
-                $sCronRegex = '/^([0-1][0-9]|[2][0-3]{1}|[0-9]{1})$/';
+                $sCronRegex = '/^([0-1][0-9]|[2][0-3]|[0-9])$/';
             break;
             case 'dayofmonth': 
-                $sCronRegex = '/^([1-9]{1}|[1-2][0-9]{1}|[3][0-1]{1})$/';
+                $sCronRegex = '/^([1-2][0-9]|[3][0-1]|[1-9])$/';
             break;
             case 'dayofweek': 
-                $sCronRegex = '/^([0-6]{1})$/';
+                $sCronRegex = '/^([0-6])$/';
             break;
             case 'month':      
-                $sCronRegex = '/^([1-9]{1}|[1-2][1-2]{1})$/';
+                $sCronRegex = '/^([1-2][1-2]|[1-9])$/';
             break;    
             default: throw ParseCronException::parseCronFailed("Unable to match $sCronType ",$sCronString);
         }
@@ -314,19 +314,19 @@ class SegmentParser
     {
          switch($sCronType) {
             case 'minute':
-                $sCronRegex = '/^([*]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([*])\/([0-9]+)$/';
             break;
             case 'hour':       
-                $sCronRegex = '/^([*]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([*])\/([0-9]+)$/';
             break;
             case 'dayofmonth': 
-                $sCronRegex = '/^([*]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([*])\/([0-9]+)$/';
             break;
             case 'dayofweek': 
-                $sCronRegex = '/^([*]{1})/([0-9]+)$/';
+                $sCronRegex = '/^([*])\/([0-9]+)$/';
             break;
             case 'month':      
-                $sCronRegex = '/^([*]{1})\\\([0-9]+)$/';
+                $sCronRegex = '/^([*])\/([0-9]+)$/';
             break;    
             default: throw ParseCronException::parseCronFailed("Unable to match $sCronType ",$sCronString);
         }

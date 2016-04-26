@@ -179,18 +179,36 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         $oSegmentParser   = $oContainer->getCronSegementParser();
         
         $sCronType  = ParsedRange::TYPE_MONTH;
-        $sCronExprA = '*';
-        $sCronExprB = '1-6,7-12';
+        $sCronExpr = '*';
+        $sCronExprA = '1-12/2';
+        $sCronExprB = '2/2';
+        $sCronExprC = '1-6,7-12';
+        $sCronExprD = '3';
+        $sCronExprE = '*/3';
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExpr);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(1,$aRange[0]->getRangeOpen());
+        $this->assertEquals(12,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+       
         
         $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprA);    
         
         $this->assertCount(1,$aRange);
         $this->assertEquals(1,$aRange[0]->getRangeOpen());
         $this->assertEquals(12,$aRange[0]->getRangeClose());
-        $this->assertEquals(1,$aRange[0]->getModValue());
-        
+        $this->assertEquals(2,$aRange[0]->getModValue());
         
         $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprB);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(2,$aRange[0]->getRangeOpen());
+        $this->assertEquals(12,$aRange[0]->getRangeClose());
+        $this->assertEquals(2,$aRange[0]->getModValue());
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprC);    
         
         $this->assertCount(2,$aRange);
         $this->assertEquals(1,$aRange[0]->getRangeOpen());
@@ -199,8 +217,170 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         $this->assertEquals(7,$aRange[1]->getRangeOpen());
         $this->assertEquals(12,$aRange[1]->getRangeClose());
         $this->assertEquals(1,$aRange[1]->getModValue());
+    
+        
+         
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprD);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(3,$aRange[0]->getRangeOpen());
+        $this->assertEquals(3,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+        
+        
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprE);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(1,$aRange[0]->getRangeOpen());
+        $this->assertEquals(12,$aRange[0]->getRangeClose());
+        $this->assertEquals(3,$aRange[0]->getModValue());
+       
+      
+      
     }
     
+    
+    /**
+    * @group Rule
+    */
+    public function testSegmentParserDayMonthSegment()
+    {
+        $oContainer = $this->getContainer();
+        $oSegmentParser   = $oContainer->getCronSegementParser();
+        
+        $sCronType  = ParsedRange::TYPE_DAYOFMONTH;
+        $sCronExpr = '*';
+        $sCronExprA = '1-20/2';
+        $sCronExprB = '2/2';
+        $sCronExprC = '1-6,7-12';
+        $sCronExprD = '3';
+        $sCronExprE = '*/3';
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExpr);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(1,$aRange[0]->getRangeOpen());
+        $this->assertEquals(31,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+       
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprA);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(1,$aRange[0]->getRangeOpen());
+        $this->assertEquals(20,$aRange[0]->getRangeClose());
+        $this->assertEquals(2,$aRange[0]->getModValue());
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprB);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(2,$aRange[0]->getRangeOpen());
+        $this->assertEquals(31,$aRange[0]->getRangeClose());
+        $this->assertEquals(2,$aRange[0]->getModValue());
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprC);    
+        
+        $this->assertCount(2,$aRange);
+        $this->assertEquals(1,$aRange[0]->getRangeOpen());
+        $this->assertEquals(6,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+        $this->assertEquals(7,$aRange[1]->getRangeOpen());
+        $this->assertEquals(12,$aRange[1]->getRangeClose());
+        $this->assertEquals(1,$aRange[1]->getModValue());
+    
+        
+         
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprD);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(3,$aRange[0]->getRangeOpen());
+        $this->assertEquals(3,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+        
+        
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprE);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(1,$aRange[0]->getRangeOpen());
+        $this->assertEquals(31,$aRange[0]->getRangeClose());
+        $this->assertEquals(3,$aRange[0]->getModValue());
+       
+      
+      
+    }
+    
+    /**
+    * @group Rule
+    */
+    public function testSegmentParserDayWeekSegment()
+    {
+        $oContainer = $this->getContainer();
+        $oSegmentParser   = $oContainer->getCronSegementParser();
+        
+        $sCronType  = ParsedRange::TYPE_DAYOFWEEK;
+        $sCronExpr = '*';
+        $sCronExprA = '0-6/2';
+        $sCronExprB = '6/2';
+        $sCronExprC = '1-6,0-5';
+        $sCronExprD = '3';
+        $sCronExprE = '*/3';
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExpr);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(0,$aRange[0]->getRangeOpen());
+        $this->assertEquals(6,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+       
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprA);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(0,$aRange[0]->getRangeOpen());
+        $this->assertEquals(6,$aRange[0]->getRangeClose());
+        $this->assertEquals(2,$aRange[0]->getModValue());
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprB);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(6,$aRange[0]->getRangeOpen());
+        $this->assertEquals(6,$aRange[0]->getRangeClose());
+        $this->assertEquals(2,$aRange[0]->getModValue());
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprC);    
+        
+        $this->assertCount(2,$aRange);
+        $this->assertEquals(1,$aRange[0]->getRangeOpen());
+        $this->assertEquals(6,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+        $this->assertEquals(0,$aRange[1]->getRangeOpen());
+        $this->assertEquals(5,$aRange[1]->getRangeClose());
+        $this->assertEquals(1,$aRange[1]->getModValue());
+    
+        
+         
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprD);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(3,$aRange[0]->getRangeOpen());
+        $this->assertEquals(3,$aRange[0]->getRangeClose());
+        $this->assertEquals(1,$aRange[0]->getModValue());
+        
+        
+        
+        $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprE);    
+        
+        $this->assertCount(1,$aRange);
+        $this->assertEquals(0,$aRange[0]->getRangeOpen());
+        $this->assertEquals(6,$aRange[0]->getRangeClose());
+        $this->assertEquals(3,$aRange[0]->getModValue());
+       
+      
+      
+    }
+  
     // /**
     // * @group Rule
     // */ 
