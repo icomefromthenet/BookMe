@@ -46,7 +46,7 @@ class SlotFinder
         $sSeriesTmpTable = $this->aTables['bm_tmp_rule_series'];
         $oDatabase       = $this->oDatabase;
         
-        $oDatabase->execute(
+        $oDatabase->query(
             "CREATE TEMPORARY TABLE IF NOT EXISTS $sSeriesTmpTable (
     		      `timeslot_id`       INT NOT NULL COMMENT 'FK to slot table',
                   `y`                 SMALLINT NULL COMMENT 'year where date occurs',
@@ -81,7 +81,7 @@ class SlotFinder
         $sSeriesTmpTable = $this->aTables['bm_tmp_rule_series'];
         $oDatabase       = $this->oDatabase;
         
-        $oDatabase->execute("DROP TABLE IF EXISTS $sSeriesTmpTable ");
+        $oDatabase->query("DROP TABLE IF EXISTS $sSeriesTmpTable ");
         
         $this->oAppLogger->debug('flushed all SlotFinder Tmp tables');
         
@@ -191,7 +191,7 @@ class SlotFinder
                 $sSql .=  '( ';
             }
             
-            $aMRanges = array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()));
+            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
             
             $sSql .= " `c`.`m` IN (".implode(',',$aMRanges).") AND `c`.`m` % ".$oRange->getModValue().' = 0';
             
@@ -212,7 +212,7 @@ class SlotFinder
                 $sSql .=  '( ';
             }
             
-            $aMRanges = array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()));
+            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
             
             $sSql .= " `c`.`d` IN (".implode(',',$aMRanges).") AND `c`.`d` % ".$oRange->getModValue().' = 0';
             
@@ -233,7 +233,7 @@ class SlotFinder
                 $sSql .=  '( ';
             }
             
-            $aMRanges = array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()));
+            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
             // dw are 1 based while cron their 0 based
             $sSql .= " (`c`.`dw`-1) IN (".implode(',',$aMRanges).") AND (`c`.`dw`-1) % ".$oRange->getModValue().' = 0';
             

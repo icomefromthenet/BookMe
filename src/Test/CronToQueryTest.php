@@ -380,6 +380,34 @@ class CronToQueryCommandTest extends TestRulesGroupBase
       
       
     }
+    
+    /**
+    * @group Rule
+    */
+    public function testSlotFinder()
+    {
+        $oContainer  = $this->getContainer();
+        $oSlotFinder = $oContainer->getSlotFinder();
+        $oNow        = $oContainer->getNow();
+        $oRange      = new ParsedRange(1,10,12,1,ParsedRange::TYPE_MONTH);
+    
+     
+        // from june to the end of the year
+        $oStartDate  = clone $oNow;
+        $oEndDate    = clone $oNow;
+        $oStartDate->setDate($oStartDate->format('Y'),'06','1');
+        $oEndDate->setDate($oStartDate->format('Y'),'12','31');
+        $iOpeningTimeslot = 100;
+        $iClosingTimeslot = 144;
+        $iTimeslotId = $this->aDatabaseId['ten_minute'];
+        
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 1, $iTimeslotId, $iOpeningTimeslot, $iClosingTimeslot,'*', '*','10-12');
+        
+        $oSlotFinder->findSlots($oCommand,array($oRange));
+        
+        
+    }
+    
   
     // /**
     // * @group Rule

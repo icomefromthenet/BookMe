@@ -90,9 +90,9 @@ class CronToQuery
         // 4 = Month
         // 5 = Day of week 
 
-        $aRanges[] = $oSegmentParser->parseSegment(self::TYPE_MINUTE,  $oCommand->getRuleRepeatMinute());
+        //$aRanges[] = $oSegmentParser->parseSegment(self::TYPE_MINUTE,  $oCommand->getRuleRepeatMinute());
         
-        $aRanges[] = $oSegmentParser->parseSegment(self::TYPE_HOUR,    $oCommand->getRuleRepeatHour());
+        //$aRanges[] = $oSegmentParser->parseSegment(self::TYPE_HOUR,    $oCommand->getRuleRepeatHour());
                 
         $aRanges[] = $oSegmentParser->parseSegment(self::TYPE_DAYOFMONTH,  $oCommand->getRuleRepeatDayOfMonth());
         
@@ -101,6 +101,10 @@ class CronToQuery
         $aRanges[] = $oSegmentParser->parseSegment(self::TYPE_DAYOFWEEK,   $oCommand->getRuleRepeatDayOfWeek());
         
         $aFlatRanges = $this->flattern($aRanges);
+        
+        foreach($aFlatRanges as $oRange) {
+            $oRange->validate();
+        }
         
         
         // Run the ranges through the finder
