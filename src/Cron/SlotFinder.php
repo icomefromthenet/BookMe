@@ -157,7 +157,7 @@ class SlotFinder
         $aBinds          = [
             ':iTimeSlotId'    => $iTimeslotDatabaseId,
             ':sOpeningSlot'   => $oStartFrom->format('dmY'),
-            ':sClosingSlot'   => $oStartFrom->format('dmY'),
+            ':sClosingSlot'   => $oEndAt->format('dmY'),
             ':iCalYear'       => $oStartFrom->format('Y'),
             ':iOpenMinute'    => $iOpeningDaySlot,
             ':iCloseMinute'   => $iClosingDaySlot,
@@ -165,7 +165,7 @@ class SlotFinder
         
 
         $aSql[] =" INSERT INTO $sSeriesTmpTable (`timeslot_id`,`y`,`m`,`d`,`dw`,`w`,`open_minute`,`close_minute`,`closing_slot`,`opening_slot`) ";
-        $aSql[] =" SELECT `c`.`timeslot_id`, `c`.`y`, `c`.`m`, `c`.`d`, `c`.`dw`, `c`.`open_minute`, `c`.`close_minute`,`c`.`closing_slot`, `c`.`opening_slot`";
+        $aSql[] =" SELECT `c`.`timeslot_id`, `c`.`y`, `c`.`m`, `c`.`d`, `c`.`dw`, `c`.`w` , `c`.`open_minute`, `c`.`close_minute`,`c`.`closing_slot`, `c`.`opening_slot`";
         $aSql[] =" FROM $sYearSlotTabale c ";
         $aSql[] =" WHERE  `c`.`timeslot_id` = :iTimeSlotId ";
         
@@ -173,12 +173,12 @@ class SlotFinder
         
         $aSql[] =" AND date(`c`.`opening_slot`) >= STR_TO_DATE(:sOpeningSlot,'%d%m%Y') ";
         $aSql[] =" AND date(`c`.`closing_slot`) <= STR_TO_DATE(:sClosingSlot,'%d%m%Y') ";
-        $aSql[] =" `c`.`y` = :iCalYear ";
+        $aSql[] =" AND `c`.`y` = :iCalYear ";
 
         // Limit to selected slots during day
         // This would cover hours and minutes cron segments.
-        $aSql[] =" `c`.`open_minute` >= :iOpenMinute ";
-        $aSql[] =" `c`.`close_minute` <= :iCloseMinute ";
+        $aSql[] =" AND `c`.`open_minute` >= :iOpenMinute ";
+        $aSql[] =" AND `c`.`close_minute` <= :iCloseMinute ";
 
         // Limit of Months
         $aMonthRanges = $this->extractRanges(ParsedRange::TYPE_MONTH,$aParsedRanges);
@@ -212,7 +212,7 @@ class SlotFinder
                 $sSql .=  '( ';
             }
             
-            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
+            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),$oRange->getRangeClose(),''));
             
             $sSql .= " `c`.`d` IN (".implode(',',$aMRanges).") AND `c`.`d` % ".$oRange->getModValue().' = 0';
             
@@ -233,9 +233,10 @@ class SlotFinder
                 $sSql .=  '( ';
             }
             
-            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
+            $aMRanges = array_keys(array_fill($oRange->getRangeOpen()+1,($oRange->getRangeClose()+1),''));
+            
             // dw are 1 based while cron their 0 based
-            $sSql .= " (`c`.`dw`-1) IN (".implode(',',$aMRanges).") AND (`c`.`dw`-1) % ".$oRange->getModValue().' = 0';
+            $sSql .= " (`c`.`dw`) IN (".implode(',',$aMRanges).") AND (`c`.`dw`) % ".$oRange->getModValue().' = 0';
             
             $sSql .=  ') ';
             
@@ -243,8 +244,8 @@ class SlotFinder
         }
         $aSql[] = " ) ";
         
-        
-        
+
+
         try {
             
             $oAppLogger->debug('Running slotFinder query table');

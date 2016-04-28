@@ -387,10 +387,12 @@ class CronToQueryCommandTest extends TestRulesGroupBase
     public function testSlotFinder()
     {
         $oContainer  = $this->getContainer();
+        $oDatabase   = $oContainer->getDatabaseAdapter();
         $oSlotFinder = $oContainer->getSlotFinder();
         $oNow        = $oContainer->getNow();
-        $oRange      = new ParsedRange(1,10,12,1,ParsedRange::TYPE_MONTH);
-    
+        $oRangeMonth      = new ParsedRange(1,10,12,1,ParsedRange::TYPE_MONTH);
+        $oRangeDayOfMonth = new ParsedRange(2,1,14,1,ParsedRange::TYPE_DAYOFMONTH);
+        $oRangeDayOfWeek = new ParsedRange(3,0,6,1,ParsedRange::TYPE_DAYOFWEEK);
      
         // from june to the end of the year
         $oStartDate  = clone $oNow;
@@ -401,11 +403,17 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         $iClosingTimeslot = 144;
         $iTimeslotId = $this->aDatabaseId['ten_minute'];
         
-        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 1, $iTimeslotId, $iOpeningTimeslot, $iClosingTimeslot,'*', '*','10-12');
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 1, $iTimeslotId, $iOpeningTimeslot, $iClosingTimeslot,'*', '1-14','10-12');
         
-        $oSlotFinder->findSlots($oCommand,array($oRange));
+        $oSlotFinder->findSlots($oCommand,array($oRangeMonth, $oRangeDayOfMonth, $oRangeDayOfWeek));
         
+        $oDateType = Type::getType(Type::DATETIME);
         
+        $oOpeningFirstSlot = $oDateType->convertToPHPValue($oDatabase->fetchColumn("SELECT min(opening_slot) FROM bm_tmp_rule_series",[],0), $oDatabase->getDatabasePlatform());
+        $oClosingLastSlot = $oDateType->convertToPHPValue($oDatabase->fetchColumn("SELECT max(closing_slot) FROM bm_tmp_rule_series",[],0), $oDatabase->getDatabasePlatform());
+        
+        $this->assertEquals('01-10-2016',$oOpeningFirstSlot->format('d-m-Y'),'Opening slot has wrong date');
+        $this->assertEquals('14-11-2016',$oClosingLastSlot->format('d-m-Y'),'Closing slot has wrong date');
     }
     
   

@@ -71,7 +71,7 @@ class SlotFinderException extends BookMeException
      */
     public static function hasFailedToBuildRuleSeries(CreateRuleCommand $oCommand, DBALException $oDatabaseException = null)
     {
-          $sMessage = printf('Failed build rule series query for timeslot at id %s for Opening date %s to Closing Date %s For Opening Minute %s to Closing Minute %s'
+          $sMessage = printf('Failed to find slots for rule at timeslot at id %s for Opening date %s to Closing Date %s For Opening Minute %s to Closing Minute %s'
                 ,$oCommand->getTimeSlotId()
                 ,$oCommand->getCalendarStart()->format('d/m/Y')
                 ,$oCommand->getCalendarEnd()->format('d/m/Y')
@@ -92,12 +92,13 @@ class SlotFinderException extends BookMeException
      */
     public static function hasFailedToBuildRuleSeriesQuery(CreateRuleCommand $oCommand, DBALException $oDatabaseException)
     {
-          $sMessage = printf('Failed build rule series query for timeslot at id %s for Opening date %s to Closing Date %s For Opening Minute %s to Closing Minute %s'
+          $sMessage = printf('Failed build rule query for timeslot at id %s for Opening date %s to Closing Date %s For Opening Minute %s to Closing Minute %s with database error %s'
                 ,$oCommand->getTimeSlotId()
                 ,$oCommand->getCalendarStart()->format('d/m/Y')
                 ,$oCommand->getCalendarEnd()->format('d/m/Y')
                 ,$oCommand->getOpeningSlot()
-                ,$oCommand->getClosingSlot());
+                ,$oCommand->getClosingSlot()
+                ,$oDatabaseException->getMessage());
         
         $exception = new static($sMessage, 0, $oDatabaseException);
       
