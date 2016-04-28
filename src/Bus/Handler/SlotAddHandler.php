@@ -83,11 +83,11 @@ class SlotAddHandler
         
         
         $aSql[] = " INSERT INTO $sTimeSlotDayTableName (`timeslot_day_id`,`timeslot_id`,`open_minute`,`close_minute`) ";
-        $aSql[] = " SELECT null, :iTimeSlotId, 0 as start,  `t`.`timeslot_length`+1 as end ";
+        $aSql[] = " SELECT null, :iTimeSlotId, 0 as start,  `t`.`timeslot_length` as end ";
         $aSql[] = " FROM $sTimeSlotTableName t  ";
         $aSql[] = " WHERE `t`.`timeslot_id` = :iTimeSlotId ";                                                                                                                                  
         $aSql[] = " UNION ";
-        $aSql[] = " SELECT null, :iTimeSlotId, `ints`.`tick` +1 as start, `t`.`timeslot_length`+`ints`.`tick`+1 as end  ";                                                                                      
+        $aSql[] = " SELECT null, :iTimeSlotId, `ints`.`tick` as start, `t`.`timeslot_length`+`ints`.`tick` as end  ";                                                                                      
         $aSql[] = " FROM ( ";                                                                                                                                                                             
         $aSql[] = "     SELECT 1 + (`a`.`i`*1000 + `b`.`i`*100 + `c`.`i`*10 + `d`.`i`) as tick   ";                                                                                                        
         $aSql[] = "     FROM ints a JOIN ints b JOIN ints c JOIN ints d ";                                                                                                  

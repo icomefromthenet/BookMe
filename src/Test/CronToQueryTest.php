@@ -27,7 +27,7 @@ class CronToQueryCommandTest extends TestRulesGroupBase
       
       $iFiveMinuteTimeslot    = $oService->addTimeslot(5);
       $iTenMinuteTimeslot     = $oService->addTimeslot(10);
-      $iFifteenMinuteTimeslot = $oService->addTimeslot(15);
+      $iSevenMinuteTimeslot    = $oService->addTimeslot(7);
 
       $oService->toggleSlotAvability($iTenMinuteTimeslot);    
   
@@ -37,14 +37,14 @@ class CronToQueryCommandTest extends TestRulesGroupBase
       $iMemberFour  = $oService->registerMembership();
     
       $iTeamOne     = $oService->registerTeam($iFiveMinuteTimeslot);
-      $iTeamTwo     = $oService->registerTeam($iFifteenMinuteTimeslot);
+      $iTeamTwo     = $oService->registerTeam($iSevenMinuteTimeslot);
       
            
             
       $this->aDatabaseId = [
         'five_minute'    => $iFiveMinuteTimeslot,
         'ten_minute'     => $iTenMinuteTimeslot,
-        'fifteen_minute' => $iFifteenMinuteTimeslot,
+        'seven_minute'   => $iSevenMinuteTimeslot,
         'member_one'     => $iMemberOne,
         'member_two'     => $iMemberTwo,
         'member_three'   => $iMemberThree,
@@ -57,11 +57,23 @@ class CronToQueryCommandTest extends TestRulesGroupBase
       
    }  
    
-   
     /**
     * @group Rule
     */ 
-    public function testContainerBuildsClass()
+   public function testRule()
+   {
+       $this->ContainerBuildsClass();
+       $this->SegmentParserEntity();
+       $this->SegmentParserEntityPassValidate();
+       $this->SegmentParserEntityFailsValidate();
+       $this->SegmentParserMonthSegment();
+       $this->SegmentParserDayMonthSegment();
+       $this->SegmentParserDayWeekSegment();
+   }
+   
+   
+   
+    protected function ContainerBuildsClass()
     {
        
        $oContainer = $this->getContainer();
@@ -81,10 +93,8 @@ class CronToQueryCommandTest extends TestRulesGroupBase
        
     }
     
-    /**
-    * @group Rule
-    */
-    public function testSegmentParserEntity()
+  
+    protected function SegmentParserEntity()
     {
         $oContainer = $this->getContainer();
         
@@ -106,10 +116,8 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         
     }
     
-     /**
-    * @group Rule
-    */
-    public function testSegmentParserEntityPassValidate()
+   
+    protected function SegmentParserEntityPassValidate()
     {
         $oContainer = $this->getContainer();
         $oSegmentParser   = $oContainer->getCronSegementParser();
@@ -134,10 +142,7 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         
     }
     
-    /**
-    * @group Rule
-    */
-    public function testSegmentParserEntityFailsValidate()
+    protected function SegmentParserEntityFailsValidate()
     {
         $oContainer = $this->getContainer();
         $oSegmentParser   = $oContainer->getCronSegementParser();
@@ -170,10 +175,7 @@ class CronToQueryCommandTest extends TestRulesGroupBase
     }
     
    
-    /**
-    * @group Rule
-    */
-    public function testSegmentParserMonthSegment()
+    protected function SegmentParserMonthSegment()
     {
         $oContainer = $this->getContainer();
         $oSegmentParser   = $oContainer->getCronSegementParser();
@@ -240,11 +242,8 @@ class CronToQueryCommandTest extends TestRulesGroupBase
       
     }
     
-    
-    /**
-    * @group Rule
-    */
-    public function testSegmentParserDayMonthSegment()
+   
+    protected function SegmentParserDayMonthSegment()
     {
         $oContainer = $this->getContainer();
         $oSegmentParser   = $oContainer->getCronSegementParser();
@@ -311,10 +310,8 @@ class CronToQueryCommandTest extends TestRulesGroupBase
       
     }
     
-    /**
-    * @group Rule
-    */
-    public function testSegmentParserDayWeekSegment()
+    
+    protected function SegmentParserDayWeekSegment()
     {
         $oContainer = $this->getContainer();
         $oSegmentParser   = $oContainer->getCronSegementParser();
@@ -399,8 +396,8 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         $oEndDate    = clone $oNow;
         $oStartDate->setDate($oStartDate->format('Y'),'06','1');
         $oEndDate->setDate($oStartDate->format('Y'),'12','31');
-        $iOpeningTimeslot = 100;
-        $iClosingTimeslot = 144;
+        $iOpeningTimeslot = 1000;
+        $iClosingTimeslot = 1440;
         $iTimeslotId = $this->aDatabaseId['ten_minute'];
         
         $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 1, $iTimeslotId, $iOpeningTimeslot, $iClosingTimeslot,'*', '1-14','10-12');
@@ -413,7 +410,11 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         $oClosingLastSlot = $oDateType->convertToPHPValue($oDatabase->fetchColumn("SELECT max(closing_slot) FROM bm_tmp_rule_series",[],0), $oDatabase->getDatabasePlatform());
         
         $this->assertEquals('01-10-2016',$oOpeningFirstSlot->format('d-m-Y'),'Opening slot has wrong date');
-        $this->assertEquals('14-11-2016',$oClosingLastSlot->format('d-m-Y'),'Closing slot has wrong date');
+        $this->assertEquals('15-11-2016',$oClosingLastSlot->format('d-m-Y'),'Closing slot has wrong date');
+        
+        $this->assertEquals('16:40',$oOpeningFirstSlot->format('H:i'),'Opening minute has wrong date');
+        $this->assertEquals('00:00',$oClosingLastSlot->format('H:i'),'Closing minute has wrong date');
+        
     }
     
   
