@@ -11,6 +11,7 @@ use IComeFromTheNet\BookMe\Cron\ParseCronException;
 use IComeFromTheNet\BookMe\Cron\SlotFinderException;
 use IComeFromTheNet\BookMe\Cron\SegmentParser;
 use IComeFromTheNet\BookMe\Cron\SlotFinder;
+use IComeFromTheNet\BookMe\Cron\ParsedRange;
 
 
 /**
@@ -90,17 +91,17 @@ class CronToQuery
         // 4 = Month
         // 5 = Day of week 
 
-        //$aRanges[] = $oSegmentParser->parseSegment(self::TYPE_MINUTE,  $oCommand->getRuleRepeatMinute());
+        //$aRanges[] = $oSegmentParser->parseSegment(ParsedRange::TYPE_MINUTE,  $oCommand->getRuleRepeatMinute());
         
-        //$aRanges[] = $oSegmentParser->parseSegment(self::TYPE_HOUR,    $oCommand->getRuleRepeatHour());
+        //$aRanges[] = $oSegmentParser->parseSegment(ParsedRange::TYPE_HOUR,    $oCommand->getRuleRepeatHour());
                 
-        $aRanges[] = $oSegmentParser->parseSegment(self::TYPE_DAYOFMONTH,  $oCommand->getRuleRepeatDayOfMonth());
+        $aRanges[] = $oSegmentParser->parseSegment(ParsedRange::TYPE_DAYOFMONTH,  $oCommand->getRuleRepeatDayOfMonth());
         
-        $aRanges[] = $oSegmentParser->parseSegment(self::TYPE_MONTH,       $oCommand->getRuleRepeatMonth());
+        $aRanges[] = $oSegmentParser->parseSegment(ParsedRange::TYPE_MONTH,       $oCommand->getRuleRepeatMonth());
         
-        $aRanges[] = $oSegmentParser->parseSegment(self::TYPE_DAYOFWEEK,   $oCommand->getRuleRepeatDayOfWeek());
+        $aRanges[] = $oSegmentParser->parseSegment(ParsedRange::TYPE_DAYOFWEEK,   $oCommand->getRuleRepeatDayOfWeek());
         
-        $aFlatRanges = $this->flattern($aRanges);
+        $aFlatRanges = $this->flatten($aRanges);
         
         foreach($aFlatRanges as $oRange) {
             $oRange->validate();
@@ -120,7 +121,8 @@ class CronToQuery
         $oLogger->debug('CronToQuery building rule series from findslot results');
  
         try {
-         
+
+
             
             $aSql[] = " INSERT INTO $sSeriesTable (`rule_id`, `rule_type_id`, `cal_year`, `slot_open`,`slot_close`) ";
             $aSql[] = " SELECT :iRuleId, :iRuleTypeId, y, opening_slot, closing_slot ";

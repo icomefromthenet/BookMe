@@ -31,22 +31,28 @@ class RuleException extends BookMeException implements BusException
      *
      * @return static
      */
-    public static function hasFailedToCreateNewRule(CreateRuleCommand $oCommand, DBALException $oDatabaseException)
+    public static function hasFailedToCreateNewRule(CreateRuleCommand $oCommand, DBALException $oDatabaseException = null)
     {
         
-        $sRepeatMinute = $oCommand->getRuleRepeatMinute();
-        $sRepeatHour = $oCommand->getRuleRepeatHour();
-        $sRepeatDayofweek = $oCommand->getRuleRepeatDayOfWeek();
-        $sRepeatDayofmonth = $oCommand->getRuleRepeatDayOfMonth();
-        $sRepeatMonth = $oCommand->getRuleRepeatMonth();
-        $iOpeningSlot = $oCommand->getOpeningSlot();
-        $iClosingSlot = $oCommand->getClosingSlot();
-        $oEndtAtDate = $oCommand->getCalendarEnd();
-        $oStartFromDate = $oCommand->getCalendarStart();
+        $sRepeatMinute       = $oCommand->getRuleRepeatMinute();
+        $sRepeatHour         = $oCommand->getRuleRepeatHour();
+        $sRepeatDayofweek    = $oCommand->getRuleRepeatDayOfWeek();
+        $sRepeatDayofmonth   = $oCommand->getRuleRepeatDayOfMonth();
+        $sRepeatMonth        = $oCommand->getRuleRepeatMonth();
+        $iOpeningSlot        = $oCommand->getOpeningSlot();
+        $iClosingSlot        = $oCommand->getClosingSlot();
+        $oEndtAtDate         = $oCommand->getCalendarEnd();
+        $oStartFromDate      = $oCommand->getCalendarStart();
         $iRuleTypeDatabaseId = $oCommand->getRuleTypeId();
         
         $exception = new static(
-            'Unable to create new rule ' , 0 , $oDatabaseException
+            sprintf('Unable to create new rule %s %s %s %s %s starting at %s and ending at %s with starting slot %s ending at slot %s',
+                    $sRepeatMinute,$sRepeatHour,$sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,
+                    $oStartFromDate->format('d-m-Y'),
+                    $oEndtAtDate->format('d-m-Y'),
+                    $iOpeningSlot,
+                    $iClosingSlot
+            ) , 0 , $oDatabaseException
         );
         
         $exception->oCommand = $oCommand;

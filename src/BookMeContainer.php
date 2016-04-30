@@ -31,6 +31,7 @@ use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
 
 
 
@@ -49,6 +50,7 @@ use IComeFromTheNet\BookMe\Bus\Handler\RolloverSchedulesHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\StartScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\StopScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\ResumeScheduleHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\CreateRuleHandler;
 
 use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
@@ -209,6 +211,9 @@ class BookMeContainer extends Container
                 return new ResumeScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
         
+            $this['handlers.rule.create'] = function($c) {
+                return new CreateRuleHandler($c->getTableMap(), $c->getDatabaseAdapter(), $c->getCronToQuery());  
+            };
             
             
             # Command Bus
@@ -229,6 +234,7 @@ class BookMeContainer extends Container
                     StartScheduleCommand::class         => 'handlers.schedule.start',
                     StopScheduleCommand::class          => 'handlers.schedule.stop',
                     ResumeScheduleCommand::class        => 'handlers.schedule.resume',
+                    CreateRuleCommand::class            => 'handlers.rule.create', 
                 ];
         
              

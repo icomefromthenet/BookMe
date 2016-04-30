@@ -369,6 +369,7 @@ class init_schema implements EntityInterface
         CREATE TABLE IF NOT EXISTS `bm_rule` (
           `rule_id`      INT NOT NULL AUTO_INCREMENT,
           `rule_type_id` INT NOT NULL,
+          `timeslot_id`  INT NOT NULL,
           
           `repeat_minute` VARCHAR(45) NOT NULL,
           `repeat_hour` VARCHAR(45) NOT NULL,
@@ -379,16 +380,22 @@ class init_schema implements EntityInterface
           `start_from` DATETIME NOT NULL,
           `end_at`     DATETIME NOT NULL,  
           
-          `max_count` INT NOT NULL,
+          `open_slot`  INT NOT NULL,
+          `close_slot` INT NOT NULL, 
           
-          
+          `cal_year`   INT NOT NULL,
           
           PRIMARY KEY (`rule_id`),
           CONSTRAINT `rule_fk1`
             FOREIGN KEY (`rule_type_id`)
             REFERENCES `bm_rule_type` (`rule_type_id`)
             ON DELETE NO ACTION
-            ON UPDATE NO ACTION     
+            ON UPDATE NO ACTION,
+          CONSTRAINT `rule_fk2`
+            FOREIGN KEY (`timeslot_id`)
+            REFERENCES `bm_timeslot` (`timeslot_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
         )
         ENGINE = InnoDB
         COMMENT = 'Rule Slots';

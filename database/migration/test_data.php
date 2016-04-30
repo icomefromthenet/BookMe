@@ -21,6 +21,9 @@ class test_data implements EntityInterface
         $db->executeUpdate('INSERT INTO ints values (7)');
         $db->executeUpdate('INSERT INTO ints values (8)');
         $db->executeUpdate('INSERT INTO ints values (9)');
+        
+        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`) values (null,'adhoc')");
+        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`) values (null,'repeat')");
 
 
     }

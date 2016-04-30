@@ -14,7 +14,7 @@ use IComeFromTheNet\BookMe\Cron\ParsedRange;
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidationException;
 
 
-class CronToQueryCommandTest extends TestRulesGroupBase
+class RulesTestCommandTest extends TestRulesGroupBase
 {
     
     
@@ -184,7 +184,7 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         $sCronExpr = '*';
         $sCronExprA = '1-12/2';
         $sCronExprB = '2/2';
-        $sCronExprC = '1-6,7-12';
+        $sCronExprC = '10-12,7-12';
         $sCronExprD = '3';
         $sCronExprE = '*/3';
         
@@ -213,8 +213,8 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         $aRange = $oSegmentParser->parseSegment($sCronType,$sCronExprC);    
         
         $this->assertCount(2,$aRange);
-        $this->assertEquals(1,$aRange[0]->getRangeOpen());
-        $this->assertEquals(6,$aRange[0]->getRangeClose());
+        $this->assertEquals(10,$aRange[0]->getRangeOpen());
+        $this->assertEquals(12,$aRange[0]->getRangeClose());
         $this->assertEquals(1,$aRange[0]->getModValue());
         $this->assertEquals(7,$aRange[1]->getRangeOpen());
         $this->assertEquals(12,$aRange[1]->getRangeClose());
@@ -417,43 +417,43 @@ class CronToQueryCommandTest extends TestRulesGroupBase
         
     }
     
-  
-    // /**
-    // * @group Rule
-    // */ 
-    // public function testValidCommand()
-    // {
+    
+
+    /**
+    * @group Rule
+    */ 
+    public function testNewRule()
+    {
        
-    //   $oContainer = $this->getContainer();
-    //   $oStartDate = new DateTime();
-    //   $oStopDate  = new DateTime(); 
-    //   $oStopDate->setDate($oStartDate->format('Y'),'12','31');
+        $oContainer = $this->getContainer();
+        $oDatabase   = $oContainer->getDatabaseAdapter();
+        $oNow        = $oContainer->getNow();
+     
+        $oStartDate  = clone $oNow;
+        $oEndDate    = clone $oNow;
+        $oStartDate->setDate($oStartDate->format('Y'),'06','1');
+        $oEndDate->setDate($oStartDate->format('Y'),'12','31');
+        $iOpeningTimeslot = 1000;
+        $iClosingTimeslot = 1440;
+        $iTimeslotId = $this->aDatabaseId['ten_minute'];
+ 
+        
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 1, $iTimeslotId, $iOpeningTimeslot, $iClosingTimeslot,'*', '1-14','10-12');
+        
+        $oContainer->getCommandBus()->handle($oCommand);
+        
+        $oDateType = Type::getType(Type::DATETIME);
+        
+        $oOpeningFirstSlot = $oDateType->convertToPHPValue($oDatabase->fetchColumn("SELECT min(opening_slot) FROM bm_tmp_rule_series",[],0), $oDatabase->getDatabasePlatform());
+        $oClosingLastSlot = $oDateType->convertToPHPValue($oDatabase->fetchColumn("SELECT max(closing_slot) FROM bm_tmp_rule_series",[],0), $oDatabase->getDatabasePlatform());
+        
+        $this->assertEquals('01-10-2016',$oOpeningFirstSlot->format('d-m-Y'),'Opening slot has wrong date');
+        $this->assertEquals('15-11-2016',$oClosingLastSlot->format('d-m-Y'),'Closing slot has wrong date');
+        
+        $this->assertEquals('16:40',$oOpeningFirstSlot->format('H:i'),'Opening minute has wrong date');
+        $this->assertEquals('00:00',$oClosingLastSlot->format('H:i'),'Closing minute has wrong date');
        
-    //   $oCronToQuery = $oContainer->getCronToQuery();
-      
-    //   $iOpeningSlot = $oContainer->getDatabase()
-    //                                 ->fetchAll('SELECT min(open_minute) as open_minute, null
-    //                                               FROM bm_timeslot_day 
-    //                                               WHERE timeslot_id= ?
-    //                                               AND open_minute >= (60*13)
-    //                                               AND close_minute <= (60*16)
-    //                                               group by timeslot_id, open_minute
-    //                                             UNION
-    //                                             SELECT null, max(close_minute) as close_minute 
-    //                                               FROM bm_timeslot_day 
-    //                                               WHERE timeslot_id= ?
-    //                                               AND open_minute >= (60*13)
-    //                                               AND close_minute <= (60*16)
-    //                                               group by timeslot_id, close_minute
-                                                
-    //                                               '
-    //                                                 ,[$this->aDatabaseId['five_minute']]);   
-      
-      
-      
-    //   $oCommand = new CreateRuleCommand($oStartDate, $oStopDate, 2, $iOpeningSlot ); 
-       
-    // }
+    }
     
     
 }

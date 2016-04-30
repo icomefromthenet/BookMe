@@ -264,7 +264,7 @@ class SegmentParser
                 $sCronRegex = '/^([0-6])-([0-6])$/';
             break;
             case 'month':      
-                $sCronRegex = '/^([1-2][1-2]|[1-9])-([1-2][1-2]|[1-9])$/';
+                $sCronRegex = '/^([1-2][0-2]|[1-9])-([1-2][1-2]|[1-9])$/';
             break;    
             default: throw ParseCronException::parseCronFailed("Unable to match $sCronType ",$sCronString);
         }
