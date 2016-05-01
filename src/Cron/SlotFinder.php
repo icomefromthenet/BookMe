@@ -181,70 +181,72 @@ class SlotFinder
         $aSql[] =" AND `c`.`close_minute` <= :iCloseMinute ";
 
         // Limit of Months
-        $aMonthRanges = $this->extractRanges(ParsedRange::TYPE_MONTH,$aParsedRanges);
-        $aSql[] = " AND ( ";
-        foreach($aMonthRanges as $iIndex => $oRange) {
-            $sSql = '';
-            if($iIndex > 0) {
-                $sSql .= 'OR ( ';    
-            } else {
-                $sSql .=  '( ';
-            }
-            
-            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
-            
-            $sSql .= " `c`.`m` IN (".implode(',',$aMRanges).") AND `c`.`m` % ".$oRange->getModValue().' = 0';
-            
-            $sSql .=  ') ';
-            
-            $aSql[] = $sSql;    
-        }
-        $aSql[] = " ) ";
+        if(false === $oCommand->getIsSingleDay()) {
         
-        // Limit Day of Month Values
-        $aDayMonthRanges = $this->extractRanges(ParsedRange::TYPE_DAYOFMONTH,$aParsedRanges);
-        $aSql[] = " AND ( ";
-        foreach($aDayMonthRanges as $iIndex => $oRange) {
-            $sSql = '';
-            if($iIndex > 0) {
-                $sSql .= 'OR ( ';    
-            } else {
-                $sSql .=  '( ';
+            $aMonthRanges = $this->extractRanges(ParsedRange::TYPE_MONTH,$aParsedRanges);
+            $aSql[] = " AND ( ";
+            foreach($aMonthRanges as $iIndex => $oRange) {
+                $sSql = '';
+                if($iIndex > 0) {
+                    $sSql .= 'OR ( ';    
+                } else {
+                    $sSql .=  '( ';
+                }
+                
+                $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
+                
+                $sSql .= " `c`.`m` IN (".implode(',',$aMRanges).") AND `c`.`m` % ".$oRange->getModValue().' = 0';
+                
+                $sSql .=  ') ';
+                
+                $aSql[] = $sSql;    
             }
+            $aSql[] = " ) ";
             
-            $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),$oRange->getRangeClose(),''));
-            
-            $sSql .= " `c`.`d` IN (".implode(',',$aMRanges).") AND `c`.`d` % ".$oRange->getModValue().' = 0';
-            
-            $sSql .=  ') ';
-            
-            $aSql[] = $sSql;    
-        }
-        $aSql[] = " ) ";
-        
-        // Limit Day of Week Values
-        $aDayWeekRanges = $this->extractRanges(ParsedRange::TYPE_DAYOFWEEK,$aParsedRanges);
-        $aSql[] = " AND ( ";
-        foreach($aDayWeekRanges as $iIndex => $oRange) {
-            $sSql = '';
-            if($iIndex > 0) {
-                $sSql .= 'OR ( ';    
-            } else {
-                $sSql .=  '( ';
+            // Limit Day of Month Values
+            $aDayMonthRanges = $this->extractRanges(ParsedRange::TYPE_DAYOFMONTH,$aParsedRanges);
+            $aSql[] = " AND ( ";
+            foreach($aDayMonthRanges as $iIndex => $oRange) {
+                $sSql = '';
+                if($iIndex > 0) {
+                    $sSql .= 'OR ( ';    
+                } else {
+                    $sSql .=  '( ';
+                }
+                
+                $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),$oRange->getRangeClose(),''));
+                
+                $sSql .= " `c`.`d` IN (".implode(',',$aMRanges).") AND `c`.`d` % ".$oRange->getModValue().' = 0';
+                
+                $sSql .=  ') ';
+                
+                $aSql[] = $sSql;    
             }
+            $aSql[] = " ) ";
             
-            $aMRanges = array_keys(array_fill($oRange->getRangeOpen()+1,($oRange->getRangeClose()+1),''));
+            // Limit Day of Week Values
+            $aDayWeekRanges = $this->extractRanges(ParsedRange::TYPE_DAYOFWEEK,$aParsedRanges);
+            $aSql[] = " AND ( ";
+            foreach($aDayWeekRanges as $iIndex => $oRange) {
+                $sSql = '';
+                if($iIndex > 0) {
+                    $sSql .= 'OR ( ';    
+                } else {
+                    $sSql .=  '( ';
+                }
+                
+                $aMRanges = array_keys(array_fill($oRange->getRangeOpen()+1,($oRange->getRangeClose()+1),''));
+                
+                // dw are 1 based while cron their 0 based
+                $sSql .= " (`c`.`dw`) IN (".implode(',',$aMRanges).") AND (`c`.`dw`) % ".$oRange->getModValue().' = 0';
+                
+                $sSql .=  ') ';
+                
+                $aSql[] = $sSql;    
+            }
+            $aSql[] = " ) ";
             
-            // dw are 1 based while cron their 0 based
-            $sSql .= " (`c`.`dw`) IN (".implode(',',$aMRanges).") AND (`c`.`dw`) % ".$oRange->getModValue().' = 0';
-            
-            $sSql .=  ') ';
-            
-            $aSql[] = $sSql;    
         }
-        $aSql[] = " ) ";
-        
-
 
         try {
             

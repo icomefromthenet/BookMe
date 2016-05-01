@@ -24,7 +24,7 @@ return [
       
       'bm_rule'                  => [],
       'bm_rule_series'           => [],
-                
+      'bm_rule_schedule'         => [],
       
       'bm_booking'               => [],
       'bm_booking_conflict'      => [],

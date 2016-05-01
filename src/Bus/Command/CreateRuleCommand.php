@@ -77,6 +77,10 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
      */ 
     protected $iTimeslotDatabaseId;
     
+    /**
+     * @boolean if this rule is single day or repeat with multiple days
+     */ 
+    protected $bIsSingleDay;
     
     public function __construct(DateTime $oStartFromDate
                               , DateTime $oEndtAtDate
@@ -86,7 +90,8 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
                               , $iClosingSlot
                               , $sRepeatDayofweek
                               , $sRepeatDayofmonth
-                              , $sRepeatMonth)
+                              , $sRepeatMonth
+                              , $bIsSingleDay = false)
     {
         $this->sRepeatMinute        = '*';
         $this->sRepeatHour          = '*';
@@ -101,6 +106,7 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
         $this->iOpeningSlot         = $iOpeningSlot;
         $this->iClosingSlot         = $iClosingSlot;
         $this->iTimeslotDatabaseId  = $iTimeslotDatabaseId;
+        $this->bIsSingleDay         = $bIsSingleDay;
     }
   
   
@@ -237,6 +243,16 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
         return $this->oEndtAtDate;
     }
     
+    /**
+     * Return the flag the determines if series is repeat
+     * on multi day
+     * 
+     * @return boolean true if rule repeated
+     */ 
+    public function getIsSingleDay()
+    {
+        return $this->bIsSingleDay;   
+    }
   
     //---------------------------------------------------------
     # validation interface
@@ -257,11 +273,11 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
             ,'required' => [
                ['rule_type_id'],['repeat_dayofweek'],['repeat_dayofmonth'],['repeat_month'],['timeslot_id']
             ]
-            ,'dateAfter' => [ 
-                ['end_at',$this->oStartFromDate]
-            ]
             ,'calendarSameYear' => [
                 ['end_at','start_from']
+            ]
+            ,'boolean' => [
+                ['is_single_day']    
             ]
             
         ];
@@ -282,6 +298,7 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
             'opening_slot'      => $this->iOpeningSlot,
             'closing_slot'      => $this->iClosingSlot,
             'timeslot_id'       => $this->iTimeslotDatabaseId,
+            'is_single_day'     => $this->bIsSingleDay,
         ];
     }
   

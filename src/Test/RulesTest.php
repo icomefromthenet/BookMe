@@ -5,11 +5,14 @@ use DateTime;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
+use Valitron\Validator;
 
 use IComeFromTheNet\BookMe\Test\Base\TestRulesGroupBase;
 use IComeFromTheNet\BookMe\BookMeService;
 use IComeFromTheNet\BookMe\CronToQuery;
 use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
+
 use IComeFromTheNet\BookMe\Cron\ParsedRange;
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidationException;
 
@@ -69,6 +72,7 @@ class RulesTestCommandTest extends TestRulesGroupBase
        $this->SegmentParserMonthSegment();
        $this->SegmentParserDayMonthSegment();
        $this->SegmentParserDayWeekSegment();
+       $this->AssignRuleToScheduleCommand();
    }
    
    
@@ -378,6 +382,32 @@ class RulesTestCommandTest extends TestRulesGroupBase
       
     }
     
+    
+    protected function AssignRuleToScheduleCommand()
+    {
+        
+        $iRuleDatabaseId        = 1;
+        $iScheduleDatabaseId    = 2;
+        $bRolloverFlag          = true;
+        
+        $oCommand = new AssignRuleToScheduleCommand($iScheduleDatabaseId, $iRuleDatabaseId, $bRolloverFlag);
+        
+        
+        $this->assertEquals($iRuleDatabaseId, $oCommand->getRuleId());
+        $this->assertEquals($iScheduleDatabaseId, $oCommand->getScheduleId());
+        $this->assertEquals($bRolloverFlag, $oCommand->getRolloverFlag());
+        
+        $aRules     = $oCommand->getRules();
+        $aData      = $oCommand->getData();
+        $oValidator = new Validator($aData);
+            
+        
+        $oValidator->rules($aRules);
+        
+        $this->assertTrue($oValidator->validate(),'AssignRuleToScheduleCommand is invalid when should be valid');
+        
+    }
+    
     /**
     * @group Rule
     */
@@ -455,6 +485,45 @@ class RulesTestCommandTest extends TestRulesGroupBase
        
     }
     
+    
+    /**
+    * @group Rule
+    */ 
+    public function testNewSingleDayRule()
+    {
+       
+        $oContainer = $this->getContainer();
+        $oDatabase   = $oContainer->getDatabaseAdapter();
+        $oNow        = $oContainer->getNow();
+     
+        $oStartDate  = clone $oNow;
+        $oEndDate    = clone $oNow;
+        $oStartDate->setDate($oStartDate->format('Y'),'06','1');
+        $oEndDate->setDate($oStartDate->format('Y'),'06','1');
+        $iOpeningTimeslot = 1000;
+        $iClosingTimeslot = 1440;
+        $iTimeslotId = $this->aDatabaseId['ten_minute'];
+ 
+        
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 1, $iTimeslotId, $iOpeningTimeslot, $iClosingTimeslot,'*', '*','*',true);
+        
+        $oContainer->getCommandBus()->handle($oCommand);
+        
+        $oDateType = Type::getType(Type::DATETIME);
+        
+        $oOpeningFirstSlot = $oDateType->convertToPHPValue($oDatabase->fetchColumn("SELECT min(opening_slot) FROM bm_tmp_rule_series",[],0), $oDatabase->getDatabasePlatform());
+        $oClosingLastSlot = $oDateType->convertToPHPValue($oDatabase->fetchColumn("SELECT max(closing_slot) FROM bm_tmp_rule_series",[],0), $oDatabase->getDatabasePlatform());
+        
+        $this->assertEquals('01-06-2016',$oOpeningFirstSlot->format('d-m-Y'),'Opening slot has wrong date');
+        $this->assertEquals('01-06-2016',$oClosingLastSlot->format('d-m-Y'),'Closing slot has wrong date');
+        
+        $this->assertEquals('16:40',$oOpeningFirstSlot->format('H:i'),'Opening minute has wrong date');
+        $this->assertEquals('00:00',$oClosingLastSlot->format('H:i'),'Closing minute has wrong date');
+       
+    }
+    
+    
+  
     
 }
 /* end of file */

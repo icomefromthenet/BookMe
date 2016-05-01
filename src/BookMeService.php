@@ -224,6 +224,38 @@ class BookMeService
         
     }
     
+    
+    //----------------------------------------
+    // Rules
+    //
+    //----------------------------------------
+   
+    public function addAvailabilityRule()
+    {
+        
+    }
+    
+    
+    public function addExclusionRule()
+    {
+        
+        
+    }
+    
+    
+    public function addRepeatAvailabilityRule()
+    {
+        
+    }
+    
+    
+    public function addRepeatExclusionRule()
+    {
+        
+    }
+    
+    
+    
     //--------------------------------------------------------------------------
     # Accessors
     

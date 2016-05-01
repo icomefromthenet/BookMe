@@ -385,6 +385,8 @@ class init_schema implements EntityInterface
           
           `cal_year`   INT NOT NULL,
           
+          `is_single_day` BOOLEAN DEFAULT FALSE,
+          
           PRIMARY KEY (`rule_id`),
           CONSTRAINT `rule_fk1`
             FOREIGN KEY (`rule_type_id`)
@@ -425,6 +427,28 @@ class init_schema implements EntityInterface
         COMMENT = 'Defines schedule slots affected by rule';
       ");
       
+      
+      $db->executeUpdate("
+        CREATE TABLE IF NOT EXISTS `bm_rule_schedule` (
+          `rule_id`        INT NOT NULL,
+          `schedule_id`    INT NOT NULL,
+          `is_rollover`    BOOLEAN DEFAULT TRUE,
+          
+         PRIMARY KEY (`rule_id`,`schedule_id`),
+         CONSTRAINT `rule_schedule_fk1`
+            FOREIGN KEY (`rule_id`)
+            REFERENCES `bm_rule` (`rule_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION,
+         CONSTRAINT `rule_schedule_fk2`
+            FOREIGN KEY (`schedule_id`)
+            REFERENCES `bm_schedule` (`schedule_id`)
+            ON DELETE NO ACTION
+            ON UPDATE NO ACTION
+        )
+        ENGINE = InnoDB
+        COMMENT = 'Links a rule to a schedule';
+      ");
       
       
     }

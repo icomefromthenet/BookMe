@@ -32,7 +32,7 @@ use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
-
+use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
 
 
 use IComeFromTheNet\BookMe\Bus\Handler\CalAddYearHandler;
@@ -141,7 +141,7 @@ class BookMeContainer extends Container
                 'bm_rule_type'             => 'bm_rule_type',
                 'bm_rule'                  => 'bm_rule',
                 'bm_rule_series'           => 'bm_rule_series',
-                
+                'bm_rule_schedule'         => 'bm_rule_schedule',
                 
                  // Temp tables 
                 'bm_tmp_rule_series'        => 'bm_tmp_rule_series',
@@ -215,6 +215,12 @@ class BookMeContainer extends Container
                 return new CreateRuleHandler($c->getTableMap(), $c->getDatabaseAdapter(), $c->getCronToQuery());  
             };
             
+            $this['handlers.rule.assign'] = function($c) {
+                return new AssignRuleToScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            
+            
             
             # Command Bus
             
@@ -235,6 +241,7 @@ class BookMeContainer extends Container
                     StopScheduleCommand::class          => 'handlers.schedule.stop',
                     ResumeScheduleCommand::class        => 'handlers.schedule.resume',
                     CreateRuleCommand::class            => 'handlers.rule.create', 
+                    AssignRuleToScheduleCommand::class  => 'handlers.rule.assign',
                 ];
         
              

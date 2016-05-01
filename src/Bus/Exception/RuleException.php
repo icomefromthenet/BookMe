@@ -3,6 +3,7 @@ namespace IComeFromTheNet\BookMe\Bus\Exception;
 
 use IComeFromTheNet\BookMe\BookMeException;
 use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
 
 
 use League\Tactician\Exception\Exception as BusException;
@@ -107,6 +108,25 @@ class RuleException extends BookMeException implements BusException
         
         return $exception;
     }
+    
+    /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
+    public static function hasFailedAssignRuleToSchedule(AssignRuleToScheduleCommand $oCommand, DBALException $oDatabaseException = null)
+    {
+        
+        $exception = new static(
+            sprintf('Unable to link schedule at %s to rule at %s ',$oCommand->getScheduleId(), $oCommand->getRuleId()), 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+        
+    }
+    
     
     /**
      * Return the command that has failed validation
