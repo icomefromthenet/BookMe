@@ -265,7 +265,7 @@ class init_schema implements EntityInterface
           `is_available` BOOLEAN DEFAULT false,
           `is_excluded`  BOOLEAN DEFAULT false,
           `is_override`  BOOLEAN DEFAULT false,
-          `is_closed`  BOOLEAN DEFAULT false,
+          `is_closed`    BOOLEAN DEFAULT false,
           
           
           PRIMARY KEY (`schedule_id`,`slot_close`),
@@ -356,8 +356,11 @@ class init_schema implements EntityInterface
         
         $db->executeUpdate("
         CREATE TABLE IF NOT EXISTS `bm_rule_type` (
-          `rule_type_id` INT NOT NULL AUTO_INCREMENT,
-          `rule_code`    CHAR(6) NOT NULL,
+          `rule_type_id`    INT NOT NULL AUTO_INCREMENT,
+          `rule_code`       CHAR(6) NOT NULL,
+          `is_work_day`     BOOLEAN DEFAULT false,
+          `is_exclusion`    BOOLEAN DEFAULT false,
+          `is_inc_override` BOOLEAN DEFAULT false,
           
            PRIMARY KEY (`rule_type_id`)
         )
