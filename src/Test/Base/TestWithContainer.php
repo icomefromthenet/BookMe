@@ -4,7 +4,7 @@ namespace IComeFromTheNet\BookMe\Test\Base;
 use DateTime;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Monolog\Logger;
-use Monolog\Handler\TestHandler;
+use Monolog\Handler\StreamHandler;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Type;
 use IComeFromTheNet\BookMe\BookMeContainer;
@@ -47,7 +47,10 @@ class TestWithContainer extends TestWithFixture
   
   protected function getLogger()
   {
-     return new Logger('test-test',array(new TestHandler()));
+     $oStreamHandler = new StreamHandler('/tmp/bookme.log', Logger::DEBUG);
+     
+      return new Logger('test-test',array($oStreamHandler));
+    
   }
   
   /**

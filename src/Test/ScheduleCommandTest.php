@@ -2,7 +2,7 @@
 namespace IComeFromTheNet\BookMe\Test;
 
 use Doctrine\DBAL\Types\Type;
-use IComeFromTheNet\BookMe\Test\Base\TestCalendarSlotsGroupBase;
+use IComeFromTheNet\BookMe\Test\Base\TestMgtBase;
 use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
@@ -13,7 +13,7 @@ use IComeFromTheNet\BookMe\Bus\Exception\ScheduleException;
 
 
 
-class ScheduleCommandTest extends TestCalendarSlotsGroupBase
+class ScheduleCommandTest extends TestMgtBase
 {
     
     

@@ -183,10 +183,15 @@ class CalAddYearHandler
     }
     
     
-    public function handle(CalAddYearCommand $command)
+    public function handle(CalAddYearCommand $oCommand)
     {
-        $iYears       = $command->getYears();
-        $oLastCalYear = $this->getLastCalendarYear();
+        $iYears       = $oCommand->getYears();
+        $oLastCalYear = $oCommand->getStartYear();
+        
+        if(!$oLastCalYear) {
+            $oLastCalYear = $this->getLastCalendarYear();
+    
+        }
         
         $this->buildCalendar($iYears, $oLastCalYear); 
         $this->buildWeeks($iYears, $oLastCalYear);

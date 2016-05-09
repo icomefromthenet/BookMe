@@ -13,9 +13,14 @@ use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
 use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
+use IComeFromTheNet\BookMe\Bus\Command\AssignTeamMemberCommand;
+use IComeFromTheNet\BookMe\Bus\Command\WithdrawlTeamMemberCommand;
+
+
 use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
 
 /**
  * Core Library Service.
@@ -72,9 +77,9 @@ class BookMeService
      * @return Boolean 
      * @access public
      */ 
-    public function addCalenderYears($iYearsToAdd)
+    public function addCalenderYears($iYearsToAdd, DateTime $oStartYear = null)
     {
-        $oCommand = new CalAddYearCommand($iYearsToAdd);
+        $oCommand = new CalAddYearCommand($iYearsToAdd, $oStartYear);
         
         return $this->getContainer()->getCommandBus()->handle($oCommand);
     }
@@ -151,7 +156,7 @@ class BookMeService
     /**
      * Register a new team.
      * 
-     * Teams are used to group 1 to many schedules. 
+     * Each Schedule Assigned to a team must have the same timeslot
      * 
      * @access public
      * @return integer  The new team database id
@@ -170,6 +175,14 @@ class BookMeService
     }
     
     
+    /**
+     * Start a new schedule for a member. 
+     * 
+     * @param integer   $iMemberDatabaseId      The member to use
+     * @param integer   $iTimeSlotDatabbaseId   The timslot which split a calendar day
+     * @param integer   $iCalendarYear          The Calendar year to use
+     * 
+     */
     public function startSchedule($iMemberDatabaseId, $iTimeSlotDatabbaseId, $iCalendarYear)
     {
         $oCommand = new StartScheduleCommand($iMemberDatabaseId, $iTimeSlotDatabbaseId, $iCalendarYear);  
@@ -182,7 +195,12 @@ class BookMeService
     }
     
     
-    
+    /**
+     * Stop a schedule from taking new bookings and prevent from being rollover
+     * 
+     * @param integer   $iScheduleDatabaseId    The Schedule to close
+     * @param DateTime  $oStopDate              The date during the calendar year to stop from
+     */ 
     public function stopSchedule($iScheduleDatabaseId, DateTime $oStopDate)
     {
         $oCommand = new StopScheduleCommand($iScheduleDatabaseId, $oStopDate);  
@@ -193,7 +211,11 @@ class BookMeService
    
     }
     
-    
+    /**
+     * Opens a closed schedule to take new books and rollover.
+     * 
+     * @param integer   $iScheduleDatabaseId    The schedule to open.
+     */ 
     public function resumeSchedule($iScheduleDatabaseId)
     {
         $oCommand = new ResumeScheduleCommand($iScheduleDatabaseId);  
@@ -206,22 +228,44 @@ class BookMeService
     
     
     /**
+     * Assigns a member to a team
      * 
-     *   
-     * A Member can belong to many teams over their lifetime but a member can only have a single
-     * schedule for the current calender year and therefore belong to a signle team.
+     * Note:
+     *  1. A Member can only have 1 schedule per calendar year and belong to one timeslot per year
+     *  2. Team members must share the same timeslot.
+     *  3. While a member can belong to many teams each team must share the same timeslot.
+     * 
+     * @param   integer     $iMemberDatabaseId      The member to assign
+     * @param   integer     $iTeamDatabaseId        The team to use
+     * @param   integer     $iScheduleId            The Schedule to use
      *
      */ 
-    public function assignTeamMember()
+    public function assignTeamMember($iMemberDatabaseId, $iTeamDatabaseId, $iScheduleId)
     {
         
+        $oCommand = new AssignTeamMemberCommand($iMemberDatabaseId, $iTeamDatabaseId, $iScheduleId);
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+         
+        return true;
     }
     
     
-    
-    public function withdrawlTeamMember()
+    /**
+     * Remove a member from a team
+     * 
+     * @param   integer     $iMemberDatabaseId     The member to assign
+     * @param   integer     $iTeamDatabaseId       The Team to remove from
+     * @param   integer     $iScheduleId           The Schedule to use
+     */ 
+    public function withdrawlTeamMember($iMemberDatabaseId, $iTeamDatabaseId, $iScheduleId)
     {
         
+        $oCommand = new WithdrawlTeamMemberCommand($iMemberDatabaseId, $iTeamDatabaseId, $iScheduleId);
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return true;
     }
     
     
@@ -230,8 +274,18 @@ class BookMeService
     //
     //----------------------------------------
    
-    public function addAvailabilityRule()
+    public function addAvailabilityRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
     {
+        $iRuleTypeDatabaseId = '';
+        $sRepeatDayofweek    = '*';
+        $sRepeatDayofmonth   = '*';
+        $sRepeatMonth        = '*';
+        $bIsSingleDay        = true;
+        
+        $oCommand = new CreateRuleCommand();
+        
+        
+        
         
     }
     
@@ -242,19 +296,31 @@ class BookMeService
         
     }
     
+    public function addOverrideRule()
+    {
+        
+    }
+    
     
     public function addRepeatAvailabilityRule()
     {
+        
         
     }
     
     
     public function addRepeatExclusionRule()
     {
+    
         
     }
     
     
+    public function addRepeatOverrideRule()
+    {
+        
+        
+    }
     
     //--------------------------------------------------------------------------
     # Accessors

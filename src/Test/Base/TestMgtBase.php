@@ -5,12 +5,12 @@ use RuntimeException;
 use \PHPUnit_Extensions_Database_Operation_Factory;
 
 /**
- * Test methods within the schedule module
+ * Test methods within the rule module
  * 
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
  */ 
-class TestCalendarSlotsGroupBase extends TestWithContainer
+class TestMgtBase extends TestWithContainer
 {
     
     protected $aFixtures = ['truncate_fixture.php'];

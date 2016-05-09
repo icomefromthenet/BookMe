@@ -1,6 +1,7 @@
 <?php
 namespace IComeFromTheNet\BookMe\Bus\Command;
 
+use DateTime;
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidationInterface;
 use IComeFromTheNet\BookMe\Bus\Listener\HasEventInterface;
 use IComeFromTheNet\BookMe\Bus\Listener\CommandEvent;
@@ -21,11 +22,16 @@ class CalAddYearCommand implements ValidationInterface, HasEventInterface
    */
   protected $iYear;
 
+  /**
+   * @var DateTime starting cal year to add 
+   */ 
+  protected $oStartDate;
+  
     
-    
-  public function __construct($iYear)
+  public function __construct($iYears, DateTime $oStartDate = null)
   {
-        $this->iYear = (integer) $iYear;    
+        $this->iYear = (integer) $iYears; 
+        $this->oStartDate = $oStartDate;
   }
   
   
@@ -39,6 +45,15 @@ class CalAddYearCommand implements ValidationInterface, HasEventInterface
     return $this->iYear;
   }
   
+  /**
+   * Return the starting year 
+   * 
+   * @return DateTime
+   */ 
+  public function getStartYear()
+  {
+    return $this->oStartDate;
+  }
   
   //---------------------------------------------------------
   # validation interface

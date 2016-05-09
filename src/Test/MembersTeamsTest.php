@@ -2,7 +2,7 @@
 namespace IComeFromTheNet\BookMe\Test;
 
 use Doctrine\DBAL\Types\Type;
-use IComeFromTheNet\BookMe\Test\Base\TestCalendarSlotsGroupBase;
+use IComeFromTheNet\BookMe\Test\Base\TestSetupBase;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
 use IComeFromTheNet\BookMe\Bus\Command\WithdrawlTeamMemberCommand;
@@ -13,11 +13,11 @@ use IComeFromTheNet\BookMe\Bus\Exception\MembershipException;
 
 
 
-class MembersTeamsCommandTest extends TestCalendarSlotsGroupBase
+class MembersTeamsTest extends TestSetupBase
 {
     
     
-   protected $iTimeSlotDatabaseId;    
+   protected $aDatabaseId;    
     
     
    protected function handleEventPostFixtureRun()
@@ -28,43 +28,45 @@ class MembersTeamsCommandTest extends TestCalendarSlotsGroupBase
       $oService->addCalenderYears(5);
       
       // Create some timeslots
+      $iSixMinuteSlotId = $oService->addTimeslot(6);
       
-      $this->iTimeSlotDatabaseId = $oService->addTimeslot(6);
-      
-      
+      $this->aDatabaseId  = [
+          'slot_six_minute' => $iSixMinuteSlotId,
+          
+       ];
       
    }  
    
    
     /**
-    * @group CalendarSlots
+    * @group Setup
     */ 
     public function testMembershipCommands()
     {
+        $iSixMinuteSlotId = $this->aDatabaseId['slot_six_minute'];
+        
         $iNewMemberId = $this->RegisterNewMember();
                       
-        $iNewTeam     = $this->RegisterNewTeam();
-        
-        
-        //$this->WithdrawlTeamMember($iNewMemberId);
+        $iNewTeam     = $this->RegisterNewTeam($iSixMinuteSlotId);
        
        
     }
     
     
-    public function RegisterNewMember()
+    protected function RegisterNewMember()
     {
         $oContainer  = $this->getContainer();
         
         $oCommandBus = $oContainer->getCommandBus(); 
        
-        $oCommand  = new RegisterMemberCommand();
+        $oCommand  = new RegisterMemberCommand($iSixMinuteSlotId);
        
         $oCommandBus->handle($oCommand);
         
         $iNewMemberId = $oCommand->getMemberId();
         
         $this->assertNotEmpty($iNewMemberId,'The new member command failed to return new member database id');
+        
         
         // Check if member exisys
         
@@ -82,14 +84,14 @@ class MembersTeamsCommandTest extends TestCalendarSlotsGroupBase
     }
     
     
-    public function RegisterNewTeam()
+    protected function RegisterNewTeam($iSixMinuteSlotId)
     {
         
         $oContainer  = $this->getContainer();
         
         $oCommandBus = $oContainer->getCommandBus(); 
        
-        $oCommand  = new RegisterTeamCommand($this->iTimeSlotDatabaseId);
+        $oCommand  = new RegisterTeamCommand($iSixMinuteSlotId);
        
         $oCommandBus->handle($oCommand);
         
@@ -116,14 +118,18 @@ class MembersTeamsCommandTest extends TestCalendarSlotsGroupBase
     }
     
     
-    public function RegisterTeamMember($iMemberId,$iTeamId)
+    
+    
+    /*
+    public function RegisterTeamMember($iMemberId,$iTeamId,$iScheduleId)
     {
         
         $oContainer  = $this->getContainer();
         
         $oCommandBus = $oContainer->getCommandBus(); 
        
-        $oCommand  = new AssignTeamMemberCommand($iMemberId);
+       
+        $oCommand  = new AssignTeamMemberCommand($iMemberId,$iTeamId,$iScheduleId);
        
         $oCommandBus->handle($oCommand);
     
@@ -131,6 +137,7 @@ class MembersTeamsCommandTest extends TestCalendarSlotsGroupBase
         
         
     }
+    
     
     public function WithdrawlTeamMember($iMemberId)
     {
@@ -155,7 +162,7 @@ class MembersTeamsCommandTest extends TestCalendarSlotsGroupBase
         
         
     }
-
+    */
     
     
 }
