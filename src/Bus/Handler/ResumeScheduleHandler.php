@@ -73,7 +73,7 @@ class ResumeScheduleHandler
         $a3Sql[] = " WHERE schedule_id = ? ";
         $a3Sql[] = " AND slot_open >= ?";
           
-        $s3Sql = implode(PHP_EOL,$a2Sql);
+        $s3Sql = implode(PHP_EOL,$a3Sql);
       
         
         try {
