@@ -265,7 +265,7 @@ class CreateRuleCommand implements ValidationInterface, HasEventInterface
                 ['rule_type_id'],['opening_slot'],['closing_slot'],['timeslot_id']
             ]
             ,'min' => [
-               ['rule_type_id',1],['opening_slot',1],['timeslot_id',1]
+               ['rule_type_id',1],['opening_slot',0],['timeslot_id',1]
             ]
             ,'max' => [
                 ['closing_slot',(60*24)]

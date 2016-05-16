@@ -274,6 +274,53 @@ class BookMeService
     //
     //----------------------------------------
    
+    /**
+     * Create a rule that marks slots as open and ready for work, this rule apply to a single calendar day
+     * 
+     * @param DateTime  $oDate               The Calendar date to apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     */ 
+    public function createSingleWorkDayRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
+    {
+        $oStartDate = clone $oDate;
+        $oEndDate  = clone $oDate;
+        
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate,1,$iTimeslotDatabaseId,$iOpeningSlot,$iClosingSlot, '*','*','*',true);
+        
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getRuleId();
+        
+    }
+   
+   
+    public function createRepeatWorkDayRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
+    {
+        
+        
+    }
+    
+    
+    public function createSingleBreakRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot) 
+    {
+        
+        
+    }     
+   
+    public function createSingleHolidayRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
+    {
+        
+    }
+    
+    public function createSingleOvertmeRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
+    {
+        
+        
+    }
+   
     public function addAvailabilityRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
     {
         $iRuleTypeDatabaseId = '';
@@ -282,11 +329,14 @@ class BookMeService
         $sRepeatMonth        = '*';
         $bIsSingleDay        = true;
         
-        $oCommand = new CreateRuleCommand();
+        $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, $iRuleTypeDatabaseId, 
+                                         $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, 
+                                         $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth, $bIsSingleDay
+                                         );
         
+        $this->getContainer()->getCommandBus()->handle($oCommand);
         
-        
-        
+        return true;
     }
     
     

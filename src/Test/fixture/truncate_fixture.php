@@ -16,12 +16,6 @@ return [
       'bm_schedule'              => [],
       'bm_schedule_slot'         => [],
       
-      /*
-      'bm_rule_type'             => [
-            ['rule_type_id' => null, 'rule_code' => 'adhoc'],
-            ['rule_type_id' => null, 'rule_code' =>'repeat']      
-      ], */
-      
       'bm_rule'                  => [],
       'bm_rule_series'           => [],
       'bm_rule_schedule'         => [],

@@ -275,8 +275,8 @@ class SlotFinder
             $oAppLogger->debug('Running slotFinder query table');
             $sSql = implode(PHP_EOL,$aSql);
     
-            //$this->oAppLogger->debug($sSql);
-            //$this->oAppLogger->debug(var_export($aBinds,true));
+            $this->oAppLogger->debug($sSql);
+            $this->oAppLogger->debug(var_export($aBinds,true));
     
             $iRowsAffected = $oDatabase->executeUpdate($sSql,$aBinds);
     

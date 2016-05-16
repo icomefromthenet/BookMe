@@ -22,8 +22,10 @@ class test_data implements EntityInterface
         $db->executeUpdate('INSERT INTO ints values (8)');
         $db->executeUpdate('INSERT INTO ints values (9)');
         
-        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`) values (null,'adhoc')");
-        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`) values (null,'repeat')");
+        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`,`is_work_day`,`is_exclusion`,`is_inc_override`) values (1,'workday',true,false,false)");
+        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`,`is_work_day`,`is_exclusion`,`is_inc_override`) values (2,'break',false,true,false)");
+        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`,`is_work_day`,`is_exclusion`,`is_inc_override`) values (3,'holiday',false,true,false)");
+        $db->executeUpdate("INSERT INTO bm_rule_type (`rule_type_id`,`rule_code`,`is_work_day`,`is_exclusion`,`is_inc_override`) values (4,'overtime',false,false,true)");
 
 
     }
