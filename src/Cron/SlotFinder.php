@@ -81,7 +81,7 @@ class SlotFinder
         $sSeriesTmpTable = $this->aTables['bm_tmp_rule_series'];
         $oDatabase       = $this->oDatabase;
         
-        $oDatabase->query("DROP TABLE IF EXISTS $sSeriesTmpTable ");
+        $oDatabase->query("DROP TEMPORARY TABLE IF EXISTS $sSeriesTmpTable ");
         
         $this->oAppLogger->debug('flushed all SlotFinder Tmp tables');
         
@@ -163,40 +163,45 @@ class SlotFinder
             ':iCloseMinute'   => $iClosingDaySlot,
         ];
         
+        
+        $aTypes = [
+            ':iTimeSlotId'    => TYPE::getType(TYPE::INTEGER),
+            ':sOpeningSlot'   => TYPE::getType(TYPE::STRING),
+            ':sClosingSlot'   => TYPE::getType(TYPE::STRING),
+            ':iCalYear'       => TYPE::getType(TYPE::INTEGER),
+            ':iOpenMinute'    => TYPE::getType(TYPE::INTEGER),
+            ':iCloseMinute'   => TYPE::getType(TYPE::INTEGER),
+            
+        ];
 
-        $aSql[] =" INSERT INTO $sSeriesTmpTable (`timeslot_id`,`y`,`m`,`d`,`dw`,`w`,`open_minute`,`close_minute`,`closing_slot`,`opening_slot`) ";
-     
-        $aSql[] =" SELECT `c`.`timeslot_id`, `c`.`y`, `c`.`m`, `c`.`d`, `c`.`dw`, `c`.`w` , `c`.`open_minute`, `c`.`close_minute`,`c`.`closing_slot`, `c`.`opening_slot`";;
-        $aSql[] =" FROM ( ";
+       
      
         // Find all slots between applicability date and in the calender year
         // This will find slots that finish after the current calendar day. (Tail end)
        
-        $aSql[] =" SELECT `d`.`timeslot_id`, `d`.`y`, `d`.`m`, `d`.`d`, `d`.`dw`, `d`.`w` , `d`.`open_minute`, `d`.`close_minute`,`d`.`closing_slot`, `d`.`opening_slot`";
-        $aSql[] =" FROM $sYearSlotTabale d ";
-        $aSql[] =" WHERE  `d`.`timeslot_id` = :iTimeSlotId ";
-        $aSql[] =" AND date(`d`.`opening_slot`) < DATE_ADD(STR_TO_DATE(:sClosingSlot,'%d%m%Y'), INTERVAL 1 DAY) ";
-        $aSql[] =" AND date(`d`.`closing_slot`) > STR_TO_DATE(:sOpeningSlot,'%d%m%Y') ";
-        $aSql[] =" AND `d`.`y` = :iCalYear ";
-        $aSql[] =" AND `d`.`open_minute` < :iCloseMinute ";
-        $aSql[] =" AND `d`.`close_minute` >  :iOpenMinute";
+        $a1Sql[] =" INSERT INTO $sSeriesTmpTable (`timeslot_id`,`y`,`m`,`d`,`dw`,`w`,`open_minute`,`close_minute`,`closing_slot`,`opening_slot`) ";
+        $a1Sql[] =" SELECT `d`.`timeslot_id`, `d`.`y`, `d`.`m`, `d`.`d`, `d`.`dw`, `d`.`w` , `d`.`open_minute`, `d`.`close_minute`,`d`.`closing_slot`, `d`.`opening_slot`";
+        $a1Sql[] =" FROM $sYearSlotTabale d ";
+        $a1Sql[] =" WHERE  `d`.`timeslot_id` = :iTimeSlotId ";
+        $a1Sql[] =" AND date(`d`.`opening_slot`) < DATE_ADD(STR_TO_DATE(:sClosingSlot,'%d%m%Y'), INTERVAL 1 DAY) ";
+        $a1Sql[] =" AND date(`d`.`closing_slot`) > STR_TO_DATE(:sOpeningSlot,'%d%m%Y') ";
+        $a1Sql[] =" AND `d`.`y` = :iCalYear ";
+        $a1Sql[] =" AND `d`.`open_minute` < :iCloseMinute ";
+        $a1Sql[] =" AND `d`.`close_minute` >  :iOpenMinute";
 
-        $aSql[] = " UNION ";
+        
      
         // This find all the slots between start and finish 
-     
-        $aSql[] =" SELECT `d`.`timeslot_id`, `d`.`y`, `d`.`m`, `d`.`d`, `d`.`dw`, `d`.`w` , `d`.`open_minute`, `d`.`close_minute`,`d`.`closing_slot`, `d`.`opening_slot`";
-        $aSql[] =" FROM $sYearSlotTabale d ";
-        $aSql[] =" WHERE  `d`.`timeslot_id` = :iTimeSlotId ";
-        $aSql[] =" AND date(`d`.`opening_slot`) >= STR_TO_DATE(:sOpeningSlot,'%d%m%Y') ";
-        $aSql[] =" AND date(`d`.`closing_slot`) <= STR_TO_DATE(:sClosingSlot,'%d%m%Y') ";
-        $aSql[] =" AND `d`.`y` = :iCalYear ";
-        $aSql[] =" AND `d`.`open_minute` >= :iOpenMinute ";
-        $aSql[] =" AND `d`.`close_minute` <= :iCloseMinute ";
+        $a2Sql[] =" REPLACE INTO $sSeriesTmpTable (`timeslot_id`,`y`,`m`,`d`,`dw`,`w`,`open_minute`,`close_minute`,`closing_slot`,`opening_slot`) ";
+        $a2Sql[] =" SELECT `d`.`timeslot_id`, `d`.`y`, `d`.`m`, `d`.`d`, `d`.`dw`, `d`.`w` , `d`.`open_minute`, `d`.`close_minute`,`d`.`closing_slot`, `d`.`opening_slot`";
+        $a2Sql[] =" FROM $sYearSlotTabale d ";
+        $a2Sql[] =" WHERE  `d`.`timeslot_id` = :iTimeSlotId ";
+        $a2Sql[] =" AND date(`d`.`opening_slot`) >= STR_TO_DATE(:sOpeningSlot,'%d%m%Y') ";
+        $a2Sql[] =" AND date(`d`.`closing_slot`) <= STR_TO_DATE(:sClosingSlot,'%d%m%Y') ";
+        $a2Sql[] =" AND `d`.`y` = :iCalYear ";
+        $a2Sql[] =" AND `d`.`open_minute` >= :iOpenMinute ";
+        $a2Sql[] =" AND `d`.`close_minute` <= :iCloseMinute ";
 
-        $aSql[] =" ) c ";
-
-        $aSql[] =" WHERE 1=1 ";
 
         // Limit of Months
         if(false === $oCommand->getIsSingleDay()) {
@@ -213,7 +218,7 @@ class SlotFinder
                 
                 $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),($oRange->getRangeClose()-$oRange->getRangeOpen()),''));
                 
-                $sSql .= " `c`.`m` IN (".implode(',',$aMRanges).") AND `c`.`m` % ".$oRange->getModValue().' = 0';
+                $sSql .= " `d`.`m` IN (".implode(',',$aMRanges).") AND `d`.`m` % ".$oRange->getModValue().' = 0';
                 
                 $sSql .=  ') ';
                 
@@ -235,7 +240,7 @@ class SlotFinder
                 
                 $aMRanges = array_keys(array_fill($oRange->getRangeOpen(),$oRange->getRangeClose(),''));
                 
-                $sSql .= " `c`.`d` IN (".implode(',',$aMRanges).") AND `c`.`d` % ".$oRange->getModValue().' = 0';
+                $sSql .= " `d`.`d` IN (".implode(',',$aMRanges).") AND `d`.`d` % ".$oRange->getModValue().' = 0';
                 
                 $sSql .=  ') ';
                 
@@ -258,7 +263,7 @@ class SlotFinder
                 $aMRanges = array_keys(array_fill($oRange->getRangeOpen()+1,($oRange->getRangeClose()+1),''));
                 
                 // dw are 1 based while cron their 0 based
-                $sSql .= " (`c`.`dw`) IN (".implode(',',$aMRanges).") AND (`c`.`dw`) % ".$oRange->getModValue().' = 0';
+                $sSql .= " (`d`.`dw`) IN (".implode(',',$aMRanges).") AND (`d`.`dw`) % ".$oRange->getModValue().' = 0';
                 
                 $sSql .=  ') ';
                 
@@ -270,24 +275,31 @@ class SlotFinder
         }
 
         try {
-            
-            
             $oAppLogger->debug('Running slotFinder query table');
-            $sSql = implode(PHP_EOL,$aSql);
+           
+            $sSql1  =  implode(PHP_EOL,$a1Sql);
+            $sSql1 .=  implode(PHP_EOL,$aSql);
     
-            $this->oAppLogger->debug($sSql);
-            $this->oAppLogger->debug(var_export($aBinds,true));
     
-            $iRowsAffected = $oDatabase->executeUpdate($sSql,$aBinds);
-    
-            if($iRowsAffected == 0) {
-                SlotFinderException::hasFailedToFindSlots($oCommand);
-            }
+            $iRows1Affected = $oDatabase->executeUpdate($sSql1,$aBinds,$aTypes);
             
-            $this->oAppLogger->debug("Slot finder has matched $iRowsAffected slots");
+            $sSql2  =   implode(PHP_EOL,$a2Sql);
+            $sSql2 .=  implode(PHP_EOL,$aSql);
+    
+            $iRows2Affected = $oDatabase->executeUpdate($sSql2,$aBinds,$aTypes);
+            
+            
+            $iTotalRowsAffected = $iRows1Affected + $iRows2Affected;
+            
+            if($iTotalRowsAffected == 0) {
+                throw SlotFinderException::hasFailedToFindSlots($oCommand);
+            }
+           
+            
+            $this->oAppLogger->debug("Slot finder has matched $iTotalRowsAffected slots");
             
         }  catch(DBALException $e) {
-            SlotFinderException::hasFailedToFindSlotsQuery($oCommand,$e);
+            throw SlotFinderException::hasFailedToFindSlotsQuery($oCommand,$e);
         }
         
         return $iRowsAffected;

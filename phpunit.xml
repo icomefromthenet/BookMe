@@ -57,7 +57,7 @@
             <exclude>src/Tests/Base/</exclude>
             <groups>
                 <include><group>Management</group></include>
-                <exclude><group>setup</group></exclude>
+                <exclude><group>Setup</group></exclude>
                 <exclude><group>Rollover</group></exclude>
                 <exclude><group>Booking</group></exclude>
                 <exclude><group>Rule</group></exclude>

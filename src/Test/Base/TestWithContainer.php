@@ -30,7 +30,7 @@ class TestWithContainer extends TestWithFixture
         $this->oContainer->boot();
         
         # register test services
-        
+        $this->oContainer->getDatabaseAdapter()->getConfiguration()->setSQLLogger(new DoctrineLogger($this->getLogger()));
       
     }
    

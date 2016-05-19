@@ -287,7 +287,7 @@ class BookMeService
         $oStartDate = clone $oDate;
         $oEndDate  = clone $oDate;
         
-        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate,1,$iTimeslotDatabaseId,$iOpeningSlot,$iClosingSlot, '*','*','*',true);
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 1, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, '*', '*', '*', true);
         
         
         $this->getContainer()->getCommandBus()->handle($oCommand);
@@ -296,81 +296,172 @@ class BookMeService
         
     }
    
-   
-    public function createRepeatWorkDayRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
+    /**
+     * Create a rule that marks slots as open and ready for work, this rule apply to many calendar days
+     * 
+     * @param DateTime  $oStartFromDate      The Calendar date to start apply this rule to.
+     * @param DateTime  $oEndtAtDate         The Calendar date to stop apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     * @param string    $sRepeatDayofweek   The day of week cron def
+     * @param string    $sRepeatDayofmonth  The day of month cron def
+     * @param string    $sRepeatMonth       The month cron def
+     */ 
+    public function createRepeatingWorkDayRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
     {
+        $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, 1, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,false);
         
-        
-    }
-    
-    
-    public function createSingleBreakRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot) 
-    {
-        
-        
-    }     
-   
-    public function createSingleHolidayRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
-    {
-        
-    }
-    
-    public function createSingleOvertmeRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
-    {
-        
-        
-    }
-   
-    public function addAvailabilityRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
-    {
-        $iRuleTypeDatabaseId = '';
-        $sRepeatDayofweek    = '*';
-        $sRepeatDayofmonth   = '*';
-        $sRepeatMonth        = '*';
-        $bIsSingleDay        = true;
-        
-        $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, $iRuleTypeDatabaseId, 
-                                         $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, 
-                                         $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth, $bIsSingleDay
-                                         );
         
         $this->getContainer()->getCommandBus()->handle($oCommand);
         
-        return true;
+        return $oCommand->getRuleId();
+        
     }
     
-    
-    public function addExclusionRule()
+    /**
+     * Create a rule that marks slots as closed/busy, this rule apply to a single calendar day
+     * 
+     * @param DateTime  $oDate               The Calendar date to apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     */ 
+    public function createSingleBreakRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot) 
     {
+        $oStartDate = clone $oDate;
+        $oEndDate  = clone $oDate;
+        
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 2, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, '*', '*', '*', true);
         
         
-    }
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getRuleId();
+        
+    }     
     
-    public function addOverrideRule()
+    /**
+     * Create a rule that marks slots as closed, this rule apply to many calendar days
+     * 
+     * @param DateTime  $oStartFromDate      The Calendar date to start apply this rule to.
+     * @param DateTime  $oEndtAtDate         The Calendar date to stop apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     * @param string    $sRepeatDayofweek   The day of week cron def
+     * @param string    $sRepeatDayofmonth  The day of month cron def
+     * @param string    $sRepeatMonth       The month cron def
+     */ 
+    public function createRepeatingBreakRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
     {
+        $oStartDate = clone $oDate;
+        $oEndDate  = clone $oDate;
+        
+        $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, 2, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,false);
+        
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getRuleId();
         
     }
-    
-    
-    public function addRepeatAvailabilityRule()
+   
+    /**
+     * Create a rule that marks slots as closed, this rule apply to a single calendar day
+     * 
+     * @param DateTime  $oDate               The Calendar date to apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     */ 
+    public function createSingleHolidayRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
     {
+        $oStartDate = clone $oDate;
+        $oEndDate  = clone $oDate;
+        
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 3, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, '*', '*', '*', true);
         
         
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getRuleId();
     }
     
-    
-    public function addRepeatExclusionRule()
+    /**
+     * Create a rule that marks slots as closed for work, this rule apply to many calendar days
+     * 
+     * @param DateTime  $oStartFromDate      The Calendar date to start apply this rule to.
+     * @param DateTime  $oEndtAtDate         The Calendar date to stop apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     * @param string    $sRepeatDayofweek   The day of week cron def
+     * @param string    $sRepeatDayofmonth  The day of month cron def
+     * @param string    $sRepeatMonth       The month cron def
+     */ 
+    public function createRepeatingHolidayRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
     {
-    
+        $oStartDate = clone $oDate;
+        $oEndDate  = clone $oDate;
+        
+        $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, 3, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,false);
+        
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getRuleId();
         
     }
     
-    
-    public function addRepeatOverrideRule()
+    /**
+     * Create a rule that marks slots as open and ready for work event if marked as a break/holiday, this rule apply to a single calendar day
+     * 
+     * @param DateTime  $oDate               The Calendar date to apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     */ 
+    public function createSingleOvertmeRule(DateTime $oDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot)
     {
+        $oStartDate = clone $oDate;
+        $oEndDate  = clone $oDate;
         
+        $oCommand = new CreateRuleCommand($oStartDate, $oEndDate, 4, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, '*', '*', '*', true);
+        
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getRuleId();
         
     }
+    
+    /**
+     * Create a rule that marks slots as open and ready for work even if marked for break/holiday, this rule apply to many calendar days
+     * 
+     * @param DateTime  $oStartFromDate      The Calendar date to start apply this rule to.
+     * @param DateTime  $oEndtAtDate         The Calendar date to stop apply this rule to.
+     * @param integer   $iTimeslotDatabaseId The database id of the timeslot
+     * @param integer   $iOpeningSlot        The slot number during the day to start 
+     * @param integer   $iClosingSlot        The closing slot number to stop after
+     * @param string    $sRepeatDayofweek   The day of week cron def
+     * @param string    $sRepeatDayofmonth  The day of month cron def
+     * @param string    $sRepeatMonth       The month cron def
+     */ 
+    public function createRepeatingOvertimeRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
+    {
+        $oStartDate = clone $oDate;
+        $oEndDate  = clone $oDate;
+        
+        $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, 4, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,false);
+        
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getRuleId();
+        
+    }
+   
     
     //--------------------------------------------------------------------------
     # Accessors

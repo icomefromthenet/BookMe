@@ -29,7 +29,11 @@ class ScheduleAdvanceTest extends TestMgtBase
       
       $oNow     = $this->getContainer()->getNow();
       
-      $oService->addCalenderYears(5,$oNow);
+      
+      $oStart = clone $oNow;
+      $oStart->setDate($oNow->format('Y'),1,1);
+      
+      $oService->addCalenderYears(5,$oStart);
       
       // Timeslots
       
@@ -58,9 +62,17 @@ class ScheduleAdvanceTest extends TestMgtBase
       
       // Rules Single
       $oSingleDate = clone $oNow;
-      $oSingleDate->setTime($oNow->format('Y'),6,1);
+      $oSingleDate->setDate($oNow->format('Y'),1,14);
         
-      $iWorkDayRule    = $oService->createSingleWorkDayRule($oSingleDate,$iFiveMinuteTimeslot,0,200);    
+      $oDayWorkDayRuleStart = clone $oNow;
+      $oDayWorkDayRuleStart->setDate($oNow->format('Y'),1,1);
+      
+      $oDayWorkDayRuleEnd = clone $oNow;
+      $oDayWorkDayRuleEnd->setDate($oNow->format('Y'),12,31);
+      
+        
+      $iRepeatWorkDayRule    = $oService->createRepeatingWorkDayRule($oDayWorkDayRuleStart,$oDayWorkDayRuleEnd,$iFiveMinuteTimeslot,108,204,'1-5','*','2-12');
+      $iSingleWorkDayRule    = $oService->createSingleWorkDayRule($oSingleDate,$iFiveMinuteTimeslot,540,1020); 
       
               
             
