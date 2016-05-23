@@ -6,6 +6,7 @@ use IComeFromTheNet\BookMe\Bus\Command\ToggleScheduleCarryCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RefreshScheduleCommand;
 
 use League\Tactician\Exception\Exception as BusException;
 use Doctrine\DBAL\DBALException;
@@ -102,6 +103,23 @@ class ScheduleException extends BookMeException implements BusException
     {
         $exception = new static(
             'Unable to rollover schedules for calendar year '.$oCommand->getCalendarYearRollover()
+            , 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+    }
+    
+    /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
+    public static function hasFailedRefreshSchedule(RefreshScheduleCommand $oCommand, DBALException $oDatabaseException = null)
+    {
+        $exception = new static(
+            'Unable to refresh schedules at '.$oCommand->getScheduleId()
             , 0 , $oDatabaseException
         );
         

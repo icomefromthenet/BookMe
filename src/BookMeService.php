@@ -355,8 +355,6 @@ class BookMeService
      */ 
     public function createRepeatingBreakRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
     {
-        $oStartDate = clone $oDate;
-        $oEndDate  = clone $oDate;
         
         $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, 2, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,false);
         
@@ -402,8 +400,7 @@ class BookMeService
      */ 
     public function createRepeatingHolidayRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
     {
-        $oStartDate = clone $oDate;
-        $oEndDate  = clone $oDate;
+        
         
         $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, 3, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,false);
         
@@ -450,8 +447,6 @@ class BookMeService
      */ 
     public function createRepeatingOvertimeRule(DateTime $oStartFromDate, DateTime $oEndtAtDate, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek, $sRepeatDayofmonth, $sRepeatMonth)
     {
-        $oStartDate = clone $oDate;
-        $oEndDate  = clone $oDate;
         
         $oCommand = new CreateRuleCommand($oStartFromDate, $oEndtAtDate, 4, $iTimeslotDatabaseId, $iOpeningSlot, $iClosingSlot, $sRepeatDayofweek,$sRepeatDayofmonth,$sRepeatMonth,false);
         

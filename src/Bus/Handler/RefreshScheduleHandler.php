@@ -5,7 +5,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\DBALException;
 use IComeFromTheNet\BookMe\Bus\Command\RefreshScheduleCommand;
-use IComeFromTheNet\BookMe\Bus\Exception\RuleException;
+use IComeFromTheNet\BookMe\Bus\Exception\ScheduleException;
 use IComeFromTheNet\BookMe\Cron\CronToQuery;
 
 
@@ -53,14 +53,13 @@ class RefreshScheduleHandler
 	        $aSql[] = " SET `is_available` = false, `is_excluded` = false, `is_override` = false ";
 	        $aSql[] = " WHERE schedule_id = :iScheduleId " ;
 	
-	        $sSQl = impode(PHP_EOL,$aSql);
+	        $sSql = implode(PHP_EOL,$aSql);
 	
-	        $iAffectedRows = $oDatabase->executeUpdate($sSql, $aBind, $aType);
+	        $oDatabase->executeUpdate($sSql, $aBind, $aType);
 	        
-	        if($iAffectedRows == 0) {
-	            throw RuleException::hasFailedAssignRuleToSchedule($oCommand, null);
-	        }
-
+	        // not checking for rows affected when the scheudle is new this update will not change any rows and
+	        // will throw an error in error.
+	     
     }
     
 
@@ -102,7 +101,7 @@ class RefreshScheduleHandler
             # Step 1 clear existing value, as this is done in a single transaction won't cause issues if run live.
             
             
-            $this->resetSchedule();
+            $this->resetSchedule($oCommand);
             
             
             # Step 2 refresh the schedule by combing the values from rule series.
@@ -126,7 +125,7 @@ class RefreshScheduleHandler
             
             $aSql[] = " UPDATE $sScheduleSlotTable sl ";
 	        $aSql[] = " INNER JOIN ( ";
-	        $aSql[] = "     SELECT `s`.`schedule_id`, `rss`.`slot_open`, `rss`.`slot_closed`, "; 
+	        $aSql[] = "     SELECT `s`.`schedule_id`, `rss`.`slot_open`, `rss`.`slot_close`, "; 
 	        $aSql[] = "             sum(IF(`rt`.`is_work_day` = true,1,0)) as is_available,  ";
 	        $aSql[] = "             sum(IF(`rt`.`is_exclusion` = true,1,0)) as is_excluded, ";
 	        $aSql[] = "             sum(IF(`rt`.`is_inc_override` = true,1,0)) as is_override ";
@@ -143,14 +142,16 @@ class RefreshScheduleHandler
 	        $aSql[] = "     `sl`.`is_override` = IF(`crs`.`is_override` > 0,true,false) ";
 	        $aSql[] = " WHERE `sl`.`schedule_id` = :iScheduleId ";
 	
+	        $sSql = implode(PHP_EOL,$aSql);
+	
 	        $iAffectedRows = $oDatabase->executeUpdate($sSql, $aBind, $aType);
 	        
-	        if($iAffectedRows !== 1) {
-	            throw RuleException::hasFailedAssignRuleToSchedule($oCommand, null);
+	        if($iAffectedRows <= 1) {
+	            throw ScheduleException::hasFailedRefreshSchedule($oCommand, null);
 	        }
 	        
         } catch (DBALException $e) {
-            throw hasFailedAssignRuleToSchedule($oCommand,$e);
+            throw ScheduleException::hasFailedRefreshSchedule($oCommand,$e);
         }
 	        
         return true;

@@ -414,7 +414,7 @@ class init_schema implements EntityInterface
           `slot_open`      DATETIME NOT NULL,
           `slot_close`     DATETIME NOT NULL,
           
-         PRIMARY KEY (`cal_year`,`slot_close`),
+         PRIMARY KEY (`rule_id`,`cal_year`,`slot_close`),
          CONSTRAINT `rule_series_fk1`
             FOREIGN KEY (`rule_id`)
             REFERENCES `bm_rule` (`rule_id`)

@@ -39,6 +39,7 @@ class AssignRuleToScheduleCommand implements  ValidationInterface
         $this->iScheduleDatabaseId = $iScheduleDatabaseId;
         $this->iRuleDatabaseId     = $iRuleDatabaseId;
         $this->bIsRollover         = $bIsRollover;
+
     }
     
     
