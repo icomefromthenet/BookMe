@@ -21,6 +21,9 @@ use IComeFromTheNet\BookMe\Bus\Command\StartScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\StopScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RefreshScheduleCommand;
 
 /**
  * Core Library Service.
@@ -455,6 +458,59 @@ class BookMeService
         
         return $oCommand->getRuleId();
         
+    }
+    
+    
+    /**
+     * Create a relation between a rule and a schedule, on the next schedule refresh this rule
+     * will be applied
+     * 
+     * @param   Integer     $iRuleDatabaseId        The rule to link to a schedule
+     * @param   Integer     $iScheduleDatabaseId    The schedule to link the rule to
+     * @param   Boolean     $bRolloverRule          If This rule should be rolled over come new schedule year
+     * 
+     */ 
+    public function assignRuleToSchedule($iRuleDatabaseId, $iScheduleDatabaseId, $bRolloverRule = false)
+    {
+        $oCommand = new AssignRuleToScheduleCommand($iScheduleDatabaseId,$iRuleDatabaseId,$bRolloverRule);    
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return true;
+    }
+    
+    /**
+     * This will delete a realtion bewtween a rule and a schedule, on the next schedule refresh it
+     * will be removed.
+     * 
+     * @param   Integer     $iRuleDatabaseId        The rule to unlink from a schedule
+     * @param   Integer     $iScheduleDatabaseId    The schedule to unlink the rule from
+     * 
+     */ 
+    public function removeRuleFromSchedule($iRuleDatabaseId, $iScheduleDatabaseId)
+    {
+        $oCommand = new RemoveRuleFromScheduleCommand($iScheduleDatabaseId, $iRuleDatabaseId);
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return true;
+    }
+    
+    
+    /**
+     * Apply rules to a schedule and remove any those not related.
+     * 
+     * This should be called after all relations are done
+     * 
+     * @param   Integer     $iScheduleDatabaseId    The schedule to refresh 
+     */ 
+    public function resfreshSchedule($iScheduleDatabaseId)
+    {
+        $oCommand = new RefreshScheduleCommand($iScheduleDatabaseId);
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return true;
     }
    
     

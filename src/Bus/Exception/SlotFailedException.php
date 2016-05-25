@@ -4,6 +4,7 @@ namespace IComeFromTheNet\BookMe\Bus\Exception;
 use IComeFromTheNet\BookMe\BookMeException;
 use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
 use IComeFromTheNet\Bookme\Bus\Command\SlotToggleStatusCommand;
+use IComeFromTheNet\Bookme\Bus\Command\RolloverTimeslotCommand;
 
 use League\Tactician\Exception\Exception as BusException;
 use Doctrine\DBAL\DBALException;
@@ -31,7 +32,7 @@ class SlotFailedException extends BookMeException implements BusException
      *
      * @return static
      */
-    public static function hasFailedToCreateNewTimeslot(SlotAddCommand $oCommand, DBALException $oDatabaseException)
+    public static function hasFailedToCreateNewTimeslot(SlotAddCommand $oCommand, DBALException $oDatabaseException = null)
     {
         $exception = new static(
             'Unable to create new timeslot for '. $oCommand->getSlotLength() .' ', 0 , $oDatabaseException
@@ -47,7 +48,7 @@ class SlotFailedException extends BookMeException implements BusException
      *
      * @return static
      */
-    public static function hasFailedToCreateDays(SlotAddCommand $oCommand, DBALException $oDatabaseException)
+    public static function hasFailedToCreateDays(SlotAddCommand $oCommand, DBALException $oDatabaseException = null)
     {
         $exception = new static(
             'Unable to create new timeslot days for '. $oCommand->getSlotLength() .' ', 0 , $oDatabaseException
@@ -63,7 +64,7 @@ class SlotFailedException extends BookMeException implements BusException
      *
      * @return static
      */
-    public static function hasFailedToCreateYear(SlotAddCommand $oCommand, DBALException $oDatabaseException)
+    public static function hasFailedToCreateYear(SlotAddCommand $oCommand, DBALException $oDatabaseException = null)
     {
         $exception = new static(
             'Unable to create new timeslot year for '. $oCommand->getSlotLength() .' ', 0 , $oDatabaseException
@@ -79,7 +80,7 @@ class SlotFailedException extends BookMeException implements BusException
      *
      * @return static
      */
-    public static function hasFailedToToggleStatus(SlotToggleStatusCommand $oCommand, DBALException $oDatabaseException)
+    public static function hasFailedToToggleStatus(SlotToggleStatusCommand $oCommand, DBALException $oDatabaseException = null)
     {
         $exception = new static(
             'Unable to toggle timeslot status for '. $oCommand->getTimeSlotId() .' ', 0 , $oDatabaseException
@@ -89,6 +90,23 @@ class SlotFailedException extends BookMeException implements BusException
         
         return $exception;
     }
+    
+    /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
+    public static function hasFailedToRollover(RolloverTimeslotCommand $oCommand, DBALException $oDatabaseException = null)
+    {
+        $exception = new static(
+            'Unable to rollover timeslots for new calyear '. $oCommand->getCalendarYearRollover() .' ', 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+    }
+    
     
     /**
      * Return the command that has failed validation

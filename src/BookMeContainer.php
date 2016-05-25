@@ -34,6 +34,8 @@ use IComeFromTheNet\BookMe\Bus\Command\ResumeScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RefreshScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverTimeslotCommand;
 
 
 use IComeFromTheNet\BookMe\Bus\Handler\CalAddYearHandler;
@@ -54,6 +56,8 @@ use IComeFromTheNet\BookMe\Bus\Handler\ResumeScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\CreateRuleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\AssignRuleToScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RefreshScheduleHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\RemoveRuleFromScheduleHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\RolloverTimeslotHandler;
 
 use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
@@ -214,7 +218,7 @@ class BookMeContainer extends Container
                 return new ResumeScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
         
-            $this['handler.schedule.refresh'] = function($c) {
+            $this['handlers.schedule.refresh'] = function($c) {
                  return new RefreshScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
         
@@ -227,7 +231,13 @@ class BookMeContainer extends Container
                 return new AssignRuleToScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
+            $this['handlers.rule.remove'] = function($c) {
+                return new RemoveRuleFromScheduleHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
             
+            $this['handlers.slot.rollover'] = function($c) {
+                return new RolloverTimeslotHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
             
             
             # Command Bus
@@ -250,7 +260,9 @@ class BookMeContainer extends Container
                     ResumeScheduleCommand::class        => 'handlers.schedule.resume',
                     CreateRuleCommand::class            => 'handlers.rule.create', 
                     AssignRuleToScheduleCommand::class  => 'handlers.rule.assign',
-                    RefreshScheduleCommand::class       => 'handler.schedule.refresh',
+                    RefreshScheduleCommand::class       => 'handlers.schedule.refresh',
+                    RemoveRuleFromScheduleCommand::class => 'handlers.rule.remove',
+                    RolloverTimeslotCommand::class      => 'handlers.slot.rollover',
                 ];
         
              

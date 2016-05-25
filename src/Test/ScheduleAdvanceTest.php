@@ -6,6 +6,7 @@ use Doctrine\DBAL\Types\Type;
 use IComeFromTheNet\BookMe\Test\Base\TestMgtBase;
 use IComeFromTheNet\BookMe\Bus\Command\RefreshScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
 use IComeFromTheNet\BookMe\BookMeService;
 use IComeFromTheNet\BookMe\Bus\Exception\ScheduleException;
 
@@ -144,6 +145,7 @@ class ScheduleAdvanceTest extends TestMgtBase
         
         $this->ApplyRulesTest($iScheduleId, $iRuleOneId,$iRuleTwoId,$iRuleThreeId);
         $this->RefreshScheduleTest($iScheduleId);
+        $this->RemoveFromScheduleTest($iScheduleId, $iRuleOneId);
        
     }
     
@@ -215,7 +217,20 @@ class ScheduleAdvanceTest extends TestMgtBase
         
     }
     
-   
+    
+    public function RemoveFromScheduleTest($iScheduleId, $iRuleId)
+    {
+         $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand = new RemoveRuleFromScheduleCommand($iScheduleId, $iRuleId);
+       
+        $oContainer->getCommandBus()->handle($oCommand);
+        
+        $this->assertTrue(true);
+       
+    }
     
     
 }

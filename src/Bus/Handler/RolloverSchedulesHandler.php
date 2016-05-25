@@ -83,12 +83,13 @@ class RolloverSchedulesHandler
         $sScheduleSlotTableName = $this->aTableNames['bm_schedule_slot'];
         $sCalenderTableName     = $this->aTableNames['bm_calendar'];
         $sSlotTableName         = $this->aTableNames['bm_timeslot_day']; 
+        $sSlotYearTableName     = $this->aTableNames['bm_timeslot_year'];
        
         $iCalendarYear          = $oCommand->getCalendarYearRollover();
         $iNextCalenderYear      = $iCalendarYear +1;
         
-        $aSql                   = [];
-        $a2Sql                  = [];
+        $aHeader                = [];
+        $aBuildSchedule         = [];
         $aFlagOffSql            = [];
       
        
@@ -107,29 +108,29 @@ class RolloverSchedulesHandler
        $aFlagOffSql[] = " LEFT JOIN $sScheduleTableName t2 on `t1`.`membership_id` = `t2`.`membership_id` and `t2`.`calendar_year` = :iNextCalYear ";
        $aFlagOffSql[] = " WHERE t2.schedule_id IS NOT NULL ";
        
+       $sFlagOffSql = implode(PHP_EOL,$aFlagOffSql);
         
         # Step 3 Create The schedule only for those with carry on flag and have not been done already which
         # could happend if manually created.
         
-        $aSql[] = " INSERT INTO $sScheduleTableName (`schedule_id`,`timeslot_id`,`membership_id`,`calendar_year`,`registered_date`) ";
-        $aSql[] = " SELECT `t1`.`schedule_id`, `t1`.timeslot_id`, `t1`.`membership_id`, :iNextCalYear , now() ";
-        $aSql[] = " FROM $sScheduleTableName t1  ";
-        $aSql[] = " WHERE `t1`.`is_carryover` = true AND `t1`.`calendar_year` = :iCalYear ";
+        $aHeader[] = " INSERT INTO $sScheduleTableName (`schedule_id`,`timeslot_id`,`membership_id`,`calendar_year`,`registered_date`) ";
+        $aHeader[] = " SELECT `t1`.`schedule_id`, `t1`.timeslot_id`, `t1`.`membership_id`, :iNextCalYear , now() ";
+        $aHeader[] = " FROM $sScheduleTableName t1  ";
+        $aHeader[] = " WHERE `t1`.`is_carryover` = true AND `t1`.`calendar_year` = :iCalYear ";
       
-        $sSql = implode(PHP_EOL,$aSql);
+        $sAddHeader = implode(PHP_EOL,$aHeader);
         
         # Step 4 Create new Slots for these schedules, rules will be applied in another operation.
 
-        $a2Sql[] = " INSERT INTO $sScheduleSlotTableName (`timeslot_day_id`, `schedule_id`, `slot_open`, `slot_close`)  ";
-        $a2Sql[] = " SELECT `sl`.`timeslot_day_id`, ?, (`c`.`calendar_date` + INTERVAL `sl`.`open_minute` MINUTE) , (`c`.`calendar_date` + INTERVAL `sl`.`close_minute` MINUTE) ";
-        $a2Sql[] = " FROM $sScheduleTableName t1 ";
-        $a2Sql[] = " CROSS JOIN $sCalenderTableName c ";
-        $a2Sql[] = " CROSS JOIN $sSlotTableName sl ";
-        $a2Sql[] = " WHERE `c`.`y` = :iNextCalYear ";
-        $a2Sql[] = " AND `t1`.`is_carryover` = true AND `t1`.`calendar_year` = :iNextCalYear ";  
-        $a2Sql[] = " AND `t1`.`timeslot_id` = `sl`.`timeslot_id` ";  
+        $aBuildSchedule[] = " INSERT INTO $sScheduleSlotTableName ( `schedule_id`, `slot_open`, `slot_close`)  ";
+        $aBuildSchedule[] = " SELECT  NULL, `c`.`opening_slot`, `c`.`closing_slot` ";
+        $aBuildSchedule[] = " FROM $sScheduleTableName t1 ";
+        $aBuildSchedule[] = " CROSS JOIN $sSlotYearTableName c ";
+        $aBuildSchedule[] = " WHERE `c`.`y` = :iNextCalYear ";
+        $aBuildSchedule[] = " AND `t1`.`is_carryover` = true AND `t1`.`calendar_year` = :iNextCalYear ";  
+        $aBuildSchedule[] = " AND `t1`.`timeslot_id` = `c`.`timeslot_id` ";  
         
-        $s2Sql .= implode(PHP_EOL,$a2Sql);
+        $sBuildSchedule .= implode(PHP_EOL,$aBuildSchedule);
 
         
         # Step 5 Unlock the schedule tables
@@ -146,17 +147,17 @@ class RolloverSchedulesHandler
 	        
             
             # Execute the carryflag off 
-            $oDatabase->executeUpdate($aFlagOffSql,[':iNextCalYear' => $iNextCalenderYear],[$oIntType]);
+            $oDatabase->executeUpdate($sFlagOffSql,[':iNextCalYear' => $iNextCalenderYear],[$oIntType]);
             
         
 	        # Execute Schedule Rollover
-	        $iNumberRolledOver = $oDatabase->executeUpdate($sSql,[':iNextCalYear' => $iNextCalenderYear,':iCalYear' => $iCalendarYear] , [$oIntType,$oIntType]);
+	        $iNumberRolledOver = $oDatabase->executeUpdate($sAddHeader,[':iNextCalYear' => $iNextCalenderYear,':iCalYear' => $iCalendarYear] , [$oIntType,$oIntType]);
 	        
 	        
 	        $oCommand->setRollOverNumber($iNumberRolledOver);
 	      
 	        # Execute the slots carryover table
-	        $iNumberNewSlots = $oDatabase->executeUpdate($s2Sql,[':iNextCalYear' => $iNextCalenderYear] , [$oIntType]);
+	        $iNumberNewSlots = $oDatabase->executeUpdate($sBuildSchedule,[':iNextCalYear' => $iNextCalenderYear] , [$oIntType]);
 	        
 	        if($iNumberNewSlots == 0) {
 	            throw new DBALException('Unable to create slots for rolled over schedules');

@@ -4,6 +4,7 @@ namespace IComeFromTheNet\BookMe\Bus\Exception;
 use IComeFromTheNet\BookMe\BookMeException;
 use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
 
 
 use League\Tactician\Exception\Exception as BusException;
@@ -119,6 +120,24 @@ class RuleException extends BookMeException implements BusException
         
         $exception = new static(
             sprintf('Unable to link schedule at %s to rule at %s ',$oCommand->getScheduleId(), $oCommand->getRuleId()), 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+        
+    }
+    
+     /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
+    public static function hasFailedRemoveRuleFromSchedule(RemoveRuleFromScheduleCommand $oCommand, DBALException $oDatabaseException = null)
+    {
+        
+        $exception = new static(
+            sprintf('Unable to unlink rule at %s from schedule at %s ', $oCommand->getRuleId(),$oCommand->getScheduleId()), 0 , $oDatabaseException
         );
         
         $exception->oCommand = $oCommand;

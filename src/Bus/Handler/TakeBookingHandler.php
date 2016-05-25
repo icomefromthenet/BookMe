@@ -81,6 +81,8 @@ class TakeBookingHandler
         $aCreateBookSql[] = " WHERE `schedule_id` = :iScheduleId ";
         $aCreateBookSql[] = " AND `slot_open` >= :oSlotOpen AND `slot_close` <= :oSlotClose ";
         $aCreateBookSql[] = " AND `booking_id` IS NULL ";
+        $aCreateBookSql[] = " AND ((is_available = true AND is_excluded = false) OR is_override = true) ";
+        $aCreateBookSql[] = " AND is_closed = false";
           
         $sCreateBookSql = implode(PHP_EOL,$aCreateBookSql);
       
@@ -108,7 +110,7 @@ class TakeBookingHandler
 	        $iRowsLocked = $oDatabase->executeUpdate($sLockSql, $aParams, $aTypes);
 	        
 	        if($iRowsLocked == 0) {
-	            throw BookingException::hasFailedToReserveSlots($oCommand ,new DBALException('Could not find schedule slots to lock'));
+	            throw BookingException::hasFailedToFindSlots($oCommand);
 	        }
 	        
 	        $oDatabase->executeUpdate($sTakeBookSql, $aParams, $aTypes);
@@ -128,7 +130,7 @@ class TakeBookingHandler
 	        # this assumes the lock SQL has pikedup all slots required.
 	        
 	        if($iScheduleUsed == 0 || ($iScheduleUsed !==  $iRowsLocked)) {
-	            throw new DBALException('Could not update schedule with new booking');
+	            throw BookingException::hasFailedToReserveSlots($oCommand);
 	        }
                  
 	    }

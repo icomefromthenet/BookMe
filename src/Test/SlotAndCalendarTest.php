@@ -11,6 +11,7 @@ use IComeFromTheNet\BookMe\Bus\Middleware\ValidationException;
 use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
 use IComeFromTheNet\BookMe\Bus\Command\SlotAddCommand;
 use IComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverTimeslotCommand;
 
 
 class SlotAndCalendarTest extends TestSetupBase
@@ -77,6 +78,8 @@ class SlotAndCalendarTest extends TestSetupBase
        // Test custom validators
        $this->SameCalYearValidatorTest();
        
+       // Test Slot Rollover
+       $this->TimeslotRolloverTest($oStartYear->format('Y')+1);
     }
     
     protected function AddYearTest($oStartYear)
@@ -262,6 +265,22 @@ class SlotAndCalendarTest extends TestSetupBase
         
     }
 
+    protected function TimeslotRolloverTest($iNewCalYear)
+    {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand = new RolloverTimeslotCommand($iNewCalYear);
+       
+       
+        $oCommandBus->handle($oCommand);
+       
+       
+        $this->assertGreaterThen(0,$oCommand->getRollOverNumber);  
+     
+        
+    }
     
     
 }

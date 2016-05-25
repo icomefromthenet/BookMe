@@ -25,6 +25,12 @@ final class BookMeEvents
     const SLOT_ADD = 'bookme.slot.add';
     
     /**
+     * When a rollover timeslots into new calendar year
+     */ 
+    const SLOT_ROLLOVER = 'bookme.slot.rollover';
+    
+    
+    /**
      * When a new member is registerd 
      */ 
     const MEMBER_REGISTER = 'bookme.member.register';
