@@ -24,10 +24,16 @@ class SlotAddCommand implements ValidationInterface, HasEventInterface
 
   protected $iTimeslotDatabaseId;
   
+  /**
+   * @var integer the calender year to add slot too
+   */ 
+  protected $iCalYear;
+  
     
-  public function __construct($iSlotLength)
+  public function __construct($iSlotLength, $iCalYear)
   {
         $this->iSlotLength = (integer) $iSlotLength;    
+        $this->iCalYear    = (integer) $iCalYear; 
   }
   
   
@@ -61,6 +67,17 @@ class SlotAddCommand implements ValidationInterface, HasEventInterface
       return $this->iTimeslotDatabaseId;
   }
   
+  /**
+   * Fetch the calednar year to add slot on
+   * 
+   * @return integer  
+   */ 
+  public function getCalendarYear()
+  {
+      return $this->iCalYear;
+  }
+  
+  
   //---------------------------------------------------------
   # validation interface
   
@@ -71,13 +88,13 @@ class SlotAddCommand implements ValidationInterface, HasEventInterface
       
       return [
         'integer' => [
-            ['slot_length']
+            ['slot_length'],['cal_year']
         ]
         ,'min' => [
-           ['slot_length',2]
+           ['slot_length',2], ['cal_year',2000]
         ]
         ,'max' => [
-           ['slot_length',720]
+           ['slot_length',720], ['cal_year',3000]
         ]
       ];
   }
@@ -86,7 +103,8 @@ class SlotAddCommand implements ValidationInterface, HasEventInterface
   public function getData()
   {
       return [
-        'slot_length' => $this->iSlotLength
+        'slot_length' => $this->iSlotLength,
+        'cal_year'    => $this->iCalYear
       ];
   }
   

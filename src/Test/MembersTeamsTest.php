@@ -25,10 +25,12 @@ class MembersTeamsTest extends TestSetupBase
       // Create the Calendar 
       $oService = new BookMeService($this->getContainer());
       
+      $oNow = $this->getContainer()->getNow();
+      
       $oService->addCalenderYears(5);
       
       // Create some timeslots
-      $iSixMinuteSlotId = $oService->addTimeslot(6);
+      $iSixMinuteSlotId = $oService->addTimeslot(6,$oNow->format('Y'));
       
       $this->aDatabaseId  = [
           'slot_six_minute' => $iSixMinuteSlotId,

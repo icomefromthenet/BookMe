@@ -92,14 +92,15 @@ class BookMeService
     /**
      * Add a new timeslot to the database, if a duplicate exists an exception is thrown
      * 
-     * @param integer $iTimeSlotLengthMinutes The slot length in minutes
-     * @return integer the slot new database id
+     * @param integer $iTimeSlotLengthMinutes   The slot length in minutes
+     * @param integer $iCalYear                 The Calendar year to add this slot onto
+     * @return integer                          The slot new database id
      * @access public
      * @throws BookMeException if duplicate exists or command failes for unknown reasons
      */ 
-    public function addTimeslot($iTimeSlotLengthMinutes)
+    public function addTimeslot($iTimeSlotLengthMinutes, $iCalYear)
     {
-        $oCommand = new SlotAddCommand($iTimeSlotLengthMinutes);
+        $oCommand = new SlotAddCommand($iTimeSlotLengthMinutes,$iCalYear);
         
         $this->getContainer()->getCommandBus()->handle($oCommand);
         

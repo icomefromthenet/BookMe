@@ -136,6 +136,7 @@ class SlotAddHandler
         $sTimeslotYearTableName = $this->aTableNames['bm_timeslot_year'];
         $sCalenderTableName     = $this->aTableNames['bm_calendar'];
         $iTimeSlotId            = $oCommand->getTimeSlotId();
+        $iCalYear               = $oCommand->getCalendarYear(); 
         $aSql                   = [];
         
         
@@ -144,7 +145,7 @@ class SlotAddHandler
         $aSql[] = " `c`.`y`, `c`.`m`, `c`.`d`, `c`.`dw`, `c`.`w`, `s`.`open_minute`, `s`.`close_minute` ";
         $aSql[] = " FROM $sCalenderTableName c ";
         $aSql[] = " CROSS JOIN $sTimeSlotDayTableName s on `s`.`timeslot_id` = ?";
-        $aSql[] = " WHERE `c`.`y` = YEAR(NOW()) ";
+        $aSql[] = " WHERE `c`.`y` = ? ";
            
         
         $sSql = implode(PHP_EOL,$aSql);
@@ -154,7 +155,7 @@ class SlotAddHandler
 	    
 	        $oIntType = Type::getType(Type::INTEGER);
 	    
-	        $oDatabase->executeUpdate($sSql, [$iTimeSlotId,$iTimeSlotId], [$oIntType,$oIntType]);
+	        $oDatabase->executeUpdate($sSql, [$iTimeSlotId,$iTimeSlotId,$iCalYear], [$oIntType,$oIntType,$oIntType]);
                  
 	    }
 	    catch(DBALException $e) {
