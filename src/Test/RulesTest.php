@@ -27,10 +27,11 @@ class RulesTestCommandTest extends TestRulesGroupBase
       $oService = new BookMeService($this->getContainer());
       
       $oService->addCalenderYears(5);
+      $oNow   = $this->getContainer()->getNow();
       
-      $iFiveMinuteTimeslot    = $oService->addTimeslot(5);
-      $iTenMinuteTimeslot     = $oService->addTimeslot(10);
-      $iSevenMinuteTimeslot    = $oService->addTimeslot(7);
+      $iFiveMinuteTimeslot    = $oService->addTimeslot(5,$oNow->format('Y'));
+      $iTenMinuteTimeslot     = $oService->addTimeslot(10,$oNow->format('Y'));
+      $iSevenMinuteTimeslot    = $oService->addTimeslot(7,$oNow->format('Y'));
 
       $oService->toggleSlotAvability($iTenMinuteTimeslot);    
   

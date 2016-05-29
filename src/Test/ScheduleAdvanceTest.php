@@ -35,9 +35,9 @@ class ScheduleAdvanceTest extends TestMgtBase
       
       // Timeslots
       
-      $iFiveMinuteTimeslot    = $oService->addTimeslot(5);
-      $iTenMinuteTimeslot     = $oService->addTimeslot(10);
-      $iFifteenMinuteTimeslot = $oService->addTimeslot(15);
+      $iFiveMinuteTimeslot    = $oService->addTimeslot(5,$oNow->format('Y'));
+      $iTenMinuteTimeslot     = $oService->addTimeslot(10,$oNow->format('Y'));
+      $iFifteenMinuteTimeslot = $oService->addTimeslot(15,$oNow->format('Y'));
 
       $oService->toggleSlotAvability($iTenMinuteTimeslot);    
   
