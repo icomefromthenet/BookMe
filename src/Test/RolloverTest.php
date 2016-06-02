@@ -65,12 +65,13 @@ class RolloverTestTest extends TestRolloverBase
       
       $oService->stopSchedule($iMemberFourSchedule,$oNow->setDate($oNow->format('Y'),6,1));
       
-      // Assign members to teams
+      // Assign members to team one as their using $iFiveMinuteTimeslot
+      
       $oService->assignTeamMember($iMemberOne,$iTeamOne,$iMemberOneSchedule);
       $oService->assignTeamMember($iMemberTwo,$iTeamOne,$iMemberTwoSchedule);
      
-      $oService->assignTeamMember($iMemberThree,$iTeamTwo,$iMemberThreeSchedule);
-      $oService->assignTeamMember($iMemberFour,$iTeamTwo,$iMemberFourSchedule);
+      $oService->assignTeamMember($iMemberThree,$iTeamOne,$iMemberThreeSchedule);
+      $oService->assignTeamMember($iMemberFour,$iTeamOne,$iMemberFourSchedule);
       
       // Create some Rules 
       
@@ -204,7 +205,7 @@ class RolloverTestTest extends TestRolloverBase
       
       $this->RolloverRules($iNewCalYear,3);
       
-      $this->RolloverTeams($iNewCalYear,2);
+      $this->RolloverTeams($iNewCalYear,3);
       
    }
    
