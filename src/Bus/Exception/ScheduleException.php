@@ -102,7 +102,7 @@ class ScheduleException extends BookMeException implements BusException
     public static function hasFailedRolloverSchedule(RolloverSchedulesCommand $oCommand, DBALException $oDatabaseException)
     {
         $exception = new static(
-            'Unable to rollover schedules for calendar year '.$oCommand->getCalendarYearRollover()
+            'Unable to rollover schedules for next calendar year '.$oCommand->getNewCalendarYear()
             , 0 , $oDatabaseException
         );
         

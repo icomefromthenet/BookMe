@@ -33,45 +33,6 @@ class RolloverTeamsHandler
     protected $iLockRetry;
 
     
-    
-    protected function lockTeamTables()
-    {
-        $oDatabase              = $this->oDatabaseAdapter;
-        $sTeamMembersTableName  = $this->aTableNames['bm_schedule_team_members'];
-        $bLockObtained          = false;
-        $iLockCount             = $this->iLockRetry;
-        
-        do {
-            
-            try {
-                
-                $sLockSql = " LOCK TABLES $sTeamMembersTableName WRITE, $sTeamMembersTableName WRITE as tm ";
-     
-           
-                $bLockObtained = $oDatabase->executeUpdate($sLockSql,[],[]);
-                
-            } catch(DBALException $e) {
-                $iLockCount = $iLockCount - 1;
-            }
-            
-        } while($bLockObtained === false && $iLockCount > 0);
-        
-        return $bLockObtained;
-        
-    }
-    
-    protected function unlockTeamTables()
-    {
-        $oDatabase              = $this->oDatabaseAdapter;
-        $sTeamMembersTableName  = $this->aTableNames['bm_schedule_team_members'];
-        
-                
-        $sLockSql = " UNLOCK TABLES ";
-
-        return $oDatabase->executeUpdate($sLockSql,[],[]);
-        
-    }
-    
     public function __construct(array $aTableNames, Connection $oDatabaseAdapter, $iLockRetry = 3)
     {
         $this->oDatabaseAdapter = $oDatabaseAdapter;
@@ -105,10 +66,6 @@ class RolloverTeamsHandler
         
         try {
             
-            # Step 1 Obtain a write locks
-            if($this->lockTeamsTables()) {
-                throw MembershipException::hasFailedRolloverTeam($oCommand, new DBALException("Unable to get lock on $sTeamMembersTableName table"));
-            }
             
 	        $oDateType = Type::getType(Type::DATE);
 	        $oIntType  = Type::getType(Type::INTEGER);
@@ -116,11 +73,8 @@ class RolloverTeamsHandler
 	        # Step 2 Rollover the teams
 	        $iNumberRolledOver = $oDatabase->executeUpdate($sSql,[$iNextCalenderYear] , [$oIntType]);
 	        
-	        
 	        $oCommand->setRollOverNumber($iNumberRolledOver);
-	        
-	        # Step 3 Clear the write locks
-	        $this->unlockTeamTables();
+	       
                  
 	    }
 	    catch(DBALException $e) {

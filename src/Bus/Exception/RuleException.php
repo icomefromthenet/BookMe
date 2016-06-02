@@ -5,6 +5,7 @@ use IComeFromTheNet\BookMe\BookMeException;
 use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverRulesCommand;
 
 
 use League\Tactician\Exception\Exception as BusException;
@@ -128,7 +129,7 @@ class RuleException extends BookMeException implements BusException
         
     }
     
-     /**
+    /**
      * @param mixed $invalidCommand
      *
      * @return static
@@ -146,6 +147,23 @@ class RuleException extends BookMeException implements BusException
         
     }
     
+     /**
+     * @param mixed $invalidCommand
+     *
+     * @return static
+     */
+    public static function hasFailedRolloverRules(RolloverRulesCommand $oCommand, DBALException $oDatabaseException = null)
+    {
+        
+        $exception = new static(
+            sprintf('Unable to rollover rules for calendar year at %s ', $oCommand->getNextCalendarYear()), 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+        
+    }
     
     /**
      * Return the command that has failed validation

@@ -390,6 +390,8 @@ class init_schema implements EntityInterface
           
           `is_single_day` BOOLEAN DEFAULT FALSE,
           
+          `carry_from_id` INT NOT NULL,
+          
           PRIMARY KEY (`rule_id`),
           CONSTRAINT `rule_fk1`
             FOREIGN KEY (`rule_type_id`)

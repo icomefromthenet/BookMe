@@ -36,6 +36,8 @@ use IComeFromTheNet\BookMe\Bus\Command\CreateRuleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverTimeslotCommand;
+use IComeFromTheNet\BookMe\Bus\Command\RolloverRulesCommand;
+
 
 
 use IComeFromTheNet\BookMe\Bus\Handler\CalAddYearHandler;
@@ -58,6 +60,7 @@ use IComeFromTheNet\BookMe\Bus\Handler\AssignRuleToScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RefreshScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RemoveRuleFromScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverTimeslotHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\RolloverRulesHandler;
 
 use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
@@ -239,6 +242,11 @@ class BookMeContainer extends Container
                 return new RolloverTimeslotHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
+             $this['handlers.rule.rollover'] = function($c) {
+                return new RolloverRulesHandler($c->getTableMap(), $c->getDatabaseAdapter(), $c->getCronToQuery());  
+            };
+          
+            
             
             # Command Bus
             
@@ -263,6 +271,7 @@ class BookMeContainer extends Container
                     RefreshScheduleCommand::class       => 'handlers.schedule.refresh',
                     RemoveRuleFromScheduleCommand::class => 'handlers.rule.remove',
                     RolloverTimeslotCommand::class      => 'handlers.slot.rollover',
+                    RolloverRulesCommand::class         => 'handlers.rule.rollover',
                 ];
         
              

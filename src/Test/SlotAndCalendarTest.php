@@ -78,8 +78,7 @@ class SlotAndCalendarTest extends TestSetupBase
        // Test custom validators
        $this->SameCalYearValidatorTest();
        
-       // Test Slot Rollover
-       $this->TimeslotRolloverTest($oStartYear,$oStartYear->format('Y')+1,$iSlotId);
+      
     }
     
     protected function AddYearTest($oStartYear)
@@ -259,52 +258,7 @@ class SlotAndCalendarTest extends TestSetupBase
         
     }
 
-    protected function TimeslotRolloverTest($oStartYear,$iNewCalYear,$iTestSlotId)
-    {
-        $oContainer  = $this->getContainer();
-        
-        $oCommandBus = $oContainer->getCommandBus(); 
-       
-        # Add New Year
-       
-        $oCommand  = new CalAddYearCommand(1, $oStartYear->setDate($iNewCalYear,1,1));
-       
-        $oCommandBus->handle($oCommand);
-       
-        # Rollover timeslots
-       
-        $oCommand = new RolloverTimeslotCommand($iNewCalYear);
-       
-       
-        $oCommandBus->handle($oCommand);
-        
-        // Test we have non empty affected count
-        $this->assertGreaterThanOrEqual(0,$oCommand->getRollOverNumber);  
-       
-       // Assert that one slot has correct number of new slots assume the test slot is 12
-        
-        $numberSlots = (int)((60*24) / 12);
-        
-        // Assert max date is equal
-        
-        $iDayCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
-                                                                           from bm_timeslot_day 
-                                                                           where timeslot_id = ? "
-                                                                           ,[$iTestSlotId],0,[]);
-       
-       
-        $this->assertEquals($numberSlots,$iDayCount,'The Day slot are less than expected number'); 
-        
-        $iYearCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
-                                                                            from bm_timeslot_year 
-                                                                            where timeslot_id = ? 
-                                                                            and Y = ?"
-                                                                            ,[$iTestSlotId,$iNewCalYear],0,[]);
-        $iDaysInYear = date("z", mktime(0,0,0,12,31,$iNewCalYear)) + 1;
-        
-        $this->assertGreaterThanOrEqual($iDayCount *$iDaysInYear, $iYearCount,'The year slot count is less than expected after a rollover' );
-       
-    }
+   
     
     
 }

@@ -17,7 +17,7 @@ use IComeFromTheNet\BookMe\Cron\ParsedRange;
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidationException;
 
 
-class RulesTestCommandTest extends TestRulesGroupBase
+class RulesTest extends TestRulesGroupBase
 {
     
     

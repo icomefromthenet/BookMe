@@ -20,7 +20,7 @@ class RolloverSchedulesCommand implements ValidationInterface, HasEventInterface
     /**
      * @var integer the calendar year to rollover
      */ 
-    protected $iCalendarYearRollover;
+    protected $iNextCalendarYearRollover;
   
     /**
      * @var integer number of schedules that been rolledover
@@ -28,9 +28,9 @@ class RolloverSchedulesCommand implements ValidationInterface, HasEventInterface
     protected $iRolloverNumber;
     
     
-    public function __construct($iCalendarYearRollover)
+    public function __construct($iNextCalendarYearRollover)
     {
-        $this->iCalendarYearRollover    = $iCalendarYearRollover;
+        $this->iNextCalendarYearRollover    = $iNextCalendarYearRollover;
         
     }
     
@@ -40,9 +40,9 @@ class RolloverSchedulesCommand implements ValidationInterface, HasEventInterface
     * 
     * @return integer 
     */ 
-    public function getCalendarYearRollover()
+    public function getNewCalendarYear()
     {
-        return $this->iCalendarYearRollover;
+        return $this->iNextCalendarYearRollover;
     }
     
     /**
@@ -89,7 +89,7 @@ class RolloverSchedulesCommand implements ValidationInterface, HasEventInterface
     public function getData()
     {
         return [
-            'calendar_year' => $this->iCalendarYearRollover,
+            'calendar_year' => $this->iNextCalendarYearRollover,
         ];
     }
     
