@@ -36,7 +36,7 @@ class AssignTeamMemberCommand implements  HasEventInterface, ValidationInterface
     public function __construct($iMemberDatabaseId, $iTeamDatabaseId, $iScheduleId)
     {
         $this->iMemberDatabaseId = $iMemberDatabaseId;
-        $thus->iTeamDatabaseId   = $iTeamDatabaseId;
+        $this->iTeamDatabaseId   = $iTeamDatabaseId;
         $this->iScheduleId       = $iScheduleId;
     }
     

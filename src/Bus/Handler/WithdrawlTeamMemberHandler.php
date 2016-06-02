@@ -72,7 +72,7 @@ class WithdrawlTeamMemberHandler
 
 	    }
 	    catch(DBALException $e) {
-	        throw hasFailedWithdrawlTeamMember::hasFailedWithdrawlTeamMember($oCommand, $e);
+	        throw MembershipException::hasFailedWithdrawlTeamMember($oCommand, $e);
 	    }
     
         

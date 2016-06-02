@@ -7,6 +7,8 @@ use IComeFromTheNet\BookMe\Test\Base\TestMgtBase;
 use IComeFromTheNet\BookMe\Bus\Command\RefreshScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
+use IComeFromTheNet\BookMe\Bus\Command\AssignTeamMemberCommand;
+use IComeFromTheNet\BookMe\Bus\Command\WithdrawlTeamMemberCommand;
 use IComeFromTheNet\BookMe\BookMeService;
 use IComeFromTheNet\BookMe\Bus\Exception\ScheduleException;
 
@@ -57,6 +59,7 @@ class ScheduleAdvanceTest extends TestMgtBase
       $iMemberTwoSchedule   = $oService->startSchedule($iMemberTwo,   $iFiveMinuteTimeslot, $oNow->format('Y'));
       $iMemberThreeSchedule = $oService->startSchedule($iMemberThree, $iFiveMinuteTimeslot, $oNow->format('Y'));
       $iMemberFourSchedule  = $oService->startSchedule($iMemberFour,  $iFiveMinuteTimeslot, $oNow->format('Y'));
+      
       
       // Rules Single
       $oSingleDate = clone $oNow;
@@ -121,7 +124,7 @@ class ScheduleAdvanceTest extends TestMgtBase
         'holiday_single'         => $iSingleBreakRule,
         'overtime_repeat'        => $iRepeatOvertimeRule,
         'overtime_single'        => $iSingleOvertimeRule,
-        'schedule_member_single' => $iMemberOneSchedule,
+        'schedule_member_one'    => $iMemberOneSchedule,
         'schedule_member_two'    => $iMemberTwoSchedule,
         'schedule_member_three'  => $iMemberThreeSchedule,
         'schedule_member_four'   => $iMemberFourSchedule,
@@ -141,11 +144,17 @@ class ScheduleAdvanceTest extends TestMgtBase
         $iRuleTwoId        = $this->aDatabaseId['holiday_repeat'];
         $iRuleThreeId      = $this->aDatabaseId['overtime_repeat']; 
         
-        $iScheduleId    = $this->aDatabaseId['schedule_member_two'];
+        $iScheduleId       = $this->aDatabaseId['schedule_member_two'];
+        
+        $iMemberOneId      = $this->aDatabaseId['member_one'];
+        $iTeamOneId        = $this->aDatabaseId['team_one'];
+        $iTeamOneScheduleId= $this->aDatabaseId['schedule_member_one'];
         
         $this->ApplyRulesTest($iScheduleId, $iRuleOneId,$iRuleTwoId,$iRuleThreeId);
         $this->RefreshScheduleTest($iScheduleId);
         $this->RemoveFromScheduleTest($iScheduleId, $iRuleOneId);
+        $this->AssignToTeam($iMemberOneId,$iTeamOneId,$iTeamOneScheduleId);
+        $this->WithdrawlToTeam($iMemberOneId,$iTeamOneId,$iTeamOneScheduleId);
        
     }
     
@@ -232,6 +241,46 @@ class ScheduleAdvanceTest extends TestMgtBase
        
     }
     
+    
+    public function AssignToTeam($iMemberId, $iTeamId, $iScheduleId)
+    {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand = new AssignTeamMemberCommand($iMemberId, $iTeamId, $iScheduleId);
+         
+        $oContainer->getCommandBus()->handle($oCommand);
+        
+        
+        $iInserted = (integer) $oContainer->getDatabase()->fetchColumn('SELECT count(*) 
+                                                FROM bm_schedule_team_members 
+                                                WHERE schedule_id = ? and membership_id = ? and team_id = ? 
+                                                ',[$iScheduleId,$iMemberId,$iTeamId],0);
+        
+        $this->assertEquals(1,$iInserted);
+        
+    }
+    
+     public function WithdrawlToTeam($iMemberId, $iTeamId, $iScheduleId)
+    {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand = new WithdrawlTeamMemberCommand($iMemberId, $iTeamId, $iScheduleId);
+         
+        $oContainer->getCommandBus()->handle($oCommand);
+        
+        
+        $bInserted = (integer) $oContainer->getDatabase()->fetchColumn('SELECT count(*) 
+                                                FROM bm_schedule_team_members 
+                                                WHERE schedule_id = ? and membership_id = ? and team_id = ? 
+                                                ',[$iScheduleId,$iMemberId,$iTeamId],0);
+        
+        $this->assertEquals(0,$bInserted);
+        
+    }
     
 }
 /* end of file */

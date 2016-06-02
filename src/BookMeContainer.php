@@ -23,6 +23,8 @@ use IComeFromTheNet\BookMe\Bus\Command\SlotToggleStatusCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RegisterTeamCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverTeamsCommand;
+use IComeFromTheNet\BookMe\Bus\Command\AssignTeamMemberCommand;
+use IComeFromTheNet\BookMe\Bus\Command\WithdrawlTeamMemberCommand;
 use IComeFromTheNet\BookMe\Bus\Command\TakeBookingCommand;
 use IComeFromTheNet\BookMe\Bus\Command\ClearBookingCommand;
 
@@ -46,7 +48,8 @@ use IComeFromTheNet\BookMe\Bus\Handler\SlotToggleStatusHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RegisterMemberHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RegisterTeamHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverTeamsHandler;
-
+use IComeFromTheNet\BookMe\Bus\Handler\WithdrawlTeamMemberHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\AssignTeamMemberHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\TakeBookingHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\ClearBookingHandler;
 
@@ -192,6 +195,13 @@ class BookMeContainer extends Container
                 return new RolloverTeamsHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
             
+            $this['handlers.team.assign'] = function($c) {
+                return new AssignTeamMemberHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
+            $this['handlers.team.withdrawl'] = function($c) {
+                return new WithdrawlTeamMemberHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
             
             $this['handlers.schedule.toggle'] = function($c) {
                 return new ToggleScheduleCarryHandler($c->getTableMap(), $c->getDatabaseAdapter());  
@@ -272,6 +282,8 @@ class BookMeContainer extends Container
                     RemoveRuleFromScheduleCommand::class => 'handlers.rule.remove',
                     RolloverTimeslotCommand::class      => 'handlers.slot.rollover',
                     RolloverRulesCommand::class         => 'handlers.rule.rollover',
+                    AssignTeamMemberCommand::class      => 'handlers.team.assign',
+                    WithdrawlTeamMemberCommand::class   => 'handlers.team.withdrawl',
                 ];
         
              

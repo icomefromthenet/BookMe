@@ -33,6 +33,7 @@ class RolloverTestTest extends TestRolloverBase
       
       $oService->addCalenderYears(1,$oStartYear);
       
+      // Create Timeslots
       
       $iFiveMinuteTimeslot    = $oService->addTimeslot(5,$oNow->format('Y'));
       $iTenMinuteTimeslot     = $oService->addTimeslot(10,$oNow->format('Y'));
@@ -40,26 +41,39 @@ class RolloverTestTest extends TestRolloverBase
 
       $oService->toggleSlotAvability($iTenMinuteTimeslot);    
   
+      // Register new Members
+  
       $iMemberOne   = $oService->registerMembership();
       $iMemberTwo   = $oService->registerMembership();
       $iMemberThree = $oService->registerMembership();
       $iMemberFour  = $oService->registerMembership();
+    
+      // Register new Teams    
     
       $iTeamOne     = $oService->registerTeam($iFiveMinuteTimeslot);
       $iTeamTwo     = $oService->registerTeam($iSevenMinuteTimeslot);
       
       
        // Schedules
+      
       $iMemberOneSchedule   = $oService->startSchedule($iMemberOne,   $iFiveMinuteTimeslot, $oNow->format('Y'));
       $iMemberTwoSchedule   = $oService->startSchedule($iMemberTwo,   $iFiveMinuteTimeslot, $oNow->format('Y'));
       $iMemberThreeSchedule = $oService->startSchedule($iMemberThree, $iFiveMinuteTimeslot, $oNow->format('Y'));
       $iMemberFourSchedule  = $oService->startSchedule($iMemberFour,  $iFiveMinuteTimeslot, $oNow->format('Y'));
       
       // Stop a schedule
+      
       $oService->stopSchedule($iMemberFourSchedule,$oNow->setDate($oNow->format('Y'),6,1));
       
+      // Assign members to teams
+      $oService->assignTeamMember($iMemberOne,$iTeamOne,$iMemberOneSchedule);
+      $oService->assignTeamMember($iMemberTwo,$iTeamOne,$iMemberTwoSchedule);
+     
+      $oService->assignTeamMember($iMemberThree,$iTeamTwo,$iMemberThreeSchedule);
+      $oService->assignTeamMember($iMemberFour,$iTeamTwo,$iMemberFourSchedule);
       
-      // Rules Single
+      // Create some Rules 
+      
       $oSingleDate = clone $oNow;
       $oSingleDate->setDate($oNow->format('Y'),1,14);
         
@@ -132,11 +146,16 @@ class RolloverTestTest extends TestRolloverBase
       $oService->assignRuleToSchedule($iRepeatOvertimeRule,$iMemberFourSchedule,true);
       $oService->assignRuleToSchedule($iSingleOvertimeRule,$iMemberFourSchedule,false);
       
-      # Refresh the Members Schedules
+      //  Refresh the Members Schedules
+      
       $oService->resfreshSchedule($iMemberOneSchedule);
       $oService->resfreshSchedule($iMemberTwoSchedule);
       $oService->resfreshSchedule($iMemberThreeSchedule);
       $oService->resfreshSchedule($iMemberFourSchedule);
+    
+    
+    
+      // save identifiers for use below    
             
       $this->aDatabaseId = [
         'five_minute'            => $iFiveMinuteTimeslot,
@@ -184,6 +203,8 @@ class RolloverTestTest extends TestRolloverBase
       $this->RolloverSchedules($iNewCalYear,$this->aDatabaseId['member_two'], $this->aDatabaseId['member_four']); 
       
       $this->RolloverRules($iNewCalYear,3);
+      
+      $this->RolloverTeams($iNewCalYear,2);
       
    }
    
@@ -315,10 +336,28 @@ class RolloverTestTest extends TestRolloverBase
    
    
    
-   public function RolloverTeams()
+   public function RolloverTeams($iNewCalYear, $iExpectedNewRelations)
    {
+       $oContainer  = $this->getContainer();
+        
+       $oCommandBus = $oContainer->getCommandBus(); 
+            
+      
+       $oCommand = new RolloverTeamsCommand($iNewCalYear);
+      
+       $oCommandBus->handle($oCommand);
        
+         // Test we have non empty affected count
+        $this->assertGreaterThan(0,$oCommand->getRollOverNumber());  
+      
        
+       $iNewRelationsCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("SELECT count(sm.schedule_id) 
+                                                                                  FROM bm_schedule_team_members sm
+                                                                                  JOIN bm_schedule s on sm.schedule_id = s.schedule_id
+                                                                                  WHERE s.calendar_year = ?",[$iNewCalYear],0,[]);
+     
+       $this->assertGreaterThanOrEqual($iExpectedNewRelations,$iNewRelationsCount,'The number of new relations does not match');      
+   
    }
    
     

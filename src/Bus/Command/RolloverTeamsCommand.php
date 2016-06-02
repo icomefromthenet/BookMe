@@ -40,7 +40,7 @@ class RolloverTeamsCommand implements ValidationInterface, HasEventInterface
     * 
     * @return integer 
     */ 
-    public function getCalendarYearRollover()
+    public function getNextCalendarYear()
     {
         return $this->iCalendarYearRollover;
     }

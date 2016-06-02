@@ -71,19 +71,15 @@ class AssignTeamMemberHandler
 	                ':iMemberId'   => $iMemberId,  
 	        ];
 	    
-	        $oDatabase->executeUpdate($sSql, $aParams, [$oIntegerType, $oIntegerType, $oIntegerType]);
+	        $iAffected = $oDatabase->executeUpdate($sSql, $aParams, [$oIntegerType, $oIntegerType, $oIntegerType]);
             
-            $iTeamId = $oIntegerType->convertToPHPValue($oDatabase->lastInsertId(),$oDatabase->getDatabasePlatform());
-            
-            if(true === empty($iTeamId)) {
+            if(true === empty($iAffected)) {
                 throw new DBALException('Check timeslot of team matches the schedule or member given that may not be the owner of the schedule');
             }
-            
-            $oCommand->setTeamId($iTeamId);
                  
 	    }
 	    catch(DBALException $e) {
-	        throw SlotFailedException::hasFailedAssignTeamMember($oCommand, $e);
+	        throw MembershipException::hasFailedAssignTeamMember($oCommand, $e);
 	    }
     	
         

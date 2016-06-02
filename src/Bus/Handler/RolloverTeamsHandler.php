@@ -27,17 +27,12 @@ class RolloverTeamsHandler
      */ 
     protected $oDatabaseAdapter;
     
-    /**
-     * @var integer the number of times to try and obtain a lock
-     */ 
-    protected $iLockRetry;
-
     
-    public function __construct(array $aTableNames, Connection $oDatabaseAdapter, $iLockRetry = 3)
+    
+    public function __construct(array $aTableNames, Connection $oDatabaseAdapter)
     {
         $this->oDatabaseAdapter = $oDatabaseAdapter;
         $this->aTableNames      = $aTableNames;
-        $this->iLockRetry       = $iLockRetry;
         
     }
     
@@ -48,32 +43,32 @@ class RolloverTeamsHandler
         $sScheduleTableName     = $this->aTableNames['bm_schedule'];
         $sTeamMembersTableName  = $this->aTableNames['bm_schedule_team_members'];
        
-        $iCalendarYear          = $oCommand->getCalendarYearRollover();
-        $iNextCalenderYear      = $iCalendarYear +1;
+        $iNextCalenderYear      = $oCommand->getNextCalendarYear(); 
+        $iCalendarYear          = $iNextCalenderYear -1;
+        
        
         
-        # Rollover last calendar year but exclude any that have been done already we know those done already by looking
-        # at the carryover flag on schedule table.
+        # Looking at schedules in the new calendar year that do not have a record in current table 
         
-        $aSql[] = " INSERT INTO $sTeamMembersTableName (`team_id`,`membership_id`,`schedule_id`,`registered_date`) ";
+        $aSql[] = " REPLACE INTO $sTeamMembersTableName (`team_id`,`membership_id`,`schedule_id`,`registered_date`) ";
         $aSql[] = " SELECT `tm`.`team_id`, `tm`.`membership_id`, `s`.`schedule_id`, now() ";
         $aSql[] = " FROM $sTeamMembersTableName tm, $sScheduleTableName s ";
-        $aSql[] = " WHERE `s`.`is_carryover` = true AND `s`.`calendar_year` = ? ";
-        $aSql[] = " AND `s`.`schedule_id` = `tm`.`schedule_id` ";
+        $aSql[] = " WHERE `s`.`calendar_year` = ? ";
+        $aSql[] = " AND `tm`.`membership_id` = `tm`.`membership_id` ";
+        
         
         $sSql = implode(PHP_EOL,$aSql);
         
         
         try {
             
-            
 	        $oDateType = Type::getType(Type::DATE);
 	        $oIntType  = Type::getType(Type::INTEGER);
 	    
 	        # Step 2 Rollover the teams
-	        $iNumberRolledOver = $oDatabase->executeUpdate($sSql,[$iNextCalenderYear] , [$oIntType]);
+	        $iNumberRolledOver = $oDatabase->executeUpdate($sSql,[$iNextCalenderYear], [$oIntType]);
 	        
-	        $oCommand->setRollOverNumber($iNumberRolledOver);
+        	$oCommand->setRollOverNumber($iNumberRolledOver);
 	       
                  
 	    }
