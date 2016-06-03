@@ -68,13 +68,14 @@ class TakeBookingHandler
         
         $sLockSql = implode(PHP_EOL,$aLockSql);
         
-        # Step 2 create the booking
-        $aTakeBookSql[] = " INSERT INTO $sBookingTableName (`booking_id`,`schedule_id`,`slot_open,`slot_close`,`registered_date`) ";
+        # Step 2 Create the booking
+        
+        $aTakeBookSql[] = " INSERT INTO $sBookingTableName (`booking_id`,`schedule_id`,`slot_open`,`slot_close`,`registered_date`) ";
         $aTakeBookSql[] = " VALUES (NULL, :iScheduleId, :oSlotOpen, :oSlotClose, NOW()) ";
         
         $sTakeBookSql = implode(PHP_EOL, $aTakeBookSql);
       
-        # Step 3 update the schedule with a booking
+        # Step 3 Update the schedule with a booking
         
         $aCreateBookSql[] = " UPDATE $sScheduleSlotTableName  ";
         $aCreateBookSql[] = " SET  booking_id = :iBookingId ";
@@ -90,20 +91,20 @@ class TakeBookingHandler
         
         try {
             
-	        $oDateType = Type::getType(Type::DATE);
+	        $oDateType = Type::getType(Type::DATETIME);
 	        $oIntType  = Type::getType(Type::INTEGER);
 	    
 	        $aParams = [
 	            ':iScheduleId'  => $iScheduleId,
 	            ':oSlotOpen'    => $oOpenDate,
-	            ':oClosingSlot' => $oCloseDate,
+	            ':oSlotClose' => $oCloseDate,
 	            
 	       ];
 	       
 	       $aTypes = [
 	            ':iScheduleId'  => $oIntType,
 	            ':oSlotOpen'    => $oDateType,
-	            ':oClosingSlot' => $oDateType,
+	            ':oSlotClose' => $oDateType,
 	           
 	       ];
 	    

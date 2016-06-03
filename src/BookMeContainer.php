@@ -65,6 +65,8 @@ use IComeFromTheNet\BookMe\Bus\Handler\RemoveRuleFromScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverTimeslotHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverRulesHandler;
 
+use IComeFromTheNet\BookMe\Bus\Decorator\MaxBookingsDecorator;
+
 use IComeFromTheNet\BookMe\Bus\Listener\CommandHandled as CustomHandler;
 
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidatePropMiddleware;
@@ -208,7 +210,7 @@ class BookMeContainer extends Container
             };
             
             $this['handlers.booking.take'] = function($c) {
-                return new TakeBookingHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+                return new MaxBookingsDecorator(new TakeBookingHandler($c->getTableMap(), $c->getDatabaseAdapter()),$c->getTableMap(), $c->getDatabaseAdapter());
             };
             
             $this['handlers.schedule.clear'] = function($c) {

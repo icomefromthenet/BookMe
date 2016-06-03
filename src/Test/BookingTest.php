@@ -8,17 +8,13 @@ use Psr\Log\LoggerInterface;
 use Valitron\Validator;
 
 use IComeFromTheNet\BookMe\BookMeService;
-use IComeFromTheNet\BookMe\Test\Base\TestRolloverBase;
+use IComeFromTheNet\BookMe\Test\Base\TestBookingBase;
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidationException;
-
-use IComeFromTheNet\BookMe\Bus\Command\RolloverSchedulesCommand;
-use IComeFromTheNet\BookMe\Bus\Command\RolloverRulesCommand;
-use IComeFromTheNet\BookMe\Bus\Command\RolloverTeamsCommand;
-use IComeFromTheNet\BookMe\Bus\Command\RolloverTimeslotCommand;
-use IComeFromTheNet\BookMe\Bus\Command\CalAddYearCommand;
+use IComeFromTheNet\BookMe\Bus\Command\TakeBookingCommand;
+use IComeFromTheNet\BookMe\Bus\Exception\BookingException;
 
 
-class RolloverTest extends TestRolloverBase
+class BookingTest extends TestBookingBase
 {
     
     
@@ -115,9 +111,8 @@ class RolloverTest extends TestRolloverBase
       $iRepeatOvertimeRule   = $oService->createRepeatingOvertimeRule($oDayWorkDayRuleStart,$oDayWorkDayRuleEnd,$iFiveMinuteTimeslot,$iNineAmSlot,$iFivePmSlot,'*','28-30','*');
       $iSingleOvertimeRule   = $oService->createSingleOvertmeRule($oHolidayStart,$iFiveMinuteTimeslot,$iNineAmSlot,$iFivePmSlot);
       
- 
-      // Link Rules to Schedule
       
+      // Link Rules to Schedule
       $oService->assignRuleToSchedule($iRepeatWorkDayRule,$iMemberOneSchedule,true);
       $oService->assignRuleToSchedule($iSingleWorkDayRule,$iMemberOneSchedule,false);
       $oService->assignRuleToSchedule($iRepeatBreakRule,$iMemberOneSchedule,true);
@@ -183,7 +178,7 @@ class RolloverTest extends TestRolloverBase
         'holiday_single'         => $iSingleHolidayRule,
         'overtime_repeat'        => $iRepeatOvertimeRule,
         'overtime_single'        => $iSingleOvertimeRule,
-        'schedule_member_single' => $iMemberOneSchedule,
+        'schedule_member_one'    => $iMemberOneSchedule,
         'schedule_member_two'    => $iMemberTwoSchedule,
         'schedule_member_three'  => $iMemberThreeSchedule,
         'schedule_member_four'   => $iMemberFourSchedule,
@@ -196,178 +191,200 @@ class RolloverTest extends TestRolloverBase
    }  
    
    /**
-    * @group Rollover
+    * @group Booking
     */ 
-   public function testRollverSteps()
+   public function testBookingSteps()
    {
       $oNow       = $this->getContainer()->getNow();
       
-      $iNewCalYear = $oNow->format('Y')+1;
+      // Test a sucessful booking (No oveertime slots)
       
-      // Test Slot Rollover
-      $this->RolloverCalendarAndSlots($oNow,$iNewCalYear,$this->aDatabaseId['five_minute'],$this->aDatabaseId['ten_minute']);
-       
-      // Test Schedule Rollover assumes that done slots and calendar already
-      $this->RolloverSchedules($iNewCalYear,$this->aDatabaseId['member_two'], $this->aDatabaseId['member_four']); 
+      $oOpen  =  clone $oNow;
+      $oOpen->setDate($oNow->format('Y'),1,14);
+      $oOpen->setTime(17,0,0);
       
-      $this->RolloverRules($iNewCalYear,3);
+      $oClose = clone $oNow;
+      $oClose->setDate($oNow->format('Y'),1,14);
+      $oClose->setTime(17,20,0);
       
-      $this->RolloverTeams($iNewCalYear,3);
+      $this->SucessfulyTakeBooking($this->aDatabaseId['schedule_member_one'],$oOpen,$oClose,4);
+      
+      // Check for duplicate failure
+      
+      $this->FailOnDuplicateBooking($this->aDatabaseId['schedule_member_one'],$oOpen,$oClose);
+      
+      // Take a second booking so we can test if max check works
+      $oOpen  =  clone $oNow;
+      $oOpen->setDate($oNow->format('Y'),1,14);
+      $oOpen->setTime(17,20,0);
+      
+      $oClose = clone $oNow;
+      $oClose->setDate($oNow->format('Y'),1,14);
+      $oClose->setTime(17,40,0);
+      
+      
+      $this->SucessfulyTakeBooking($this->aDatabaseId['schedule_member_one'],$oOpen,$oClose,4);
+      $this->FailMaxBooking($this->aDatabaseId['schedule_member_one'],$oOpen,$oClose);
+      
+      $oOpen  =  clone $oNow;
+      $oOpen->setDate($oNow->format('Y'),1,28);
+      $oOpen->setTime(9,0,0);
+      
+      $oClose = clone $oNow;
+      $oClose->setDate($oNow->format('Y'),1,28);
+      $oClose->setTime(9,45,0);
+      
+      $this->SucessfulyTakeOvertimeBooking($this->aDatabaseId['schedule_member_one'],$oOpen,$oClose,9);
+      
+      $oOpen  =  clone $oNow;
+      $oOpen->setDate($oNow->format('Y'),1,14);
+      $oOpen->setTime(18,0,0);
+      
+      $oClose = clone $oNow;
+      $oClose->setDate($oNow->format('Y'),1,14);
+      $oClose->setTime(18,45,0);
+      
+      $this->FailBreakBooking($this->aDatabaseId['schedule_member_one'],$oOpen,$oClose);
+      
+      
       
    }
    
    
    
-   public function RolloverCalendarAndSlots($oStartYear,$iNewCalYear,$iTestSlotId, $iDepSlotId)
+   public function SucessfulyTakeBooking($iScheduleId, DateTime $oOpeningSlot, DateTime $oClosingSlot, $iExpectedSlotCount)
    {
         
         $oContainer  = $this->getContainer();
         
         $oCommandBus = $oContainer->getCommandBus(); 
        
-        # Add New Year
-       
-        $oCommand  = new CalAddYearCommand(1, $oStartYear->setDate($iNewCalYear,1,1));
-       
-        $oCommandBus->handle($oCommand);
-       
-        # Rollover timeslots
-       
-        $oCommand = new RolloverTimeslotCommand($iNewCalYear);
-       
-       
+        $oCommand  = new TakeBookingCommand($iScheduleId, $oOpeningSlot, $oClosingSlot);
+        
         $oCommandBus->handle($oCommand);
         
-        // Test we have non empty affected count
-        $this->assertGreaterThanOrEqual(0,$oCommand->getRollOverNumber());  
-       
-       // Assert that one slot has correct number of new slots assume the test slot is 12
+        // check if we have a booking saved
+        $this->assertGreaterThanOrEqual(1,$oCommand->getBookingId());
         
-        $numberSlots = (int)((60*24) / 5);
+        // verify the slots were reserved
+        $iSlotCount = 0;
         
-        // Assert max date is equal
+        $iSlotCount = (integer) $oContainer->getDatabase()->fetchColumn('SELECT count(*) 
+                                                FROM bm_schedule_slot
+                                                WHERE schedule_id = ? 
+                                                and slot_open >= ?
+                                                and slot_close <= ?
+                                                and booking_id = ?'
+                                                ,[$iScheduleId,$oOpeningSlot,$oClosingSlot,$oCommand->getBookingId()]
+                                                ,0
+                                                ,[Type::INTEGER, Type::DATETIME,Type::DATETIME,Type::INTEGER]);
         
-        $iDayCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
-                                                                           from bm_timeslot_day 
-                                                                           where timeslot_id = ? "
-                                                                           ,[$iTestSlotId],0,[]);
-       
-       
-        $this->assertEquals($numberSlots,$iDayCount,'The Day slot are less than expected number'); 
+        $this->assertEquals($iSlotCount,$iExpectedSlotCount,'The slots have not been reserved');
         
-        $iYearCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
-                                                                            from bm_timeslot_year 
-                                                                            where timeslot_id = ? 
-                                                                            and Y = ?"
-                                                                            ,[$iTestSlotId,$iNewCalYear],0,[]);
-        $iDaysInYear = date("z", mktime(0,0,0,12,31,$iNewCalYear)) + 1;
         
-        $this->assertGreaterThanOrEqual($iDayCount *$iDaysInYear, $iYearCount,'The year slot count is less than expected after a rollover' );
-       
-        // Make sure in active slots are ignored    
-       
-         $iYearCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("select count(open_minute) 
-                                                                            from bm_timeslot_year 
-                                                                            where timeslot_id = ? 
-                                                                            and Y = ?"
-                                                                            ,[$iDepSlotId,$iNewCalYear],0,[]);
-        
-        $this->assertEquals(0,$iYearCount,'The in active slot was rolled over when not of been');
    }
-  
-  
-  
-   public function RolloverSchedules($iNewCalYear, $iTestMemberId, $iMemberWithStoppedScheduleId)
+   
+   
+   
+   public function FailMaxBooking($iScheduleId, DateTime $oOpeningSlot, DateTime $oClosingSlot)
    {
-        
         $oContainer  = $this->getContainer();
         
         $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand  = new TakeBookingCommand($iScheduleId, $oOpeningSlot, $oClosingSlot,1);
+       
+        try {
+        
+            $oCommandBus->handle($oCommand);
+            $this->assertFalse(true,'The Max Booking check should of failed');
             
-      
-        $oCommand = new RolloverSchedulesCommand($iNewCalYear);
-      
-        $oCommandBus->handle($oCommand);
-        
-        // Test we have non empty affected count
-        $this->assertGreaterThanOrEqual(0,$oCommand->getRollOverNumber());  
-        
-        // Test we have a new schedule for the member
-        
-        $iNewScheduleId = (int) $oContainer->getDatabaseAdapter()->fetchColumn("SELECT schedule_id FROM bm_schedule WHERE membership_id = ? AND calendar_year = ?",[$iTestMemberId,$iNewCalYear],0,[]);
-        
-        $this->assertGreaterThanOrEqual(0,$iNewScheduleId,"We do not have a new schedule for member $iTestMemberId when should have");
-        
-        // Test if we have slots for this schedule
-        
-        $iScheduleSlotCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("SELECT count(slot_open) FROM bm_schedule_slot WHERE schedule_id = ? ",[$iNewScheduleId],0,[]);
-        
-        $iNumberSlots = (int)((60*24) / 5);
-        
-        $this->assertGreaterThanOrEqual($iNumberSlots,$iScheduleSlotCount,"Not have enought slots for new calendar year schedule for member $iTestMemberId");
-        
-        // make sure stopped schedules are not rolled over
-        $iNewScheduleId = (int) $oContainer->getDatabaseAdapter()->fetchColumn("SELECT schedule_id FROM bm_schedule WHERE membership_id = ? AND calendar_year = ?",[$iMemberWithStoppedScheduleId,$iNewCalYear],0,[]);
-       
-        
-        $this->assertEquals(0,$iNewScheduleId,'A schedule was rollover for a stopped schedule when not have been');
-               
-   }
-   
-   
-   
-   public function RolloverRules($iNewCalYear,$iExpectedRollovers)
-   {
-       
-       $oContainer  = $this->getContainer();
-        
-       $oCommandBus = $oContainer->getCommandBus(); 
-            
-      
-       $oCommand = new RolloverRulesCommand($iNewCalYear);
-      
-       $oCommandBus->handle($oCommand);
-       
-       # Count see have expected number of rollovers
-        
-       $iNewRulesCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("SELECT count(rule_id) FROM bm_rule WHERE cal_year = ?",[$iNewCalYear],0,[]);
-        
-       $this->assertGreaterThanOrEqual($iExpectedRollovers,$iNewRulesCount,'The wrong number of rules have been rolled over into new calendar year');    
-       
-       # Do we have activity for these new rules
-       $iNewRulesCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("SELECT count(rule_id) FROM bm_rule_series WHERE rule_id IN (SELECT rule_id FROM bm_rule WHERE cal_year = ?)",[$iNewCalYear],0,[]);
-        
-       $this->assertGreaterThanOrEqual($iExpectedRollovers,$iNewRulesCount,'The is wrong number of new rule series data after rollover');      
-       
-       
-   }
-   
-   
-   
-   public function RolloverTeams($iNewCalYear, $iExpectedNewRelations)
-   {
-       $oContainer  = $this->getContainer();
-        
-       $oCommandBus = $oContainer->getCommandBus(); 
-            
-      
-       $oCommand = new RolloverTeamsCommand($iNewCalYear);
-      
-       $oCommandBus->handle($oCommand);
-       
-         // Test we have non empty affected count
-        $this->assertGreaterThan(0,$oCommand->getRollOverNumber());  
-      
-       
-       $iNewRelationsCount = (int) $oContainer->getDatabaseAdapter()->fetchColumn("SELECT count(sm.schedule_id) 
-                                                                                  FROM bm_schedule_team_members sm
-                                                                                  JOIN bm_schedule s on sm.schedule_id = s.schedule_id
-                                                                                  WHERE s.calendar_year = ?",[$iNewCalYear],0,[]);
-     
-       $this->assertGreaterThanOrEqual($iExpectedNewRelations,$iNewRelationsCount,'The number of new relations does not match');      
-   
-   }
-   
+        }
+        catch(BookingException $e) {
+           $this->assertEquals($e->getMessage(),'Max bookings taken for calendar day for schedule at id 1 time from '.$oOpeningSlot->format('Y-m-d H:i:s').' until '.$oClosingSlot->format('Y-m-d H:i:s'));
+        }
     
+   }
+   
+   public function FailOnDuplicateBooking($iScheduleId, DateTime $oOpeningSlot, DateTime $oClosingSlot)
+   {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand  = new TakeBookingCommand($iScheduleId, $oOpeningSlot, $oClosingSlot);
+        
+        try {
+        
+            $oCommandBus->handle($oCommand);
+            $this->assertFalse(true,'A Duplicate Booking was allowed');
+            
+        }
+        catch(BookingException $e) {
+           
+           $this->assertEquals($e->getMessage(),'Unable to reserve schedule slots for schedule at id 1 time from '.$oOpeningSlot->format('Y-m-d H:i:s').' until '.$oClosingSlot->format('Y-m-d H:i:s'));
+           
+        }
+    
+   }
+  
+  
+   public function SucessfulyTakeOvertimeBooking($iScheduleId, DateTime $oOpeningSlot, DateTime $oClosingSlot, $iExpectedSlotCount)
+   {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand  = new TakeBookingCommand($iScheduleId, $oOpeningSlot, $oClosingSlot);
+        
+        $oCommandBus->handle($oCommand);
+        
+        // check if we have a booking saved
+        $this->assertGreaterThanOrEqual(1,$oCommand->getBookingId());
+        
+        // verify the slots were reserved
+        $iSlotCount = 0;
+        
+        $iSlotCount = (integer) $oContainer->getDatabase()->fetchColumn('SELECT count(*) 
+                                                FROM bm_schedule_slot
+                                                WHERE schedule_id = ? 
+                                                and slot_open >= ?
+                                                and slot_close <= ?
+                                                and booking_id = ?'
+                                                ,[$iScheduleId,$oOpeningSlot,$oClosingSlot,$oCommand->getBookingId()]
+                                                ,0
+                                                ,[Type::INTEGER, Type::DATETIME,Type::DATETIME,Type::INTEGER]);
+        
+        $this->assertEquals($iSlotCount,$iExpectedSlotCount,'The slots have not been reserved');
+    
+   }
+  
+  
+   public function FailBreakBooking($iScheduleId, DateTime $oOpeningSlot, DateTime $oClosingSlot)
+   {
+        $oContainer  = $this->getContainer();
+        
+        $oCommandBus = $oContainer->getCommandBus(); 
+       
+        $oCommand  = new TakeBookingCommand($iScheduleId, $oOpeningSlot, $oClosingSlot);
+        
+        try {
+        
+            $oCommandBus->handle($oCommand);
+            $this->assertFalse(true,'A booking on break was allowed');
+            
+        }
+        catch(BookingException $e) {
+           
+           $this->assertEquals($e->getMessage(),'Unable to reserve schedule slots for schedule at id 1 time from '.$oOpeningSlot->format('Y-m-d H:i:s').' until '.$oClosingSlot->format('Y-m-d H:i:s'));
+           
+        }
+    
+   }
+   
+   
+  
+   
+   
 }
 /* end of file */

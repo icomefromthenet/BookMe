@@ -80,6 +80,24 @@ class BookingException extends BookMeException implements BusException
         return $exception;
     }
     
+     /**
+     * @param TakeBookingCommand $oCommand
+     *
+     * @return static
+     */
+    public static function maxBookingsExceeded(TakeBookingCommand $oCommand, DBALException $oDatabaseException = null)
+    {
+        $exception = new static(
+            'Max bookings taken for calendar day for schedule at id '.$oCommand->getScheduleId() 
+            .' time from '.$oCommand->getOpeningSlot()->format('Y-m-d H:i:s') 
+            .' until '.$oCommand->getClosingSlot()->format('Y-m-d H:i:s') , 0 , $oDatabaseException
+        );
+        
+        $exception->oCommand = $oCommand;
+        
+        return $exception;
+    }
+    
     /**
      * @param ClearBookingCommand $oCommand
      *

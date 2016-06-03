@@ -5,12 +5,12 @@ use RuntimeException;
 use \PHPUnit_Extensions_Database_Operation_Factory;
 
 /**
- * Test methods within the booking module
+ * Test methods within the rollover function in every module
  * 
  * @author Lewis Dyer <getintouch@icomefromthenet.com>
  * @since 1.0
  */ 
-class TestRulesGroupBase extends TestWithContainer
+class TestBookingBase extends TestWithContainer
 {
     
     protected $aFixtures = ['truncate_fixture.php'];
