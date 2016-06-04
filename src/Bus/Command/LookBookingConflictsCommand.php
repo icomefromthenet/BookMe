@@ -18,16 +18,21 @@ class LookBookingConflictsCommand implements  HasEventInterface, ValidationInter
 {
 
     /**
-     * @var integer the year to check on
+     * @var DateTime check all conflicts with this calendar year and before this date
      */ 
-    protected $iCalYear;
+    protected $oNow;
 
+    /**
+     * @var integer the conflicts found
+     */ 
+    protected $iConflictsFound;
     
     
-    public function __construct($iCalYear)
+    
+    public function __construct($oNow)
     {
-        $this->iCalYear      = $iCalYear;
-        
+        $this->oNow             = $oNow;
+        $this->iConflictsFound  = 0;
     }
     
     
@@ -36,11 +41,30 @@ class LookBookingConflictsCommand implements  HasEventInterface, ValidationInter
      * 
      * @access public
      */ 
-    public function getCalYear()
+    public function getNow()
     {
-        return $this->iCalYear;
+        return $this->oNow;
     }
     
+    /**
+     * Return the number of conflicts found in the search
+     * 
+     * @return integer
+     */ 
+    public function getNumberConflictsFound()
+    {
+        return $this->iConflictsFound;
+    }
+    
+    /**
+     * This is the number of conflicts found
+     * 
+     * @param integer 
+     */ 
+    public function setNumberConflictsFound($iConflictsFound)
+    {
+        $this->iConflictsFound = $iConflictsFound;
+    }
     
     //---------------------------------------------------------
     # validation interface
@@ -49,14 +73,8 @@ class LookBookingConflictsCommand implements  HasEventInterface, ValidationInter
     public function getRules()
     {
         return [
-            'integer' => [
-                ['calendar_year']
-            ]
-            ,'min' => [
-                ['calendar_year',2000]
-            ]
-            ,'required' => [
-                ['calendar_year']
+            'instanceOf' => [
+                ['now','DateTime']
             ]
         ];
     }
@@ -65,7 +83,7 @@ class LookBookingConflictsCommand implements  HasEventInterface, ValidationInter
     public function getData()
     {
         return [
-            'calendar_year'   => $this->iCalYear,
+            'now'   => $this->oNow,
         ];
     }
     

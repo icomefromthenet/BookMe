@@ -33,21 +33,6 @@ class LookBookingConflictsHandler
     {
         $this->oDatabaseAdapter = $oDatabaseAdapter;
         $this->aTableNames      = $aTableNames;
-        
-        
-    }
-    
-    
-    protected function testAvailabilityChanges()
-    {
-        
-        
-    }
-    
-    protected function testMaxBookingExceeded()
-    {
-        
-        
     }
     
     
@@ -56,65 +41,49 @@ class LookBookingConflictsHandler
         $oDatabase              = $this->oDatabaseAdapter;
         $sConflictTableName     = $this->aTableNames['bm_booking_conflict'];
         $sScheduleSlotTableName = $this->aTableNames['bm_schedule_slot'];
-        $sBookingTableName      = $this->aTableNames['bm_booking'];
+        $sBookingTable          = $this->aTableNames['bm_booking'];
+        $oNow                   = $oCommand->getNow();
+        $aFindConflictsSql      = [];
+        $sFindConflictsSql      = '';
         
-        $iCalYear               = $oCommand->getCalYear();
-        
-        $aClearSlotsSql        = [];
-        $sClearSlotsSql        = '';
-        $aRemoveBookingSql     = [];
-        $sRemoveBookingSql     = '';
-        $aRemoveConflictSql    = [];
-        $sRemoveConflictSql    = '';
-        
-        
-        # Step 1 Clear the booking from the schedule rows
-        
-        $aClearSlotsSql[] = " UPDATE $sScheduleSlotTableName sl SET `sl`.`booking_id` = NULL ";
-        $aClearSlotsSql[] = " JOIN $sBookingTableName b on `b`.`schedule_id` = `sl`.`schedule_id` ";
-        $aClearSlotsSql[] = " WHERE `b`.`booking_id` = :iBookingDatabaseId ";
-        $aClearSlotsSql[] = " AND `b`.`slot_open` >= `sl`.`slot_open` AND `b`.`slot_close` <= `sl`.`slot_close` ";
-        
-        $sClearSlotsSql = implode(PHP_EOL,$aClearSlotsSql);
-        
-        # Step 2 Clear the conflict booking table
-        
-        $aRemoveConflictSql[] = " DELETE FROM  $sConflictTableName  ";
-        $aRemoveConflictSql[] = " WHERE booking_id = :iBookingDatabaseId ";
-          
-        $sRemoveConflictSql = implode(PHP_EOL,$aRemoveConflictSql);
        
-          
-        # Step 3 Clear the booking table  
+        $sClearConflicts     = " DELETE FROM $sConflictTableName WHERE 1=1 "; 
+       
         
-        $aRemoveBookingSql[] = " DELETE FROM  $sBookingTableName  ";
-        $aRemoveBookingSql[] = " WHERE booking_id = :iBookingDatabaseId ";
-          
-        $sRemoveBookingSql = implode(PHP_EOL,$aRemoveConflictSql);
+        $aFindConflictsSql[] = " INSERT INTO $sConflictTableName (`booking_id`,`known_date`)  ";
+        // Find bookings where availability was removed
+        $aFindConflictsSql[] = " SELECT distinct(`booking_id`), NOW() FROM $sScheduleSlotTableName ";
+        $aFindConflictsSql[] = " WHERE  `is_available` = false AND `is_override` = false AND `booking_id` IS NOT NULL ";
+        $aFindConflictsSql[] = " AND `slot_open` >= ? ";
+        $aFindConflictsSql[] = " UNION ";
+        // Find bookings where exclusion rule been applied and no overrride
+        $aFindConflictsSql[] = " SELECT distinct(`booking_id`), NOW() FROM $sScheduleSlotTableName ";
+        $aFindConflictsSql[] = " WHERE  `is_excluded` = true AND `is_override` = false AND `booking_id` IS NOT NULL ";
+        $aFindConflictsSql[] = " AND `slot_open` >= ? ";
+        $aFindConflictsSql[] = " UNION ";
+        // Find bookings where the schedule has been closed        
+        $aFindConflictsSql[] = " SELECT distinct(`booking_id`), NOW() FROM $sScheduleSlotTableName ";
+        $aFindConflictsSql[] = " WHERE  `is_closed` = true AND `booking_id` IS NOT NULL ";
+        $aFindConflictsSql[] = " AND `slot_open` >= ?";
+        
+        $sFindConflictsSql = implode(PHP_EOL,$aFindConflictsSql);
       
         
         try {
+            # Delete conflicts where only storing the results from last command run
             
-	        $oIntType  = Type::getType(Type::INTEGER);
-	    
-	       	$iRowsAffected = $oDatabase->executeUpdate($sClearSlotsSql, ['iBookingDatabaseId' => $sClearSlotsSql], [$oIntType]);
+	        $oDatabase->executeUpdate($sClearConflicts);
 	        
-	        if($iRowsAffected == 0) {
-	            throw new DBALException('Could not clear of a booking slots');
-	        }
+	        # Execute the conflict check
 	        
-	        $iRowsAffected = $oDatabase->executeUpdate($sRemoveConflictSql, ['iBookingDatabaseId' => $sClearSlotsSql], [$oIntType]);
+	        $iRowsAffected = $oDatabase->executeUpdate($sFindConflictsSql, [$oNow,$oNow,$oNow], [Type::DATE,Type::DATE,Type::DATE]);
+	     
+	        $oCommand->setNumberConflictsFound($iRowsAffected);
 	        
 	        
-	        $iRowsAffected = $oDatabase->executeUpdate($sRemoveBookingSql, ['iBookingDatabaseId' => $sClearSlotsSql], [$oIntType]);
-	        
-	        if($iRowsAffected == 0) {
-	            throw new DBALException('Could not remove the booking from the database');
-	        }
-                 
 	    }
 	    catch(DBALException $e) {
-	        throw BookingException::hasFailedToClearBooking($oCommand, $e);
+	        throw new BookingException('Unable to execute booking conflict query', 0,$e);
 	    }
         
         

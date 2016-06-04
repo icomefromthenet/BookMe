@@ -58,7 +58,7 @@ class RolloverTeamsHandler
         
         
         $sSql = implode(PHP_EOL,$aSql);
-        
+    
         
         try {
             

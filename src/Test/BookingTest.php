@@ -12,6 +12,8 @@ use IComeFromTheNet\BookMe\Test\Base\TestBookingBase;
 use IComeFromTheNet\BookMe\Bus\Middleware\ValidationException;
 use IComeFromTheNet\BookMe\Bus\Command\TakeBookingCommand;
 use IComeFromTheNet\BookMe\Bus\Exception\BookingException;
+use IComeFromTheNet\BookMe\Bus\Command\LookBookingConflictsCommand;
+use IComeFromTheNet\BookMe\Bus\Command\ClearBookingCommand;
 
 
 class BookingTest extends TestBookingBase
@@ -246,8 +248,12 @@ class BookingTest extends TestBookingBase
       
       $this->FailBreakBooking($this->aDatabaseId['schedule_member_one'],$oOpen,$oClose);
       
+      // Test Conflict Checker
       
+      $this->ConfictCheckerTest($this->aDatabaseId['schedule_member_one'],$oNow);
       
+      // Clear a booking
+      $this->BookingClearTest(1);
    }
    
    
@@ -383,8 +389,71 @@ class BookingTest extends TestBookingBase
    }
    
    
+ 
+   public function ConfictCheckerTest($iScheduleId,$oNow)
+   {
+       $oContainer  = $this->getContainer();
+        
+       $oCommandBus = $oContainer->getCommandBus(); 
+       
+       
+       // Conflict 1 Booking Exclusion Rule now exists or override removed
+       $sSql  ="";
+       $sSql .=" UPDATE bm_schedule_slot SET is_override = false, is_available = true, is_excluded = true, booking_id = 1, is_closed = false " ;
+       $sSql .=" WHERE schedule_id = ?  AND slot_open >= '2016-08-01 12:00:00' AND slot_close <= '2016-08-01 12:45:00'";
+       
+       $oContainer->getDatabase()->executeUpdate($sSql,[$iScheduleId],[Type::INTEGER]);
+       
+       
+       // Conflict 2 Booking Schedule has been closed
+       $sSql  ="";
+       $sSql .=" UPDATE bm_schedule_slot SET is_override = false, is_available = true, is_excluded = false, booking_id = 1, is_closed = true " ;
+       $sSql .=" WHERE schedule_id = ?  AND slot_open >= '2016-08-01 15:00:00' AND slot_close <= '2016-08-01 15:45:00'";
+       
+       $oContainer->getDatabase()->executeUpdate($sSql,[$iScheduleId],[Type::INTEGER]);
+       
+       $oStartYear = new DateTime();
+       $oStartYear->setDate($oNow->format('Y'),1,1);
+       $oStartYear->setTime(0,0,0);
+       
+       $oCommand = new LookBookingConflictsCommand($oStartYear);
+       
+       $oCommandBus->handle($oCommand);
+       
+       $this->assertEquals(1,$oCommand->getNumberConflictsFound());
+       
+   }
   
    
+   public function BookingClearTest($iBookingId)
+   {
+       $oContainer  = $this->getContainer();
+        
+       $oCommandBus = $oContainer->getCommandBus(); 
+      
+       $oCommand = new ClearBookingCommand($iBookingId);
+       
+       $oCommandBus->handle($oCommand);
+       
+        $iBookCount = (integer) $oContainer->getDatabase()->fetchColumn('SELECT 1 
+                                                FROM bm_booking
+                                                WHERE booking_id = ?'
+                                                ,[$iBookCount]
+                                                ,0
+                                                ,[Type::INTEGER]);
+        
+        $this->assertEquals(0,$iBookCount,'The booking was not removed');
+        
+         $iBookCount = (integer) $oContainer->getDatabase()->fetchColumn('SELECT 1 
+                                                FROM bm_booking_conflict
+                                                WHERE booking_id = ?'
+                                                ,[$iBookCount]
+                                                ,0
+                                                ,[Type::INTEGER]);
+        
+        $this->assertEquals(0,$iBookCount,'The booking conflict was not removed');
+       
+   }
    
 }
 /* end of file */

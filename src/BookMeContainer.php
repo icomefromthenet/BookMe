@@ -39,6 +39,7 @@ use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverTimeslotCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RolloverRulesCommand;
+use IComeFromTheNet\BookMe\Bus\Command\LookBookingConflictsCommand;
 
 
 
@@ -52,7 +53,6 @@ use IComeFromTheNet\BookMe\Bus\Handler\WithdrawlTeamMemberHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\AssignTeamMemberHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\TakeBookingHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\ClearBookingHandler;
-
 use IComeFromTheNet\BookMe\Bus\Handler\ToggleScheduleCarryHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverSchedulesHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\StartScheduleHandler;
@@ -64,6 +64,7 @@ use IComeFromTheNet\BookMe\Bus\Handler\RefreshScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RemoveRuleFromScheduleHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverTimeslotHandler;
 use IComeFromTheNet\BookMe\Bus\Handler\RolloverRulesHandler;
+use IComeFromTheNet\BookMe\Bus\Handler\LookBookingConflictsHandler;
 
 use IComeFromTheNet\BookMe\Bus\Decorator\MaxBookingsDecorator;
 
@@ -213,6 +214,10 @@ class BookMeContainer extends Container
                 return new MaxBookingsDecorator(new TakeBookingHandler($c->getTableMap(), $c->getDatabaseAdapter()),$c->getTableMap(), $c->getDatabaseAdapter());
             };
             
+            $this['handlers.booking.conflict'] = function($c) {
+                return new LookBookingConflictsHandler($c->getTableMap(), $c->getDatabaseAdapter());  
+            };
+            
             $this['handlers.schedule.clear'] = function($c) {
                 return new ClearBookingHandler($c->getTableMap(), $c->getDatabaseAdapter());  
             };
@@ -286,6 +291,7 @@ class BookMeContainer extends Container
                     RolloverRulesCommand::class         => 'handlers.rule.rollover',
                     AssignTeamMemberCommand::class      => 'handlers.team.assign',
                     WithdrawlTeamMemberCommand::class   => 'handlers.team.withdrawl',
+                    LookBookingConflictsCommand::class  => 'handlers.booking.conflict',
                 ];
         
              

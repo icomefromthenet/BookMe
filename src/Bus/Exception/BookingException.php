@@ -106,7 +106,7 @@ class BookingException extends BookMeException implements BusException
     public static function hasFailedToClearBooking(ClearBookingCommand $oCommand, DBALException $oDatabaseException= null)
     {
         $exception = new static(
-            'Unable to make booking at id '.$oCommand->getBookingId() , 0 , $oDatabaseException
+            'Unable to remove booking at id '.$oCommand->getBookingId() , 0 , $oDatabaseException
         );
         
         $exception->oCommand = $oCommand;
