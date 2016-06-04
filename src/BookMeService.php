@@ -25,6 +25,9 @@ use IComeFromTheNet\BookMe\Bus\Command\AssignRuleToScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RemoveRuleFromScheduleCommand;
 use IComeFromTheNet\BookMe\Bus\Command\RefreshScheduleCommand;
 
+use IComeFromTheNet\BookMe\Bus\Command\TakeBookingCommand;
+use IComeFromTheNet\BookMe\Bus\Command\ClearBookingCommand;
+
 /**
  * Core Library Service.
  * 
@@ -508,6 +511,51 @@ class BookMeService
     public function resfreshSchedule($iScheduleDatabaseId)
     {
         $oCommand = new RefreshScheduleCommand($iScheduleDatabaseId);
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return true;
+    }
+    
+    
+    //----------------------------------------
+    // Booking
+    //
+    //----------------------------------------
+   
+    /**
+     * This will create a booking reserving the chosen slots on the schedule
+     * 
+     * If slots can not be reserved then an exception will be thrown
+     * 
+     * @param integer       $iScheduleId        The database id of the schedule to use      
+     * @param DateTime      $oOpeningSlot       The opening of the first Slot
+     * @param DateTime      $oClosingSlot       The closing date the last slot. 
+     * 
+     * @return integer the booking database id
+     */ 
+    public function takeBooking($iScheduleId, DateTime $oOpeningSlot, DateTime $oClosingSlot)
+    {
+         $oCommand = new TakeBookingCommand($iScheduleId, $oOpeningSlot, $oClosingSlot);
+        
+        $this->getContainer()->getCommandBus()->handle($oCommand);
+        
+        return $oCommand->getBookingId();
+    }
+    
+    /**
+     * This will remove a booking which free the assigned slots
+     * 
+     * 1. Remove the booking record
+     * 2. Clear booking from schedule
+     * 3. Remove any conflict list
+     * 
+     * @param integer $iBookingId   The Booking Database id
+     * 
+     */ 
+    public function cancelBooking($iBookingId)
+    {
+        $oCommand = new ClearBookingCommand($iBookingId);
         
         $this->getContainer()->getCommandBus()->handle($oCommand);
         
