@@ -4,6 +4,8 @@ BookMe
 One very slow bus ride left me with some time for thought and this project is my proof of concept from my musings. This is not a full library solution and therefore has no composer download setup.
 I hope that this project will help inspire if your given the task to design a reservation system.  
 
+I've started to build this library in a booking extension for Bolt CMS, its being used as core code in the extension its been modified heavly you find it here [BoltBookeMe](https://github.com/icomefromthenet/BoltBookeMe).
+
 ## A Quick Overview
 
 The project has a few important concepts:
